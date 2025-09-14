@@ -20,3 +20,5 @@ frontend/dist/
 
 # Root
 node_modules/
+CLAUDE.md
+.claude/
