@@ -1,0 +1,43 @@
+{
+  "compilerOptions": {
+    // Compilation Target
+    "target": "ES2022",                    // Node 16+ supports ES2022
+    "module": "commonjs",                  // Most compatible with Express/Node ecosystem
+    "lib": ["ES2022"],                     // Available JS features
+    
+    // File Organization
+    "outDir": "./dist",                    // Compiled output directory
+    "rootDir": "./src",                    // Source code directory
+    
+    // Module Resolution
+    "moduleResolution": "node",            // Node.js-style resolution
+    "esModuleInterop": true,               // Import CommonJS modules easily
+    "resolveJsonModule": true,             // Import JSON files
+    
+    // Type Checking
+    "strict": true,                        // Enable all strict checks
+    "skipLibCheck": true,                  // Skip .d.ts files in node_modules
+    "forceConsistentCasingInFileNames": true, // Prevent casing issues
+    
+    // Development Experience
+    "sourceMap": true,                     // Enable debugging
+    "noImplicitReturns": true,            // All code paths must return
+    "noFallthroughCasesInSwitch": true,   // Prevent switch fallthrough bugs
+    
+    // Optional Strictness (uncomment if desired)
+    // "noUnusedLocals": true,             // Error on unused variables
+    // "noUnusedParameters": true,         // Error on unused parameters
+    
+    // For Prisma compatibility
+    "experimentalDecorators": true,        // If using decorators
+    "emitDecoratorMetadata": true         // If using decorators
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"],
+  
+  // For running with ts-node in development
+  "ts-node": {
+    "esm": false,
+    "experimentalSpecifierResolution": "node"
+  }
+}
