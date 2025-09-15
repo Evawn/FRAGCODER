@@ -21,7 +21,6 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
 }) => {
   const extensions = [
     glsl(),
-    oneDark,
     lineNumbers(),
     highlightActiveLineGutter(),
     indentOnInput(),
@@ -57,6 +56,7 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         onChange={onChange}
         placeholder={placeholder}
         readOnly={readOnly}
+        theme={oneDark}
         extensions={extensions}
         basicSetup={{
           lineNumbers: false, // We're adding this manually above
