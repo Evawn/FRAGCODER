@@ -1,10 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import CodeMirrorEditor from '../components/common/CodeMirrorEditor';
-import { compile } from '../utils/GLSLCompiler';
-// Import test file to expose testGLSLCompiler to window
-import '../utils/GLSLCompiler.test';
+import ShaderPlayer from '../components/shader/ShaderPlayer';
 
 interface ShaderData {
   id: string;
@@ -19,7 +17,14 @@ interface ShaderData {
 interface CompilationError {
   line: number;
   message: string;
+  type: 'error' | 'warning';
 }
+
+const defaultShaderCode = `void main() {
+    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+    vec3 color = vec3(uv, 0.5 + 0.5 * sin(u_time));
+    gl_FragColor = vec4(color, 1.0);
+}`;
 
 function ShaderEditor() {
   const [searchParams] = useSearchParams();
@@ -29,6 +34,7 @@ function ShaderEditor() {
   const [isPlaying, setIsPlaying] = useState(true);
   const [compilationErrors, setCompilationErrors] = useState<CompilationError[]>([]);
   const [loading, setLoading] = useState(false);
+  const [currentCode, setCurrentCode] = useState<string>(defaultShaderCode);
 
   useEffect(() => {
     if (shaderId) {
@@ -48,6 +54,16 @@ function ShaderEditor() {
     }
   };
 
+  const handleCompilationResult = useCallback((success: boolean, errors: CompilationError[]) => {
+    console.log('Compilation result:', success ? 'success' : 'failed', errors);
+    setCompilationErrors(errors);
+    
+    // Auto-play when compilation succeeds
+    if (success) {
+      setIsPlaying(true);
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <PanelGroup direction="horizontal" className="h-screen">
@@ -55,11 +71,12 @@ function ShaderEditor() {
         <Panel defaultSize={50} minSize={30}>
           <div className="h-full flex flex-col">
             <div className="w-full" style={{ aspectRatio: '4/3' }}>
-              <ShaderViewer
-                shader={shader}
+              <ShaderPlayer
+                userCode={currentCode}
                 isPlaying={isPlaying}
                 onPlayPause={() => setIsPlaying(!isPlaying)}
                 onReset={() => console.log('Reset shader')}
+                onCompilationResult={handleCompilationResult}
               />
             </div>
             <div className="flex-1"></div>
@@ -78,16 +95,8 @@ function ShaderEditor() {
             <ShaderCodeEditor
               shader={shader}
               onCompile={(code) => {
-                console.log('Compiling shader...');
-                const result = compile(code);
-                console.log('Compilation result:', result);
-                console.log('Setting errors:', result.errors);
-                setCompilationErrors(result.errors);
-                if (result.success) {
-                  console.log('Shader compiled successfully!');
-                } else {
-                  console.error('Shader compilation failed:', result.errors);
-                }
+                console.log('Triggering shader compilation...');
+                setCurrentCode(code);
               }}
               compilationErrors={compilationErrors}
             />
@@ -98,54 +107,6 @@ function ShaderEditor() {
   );
 }
 
-interface ShaderViewerProps {
-  shader: ShaderData | null;
-  isPlaying: boolean;
-  onPlayPause: () => void;
-  onReset: () => void;
-}
-
-function ShaderViewer({ shader, isPlaying, onPlayPause, onReset }: ShaderViewerProps) {
-  return (
-    <div className="h-full flex flex-col">
-      {/* Header with controls */}
-      <div className="bg-gray-800 p-4 border-b border-gray-700">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">
-            {shader?.title || 'Untitled Shader'}
-          </h2>
-          <div className="flex gap-2">
-            <button
-              onClick={onPlayPause}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-            >
-              {isPlaying ? 'Pause' : 'Play'}
-            </button>
-            <button
-              onClick={onReset}
-              className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors"
-            >
-              Reset
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* WebGL Canvas */}
-      <div className="flex-1 bg-black relative">
-        <canvas
-          className="w-full h-full"
-          style={{ imageRendering: 'pixelated' }}
-        />
-        {!shader && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <p className="text-gray-400">No shader loaded</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 interface ShaderCodeEditorProps {
   shader: ShaderData | null;
@@ -214,16 +175,5 @@ function ShaderCodeEditor({ shader, onCompile, compilationErrors }: ShaderCodeEd
     </div>
   );
 }
-
-const defaultShaderCode = `precision mediump float;
-
-uniform vec2 u_resolution;
-uniform float u_time;
-
-void main() {
-    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
-    vec3 color = vec3(uv, 0.5 + 0.5 * sin(u_time));
-    gl_FragColor = vec4(color, 1.0);
-}`;
 
 export default ShaderEditor
