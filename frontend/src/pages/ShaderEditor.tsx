@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import CodeMirrorEditor from '../components/common/CodeMirrorEditor';
 
 interface ShaderData {
   id: string;
@@ -168,26 +169,13 @@ function ShaderCodeEditor({ shader, onCompile, compilationErrors }: ShaderCodeEd
 
       {/* Code Editor Area */}
       <div className="flex-1 bg-gray-900">
-        <textarea
+        <CodeMirrorEditor
           value={code}
-          onChange={(e) => setCode(e.target.value)}
-          className="w-full h-full bg-gray-900 text-white font-mono text-sm p-4 resize-none outline-none"
+          onChange={setCode}
           placeholder="// Write your GLSL fragment shader here..."
-          spellCheck={false}
         />
       </div>
 
-      {/* Error Display */}
-      {compilationErrors.length > 0 && (
-        <div className="bg-red-900/20 border-t border-red-500/50 p-4 max-h-32 overflow-y-auto">
-          <h3 className="text-red-400 font-semibold mb-2">Compilation Errors:</h3>
-          {compilationErrors.map((error, index) => (
-            <div key={index} className="text-red-300 text-sm mb-1">
-              Line {error.line}: {error.message}
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
