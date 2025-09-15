@@ -1,3 +1,9 @@
+// Page containing GLSL fragement shader editor and viewer. 
+// 1. On the left, there is the shader viewer which has pause/play/reset buttons, and displays the most recently compiled shader.
+// 2. On the right, there is the shader editor which has a text area for writing GLSL code, and a compile button.
+// 3. The editor should be implemented CodeMirror with GLSL syntax highlighting.
+// 4. The viewer should support live updates when the shader is compiled successfully and use WebGL instead of Three.js
+
 function ShaderEditor() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center">

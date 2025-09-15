@@ -27,6 +27,32 @@ app.get('/db-test', async (req, res) => {
     }
 });
 
+// Get all public shaders
+app.get('/api/shaders', async (req, res) => {
+    try {
+        const shaders = await prisma.shader.findMany({
+            where: {
+                isPublic: true
+            },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        username: true
+                    }
+                }
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
+        res.json(shaders);
+    } catch (error) {
+        console.error('Error fetching shaders:', error);
+        res.status(500).json({ error: 'Failed to fetch shaders' });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

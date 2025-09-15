@@ -1,40 +1,131 @@
-import { useState } from 'react'
-import reactLogo from '../assets/react.svg'
-import viteLogo from '/vite.svg'
+import { useState, useEffect } from 'react';
+import SearchBar from '../components/gallery/SearchBar';
+import ShaderGrid from '../components/gallery/ShaderGrid';
+import LoadingSpinner from '../components/common/LoadingSpinner';
 
-function Gallery() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-8">Gallery</h1>
-        <div className="flex justify-center gap-4 mb-8">
-          <a href="https://vite.dev" target="_blank">
-            <img src={viteLogo} className="h-24 hover:drop-shadow-[0_0_2em_#646cffaa]" alt="Vite logo" />
-          </a>
-          <a href="https://react.dev" target="_blank">
-            <img src={reactLogo} className="h-24 hover:drop-shadow-[0_0_2em_#61dafbaa] animate-spin-slow" alt="React logo" />
-          </a>
-        </div>
-        <h2 className="text-2xl mb-8">Vite + React</h2>
-        <div className="card">
-          <button 
-            onClick={() => setCount((count) => count + 1)}
-            className="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
-          >
-            count is {count}
-          </button>
-          <p className="mt-4">
-            Edit <code className="bg-gray-800 px-2 py-1 rounded">src/pages/Gallery.tsx</code> and save to test HMR
-          </p>
-        </div>
-        <p className="mt-8 text-gray-500">
-          Click on the Vite and React logos to learn more
-        </p>
-      </div>
-    </div>
-  )
+interface Shader {
+  id: string;
+  title: string;
+  description?: string;
+  thumbnail?: string;
+  userId: string;
+  user: {
+    id: string;
+    username: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+  forkedFrom?: string;
+  isPublic: boolean;
 }
 
-export default Gallery
+function Gallery() {
+  const [shaders, setShaders] = useState<Shader[]>([]);
+  const [filteredShaders, setFilteredShaders] = useState<Shader[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchShaders();
+  }, []);
+
+  useEffect(() => {
+    filterShaders();
+  }, [shaders, searchTerm]);
+
+  const fetchShaders = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch('http://localhost:3001/api/shaders');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch shaders');
+      }
+      
+      const data = await response.json();
+      setShaders(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Error fetching shaders:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filterShaders = () => {
+    if (!searchTerm.trim()) {
+      setFilteredShaders(shaders);
+      return;
+    }
+
+    const filtered = shaders.filter((shader) => 
+      shader.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (shader.description && shader.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      shader.user.username.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    
+    setFilteredShaders(filtered);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white">
+        <div className="container mx-auto px-4 py-8">
+          <LoadingSpinner message="Loading shaders..." />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center py-16">
+            <p className="text-red-400 text-lg mb-4">Error loading shaders</p>
+            <p className="text-gray-400 mb-4">{error}</p>
+            <button
+              onClick={fetchShaders}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-white">
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-6">Shader Gallery</h1>
+          <div className="max-w-md">
+            <SearchBar
+              searchTerm={searchTerm}
+              onSearchChange={handleSearchChange}
+              placeholder="Search shaders, authors..."
+            />
+          </div>
+          {searchTerm && (
+            <p className="text-gray-400 mt-2 text-sm">
+              Found {filteredShaders.length} shader{filteredShaders.length !== 1 ? 's' : ''} 
+              {searchTerm && ` matching "${searchTerm}"`}
+            </p>
+          )}
+        </div>
+
+        <ShaderGrid shaders={filteredShaders} />
+      </div>
+    </div>
+  );
+}
+
+export default Gallery;
