@@ -17,6 +17,7 @@
     "axios": "^1.12.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-resizable-panels": "^3.0.6",
     "react-router-dom": "^7.9.1",
     "three": "^0.180.0"
   },
