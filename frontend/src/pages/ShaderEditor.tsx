@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import CodeMirrorEditor from '../components/common/CodeMirrorEditor';
+import { compile } from '../utils/GLSLCompiler';
+// Import test file to expose testGLSLCompiler to window
+import '../utils/GLSLCompiler.test';
 
 interface ShaderData {
   id: string;
@@ -74,7 +77,18 @@ function ShaderEditor() {
           <div className="h-full flex flex-col">
             <ShaderCodeEditor
               shader={shader}
-              onCompile={(code) => console.log('Compile shader:', code)}
+              onCompile={(code) => {
+                console.log('Compiling shader...');
+                const result = compile(code);
+                console.log('Compilation result:', result);
+                console.log('Setting errors:', result.errors);
+                setCompilationErrors(result.errors);
+                if (result.success) {
+                  console.log('Shader compiled successfully!');
+                } else {
+                  console.error('Shader compilation failed:', result.errors);
+                }
+              }}
               compilationErrors={compilationErrors}
             />
           </div>
@@ -168,12 +182,33 @@ function ShaderCodeEditor({ shader, onCompile, compilationErrors }: ShaderCodeEd
       </div>
 
       {/* Code Editor Area */}
-      <div className="flex-1 bg-gray-900">
-        <CodeMirrorEditor
-          value={code}
-          onChange={setCode}
-          placeholder="// Write your GLSL fragment shader here..."
-        />
+      <div className="flex-1 bg-gray-900 flex flex-col">
+        <div className="flex-1">
+          <CodeMirrorEditor
+            value={code}
+            onChange={setCode}
+            placeholder="// Write your GLSL fragment shader here..."
+          />
+        </div>
+        
+        {/* Compilation Errors */}
+        {compilationErrors.length > 0 && (
+          <div className="bg-gray-800 border-t border-gray-700 p-4 max-h-32 overflow-y-auto">
+            <h3 className="text-sm font-semibold text-red-400 mb-2">Compilation Errors:</h3>
+            <div className="space-y-1">
+              {compilationErrors.map((error, index) => (
+                <div key={index} className="text-sm">
+                  <span className="text-gray-400">
+                    {error.line > 0 ? `Line ${error.line}: ` : ''}
+                  </span>
+                  <span className={error.type === 'error' ? 'text-red-300' : 'text-yellow-300'}>
+                    {error.message}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
     </div>
