@@ -14,6 +14,11 @@ interface ShaderPlayerProps {
   onCompilationResult: (success: boolean, errors: CompilationError[]) => void;
 }
 
+interface CanvasWithMousePosition extends HTMLCanvasElement {
+  mouseX?: number;
+  mouseY?: number;
+}
+
 const VERTEX_SHADER_SOURCE = `
 attribute vec2 a_position;
 void main() {
@@ -66,20 +71,20 @@ function createShader(gl: WebGLRenderingContext, type: number, source: string): 
 function parseShaderError(error: string, userCodeStartLine: number = 0): CompilationError[] {
   const errors: CompilationError[] = [];
   const lines = error.split('\n');
-  
+
   for (const line of lines) {
     if (!line.trim()) continue;
-    
+
     // Common WebGL error patterns
     // Format: "ERROR: 0:15: 'variable' : undeclared identifier"
     const errorMatch = line.match(/ERROR:\s*(\d+):(\d+):\s*(.+)/);
     if (errorMatch) {
       const errorLine = parseInt(errorMatch[2]);
       const message = errorMatch[3].trim();
-      
+
       // Subtract the wrapper offset to get user code line number
       const lineNumber = Math.max(1, errorLine - userCodeStartLine);
-      
+
       errors.push({
         line: lineNumber,
         message: formatErrorMessage(message),
@@ -87,15 +92,15 @@ function parseShaderError(error: string, userCodeStartLine: number = 0): Compila
       });
       continue;
     }
-    
+
     // Warning pattern
     const warningMatch = line.match(/WARNING:\s*(\d+):(\d+):\s*(.+)/);
     if (warningMatch) {
       const errorLine = parseInt(warningMatch[2]);
       const message = warningMatch[3].trim();
-      
+
       const lineNumber = Math.max(1, errorLine - userCodeStartLine);
-      
+
       errors.push({
         line: lineNumber,
         message: formatErrorMessage(message),
@@ -103,7 +108,7 @@ function parseShaderError(error: string, userCodeStartLine: number = 0): Compila
       });
       continue;
     }
-    
+
     // Generic error without line number
     if (line.toLowerCase().includes('error') || line.toLowerCase().includes('failed')) {
       errors.push({
@@ -113,7 +118,7 @@ function parseShaderError(error: string, userCodeStartLine: number = 0): Compila
       });
     }
   }
-  
+
   return errors;
 }
 
@@ -123,7 +128,7 @@ function parseShaderError(error: string, userCodeStartLine: number = 0): Compila
 function formatErrorMessage(message: string): string {
   // Remove quotes around identifiers for cleaner messages
   message = message.replace(/['"\`]([^'"\`]+)['"\`]/g, '$1');
-  
+
   // Common error transformations
   const errorMappings: { [key: string]: string } = {
     'undeclared identifier': 'Variable not declared',
@@ -136,14 +141,14 @@ function formatErrorMessage(message: string): string {
     'l-value required': 'Cannot assign to this expression',
     'cannot assign to': 'Cannot assign to constant or expression',
   };
-  
+
   for (const [pattern, replacement] of Object.entries(errorMappings)) {
     if (message.toLowerCase().includes(pattern)) {
       // Keep the specific details but prepend with friendly message
       return `${replacement}: ${message}`;
     }
   }
-  
+
   return message;
 }
 
@@ -153,21 +158,21 @@ function formatErrorMessage(message: string): string {
 function prepareShaderCode(userCode: string): { code: string; userCodeStartLine: number } {
   // Check if the code already has precision declaration
   const precisionMatch = userCode.match(/precision\s+(lowp|mediump|highp)\s+float\s*;/);
-  
+
   // Count lines in the wrapper before user code
   const wrapperLines = FRAGMENT_SHADER_WRAPPER.split('\n');
   const userCodeStartLine = wrapperLines.findIndex(line => line.includes('{USER_CODE}'));
-  
+
   // If user already declared precision, don't wrap
   if (precisionMatch) {
     // Check if uniforms are already declared
     const hasUniforms = userCode.includes('u_resolution') || userCode.includes('iResolution');
-    
+
     if (!hasUniforms) {
       // Find where to insert uniforms (after precision declaration)
       const precisionIndex = userCode.indexOf(precisionMatch[0]);
       const precisionEndIndex = precisionIndex + precisionMatch[0].length;
-      
+
       // Find the next newline after precision declaration
       let insertIndex = userCode.indexOf('\n', precisionEndIndex);
       if (insertIndex === -1) {
@@ -175,7 +180,7 @@ function prepareShaderCode(userCode: string): { code: string; userCodeStartLine:
       } else {
         insertIndex += 1; // Include the newline
       }
-      
+
       const uniforms = `
 // Standard uniforms
 uniform vec2 u_resolution;
@@ -188,35 +193,35 @@ uniform float iTime;
 uniform vec4 iMouse;
 
 `;
-      
+
       // Insert uniforms after precision declaration
       const beforePrecision = userCode.substring(0, insertIndex);
       const afterPrecision = userCode.substring(insertIndex);
       const finalCode = beforePrecision + uniforms + afterPrecision;
-      
-      return { 
+
+      return {
         code: finalCode,
         userCodeStartLine: 0 // User code starts at the beginning
       };
     }
-    
+
     return { code: userCode, userCodeStartLine: 0 };
   }
-  
+
   // Replace the placeholder with user code
   const finalCode = FRAGMENT_SHADER_WRAPPER.replace('{USER_CODE}', userCode);
-  
+
   return { code: finalCode, userCodeStartLine };
 }
 
-export default function ShaderPlayer({ 
-  userCode, 
-  isPlaying, 
-  onPlayPause, 
+export default function ShaderPlayer({
+  userCode,
+  isPlaying,
+  onPlayPause,
   onReset,
   onCompilationResult
 }: ShaderPlayerProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasRef = useRef<CanvasWithMousePosition>(null);
   const animationRef = useRef<number | null>(null);
   const glRef = useRef<WebGLRenderingContext | null>(null);
   const programRef = useRef<WebGLProgram | null>(null);
@@ -233,10 +238,10 @@ export default function ShaderPlayer({
 
     const gl = glRef.current;
     const program = programRef.current;
-    
+
     if (gl && program) {
       gl.useProgram(null);
-      
+
       // Delete shaders
       const shaders = gl.getAttachedShaders(program);
       if (shaders) {
@@ -245,7 +250,7 @@ export default function ShaderPlayer({
           gl.deleteShader(shader);
         });
       }
-      
+
       gl.deleteProgram(program);
       programRef.current = null;
     }
@@ -265,8 +270,9 @@ export default function ShaderPlayer({
     }
 
     const canvas = canvasRef.current;
-    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-    
+    const gl = canvas.getContext('webgl') as WebGLRenderingContext | null ||
+      canvas.getContext('experimental-webgl') as WebGLRenderingContext | null;
+
     if (!gl) {
       const errorMsg = 'WebGL is not supported in your browser';
       setError(errorMsg);
@@ -278,7 +284,7 @@ export default function ShaderPlayer({
       return;
     }
 
-    glRef.current = gl as WebGLRenderingContext;
+    glRef.current = gl;
     setError(null);
 
     // Clean up previous program
@@ -287,7 +293,7 @@ export default function ShaderPlayer({
     try {
       // Prepare the shader code with proper wrapper
       const { code: preparedCode, userCodeStartLine } = prepareShaderCode(userCode);
-      
+
       // Create vertex shader
       const vertexShader = createShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER_SOURCE);
       if (!vertexShader) {
@@ -296,21 +302,22 @@ export default function ShaderPlayer({
 
       // Create fragment shader
       let fragmentShader: WebGLShader | null = null;
-      
+
       try {
         fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, preparedCode);
-      } catch (error: any) {
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'An unexpected error occurred';
         // Parse the compilation error
-        const compilationErrors = parseShaderError(error.message, userCodeStartLine);
-        
+        const compilationErrors = parseShaderError(message, userCodeStartLine);
+
         // Clean up vertex shader
         gl.deleteShader(vertexShader);
-        
+
         setError('Shader compilation failed');
         setCompilationSuccess(false);
         onCompilationResult(false, compilationErrors.length > 0 ? compilationErrors : [{
           line: 0,
-          message: error.message || 'Shader compilation failed',
+          message: message || 'Shader compilation failed',
           type: 'error'
         }]);
         return;
@@ -334,12 +341,12 @@ export default function ShaderPlayer({
       if (!linkSuccess) {
         const error = gl.getProgramInfoLog(program) || 'Unknown linking error';
         const compilationErrors = parseShaderError(error, userCodeStartLine);
-        
+
         // Clean up
         gl.deleteProgram(program);
         gl.deleteShader(vertexShader);
         if (fragmentShader) gl.deleteShader(fragmentShader);
-        
+
         setError('Shader linking failed');
         setCompilationSuccess(false);
         onCompilationResult(false, compilationErrors.length > 0 ? compilationErrors : [{
@@ -360,11 +367,11 @@ export default function ShaderPlayer({
       gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
         -1, -1,
-         1, -1,
-        -1,  1,
-        -1,  1,
-         1, -1,
-         1,  1,
+        1, -1,
+        -1, 1,
+        -1, 1,
+        1, -1,
+        1, 1,
       ]), gl.STATIC_DRAW);
 
       gl.enableVertexAttribArray(positionAttributeLocation);
@@ -372,17 +379,18 @@ export default function ShaderPlayer({
 
       // Reset start time when shader changes
       startTimeRef.current = Date.now();
-      
+
       setError(null);
       setCompilationSuccess(true);
       onCompilationResult(true, []);
-      
-    } catch (error: any) {
-      setError(error.message || 'An unexpected error occurred during compilation');
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred during compilation';
+      setError(errorMessage);
       setCompilationSuccess(false);
       onCompilationResult(false, [{
         line: 0,
-        message: error.message || 'An unexpected error occurred during compilation',
+        message: errorMessage,
         type: 'error'
       }]);
     }
@@ -394,12 +402,12 @@ export default function ShaderPlayer({
   useEffect(() => {
     const handleResize = () => {
       if (!canvasRef.current) return;
-      
+
       const canvas = canvasRef.current;
       const rect = canvas.getBoundingClientRect();
       canvas.width = rect.width * window.devicePixelRatio;
       canvas.height = rect.height * window.devicePixelRatio;
-      
+
       const gl = glRef.current;
       if (gl) {
         gl.viewport(0, 0, canvas.width, canvas.height);
@@ -418,15 +426,15 @@ export default function ShaderPlayer({
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!canvasRef.current) return;
-      
+
       const rect = canvasRef.current.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = rect.height - (e.clientY - rect.top); // Flip Y coordinate
-      
+
       // Store mouse position for use in render loop
       if (canvasRef.current) {
-        (canvasRef.current as any).mouseX = x;
-        (canvasRef.current as any).mouseY = y;
+        canvasRef.current.mouseX = x;
+        canvasRef.current.mouseY = y;
       }
     };
 
@@ -466,13 +474,13 @@ export default function ShaderPlayer({
       // Set uniforms
       if (uTimeLocation) gl.uniform1f(uTimeLocation, currentTime);
       if (iTimeLocation) gl.uniform1f(iTimeLocation, currentTime);
-      
+
       if (uResolutionLocation) gl.uniform2f(uResolutionLocation, canvas.width, canvas.height);
       if (iResolutionLocation) gl.uniform2f(iResolutionLocation, canvas.width, canvas.height);
-      
-      const mouseX = (canvas as any).mouseX || 0;
-      const mouseY = (canvas as any).mouseY || 0;
-      
+
+      const mouseX = canvas.mouseX || 0;
+      const mouseY = canvas.mouseY || 0;
+
       if (uMouseLocation) gl.uniform2f(uMouseLocation, mouseX, mouseY);
       if (iMouseLocation) gl.uniform4f(iMouseLocation, mouseX, mouseY, 0, 0);
 
@@ -501,7 +509,7 @@ export default function ShaderPlayer({
     };
 
     // Listen for reset through the onReset prop being called
-    return () => {};
+    return () => { };
   }, [onReset]);
 
   return (
