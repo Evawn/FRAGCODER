@@ -7,6 +7,7 @@ interface ShaderPlayerProps {
   onPlayPause: () => void;
   onReset: () => void;
   onCompilationResult: (success: boolean, errors: CompilationError[]) => void;
+  panelResizeCounter: number;
 }
 
 export default function ShaderPlayer({
@@ -14,17 +15,22 @@ export default function ShaderPlayer({
   isPlaying,
   onPlayPause,
   onReset,
-  onCompilationResult
+  onCompilationResult,
+  panelResizeCounter
 }: ShaderPlayerProps) {
   const {
     canvasRef,
     compilationSuccess,
     error,
-    reset
+    reset,
+    uTime,
+    fps,
+    resolution
   } = useWebGLRenderer({
     userCode,
     isPlaying,
-    onCompilationResult
+    onCompilationResult,
+    panelResizeCounter
   });
 
   // Handle reset
@@ -35,30 +41,6 @@ export default function ShaderPlayer({
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header with controls */}
-      <div className="bg-gray-800 p-4 border-b border-gray-700">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">
-            Shader Preview
-          </h2>
-          <div className="flex gap-2">
-            <button
-              onClick={onPlayPause}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-              disabled={!compilationSuccess}
-            >
-              {isPlaying ? 'Pause' : 'Play'}
-            </button>
-            <button
-              onClick={handleReset}
-              className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors"
-            >
-              Reset
-            </button>
-          </div>
-        </div>
-      </div>
-
       {/* WebGL Canvas */}
       <div className="flex-1 bg-black relative">
         <canvas
@@ -79,6 +61,54 @@ export default function ShaderPlayer({
             </div>
           </div>
         )}
+      </div>
+
+      {/* Footer Control Bar */}
+      <div className="bg-gray-900 border-t border-gray-700 px-4 py-2 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          {/* Control Buttons */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleReset}
+              className="text-gray-400 hover:text-white transition-colors p-1"
+              title="Reset"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polygon points="11 19 2 12 11 5 11 19"></polygon>
+                <polygon points="22 19 13 12 22 5 22 19"></polygon>
+              </svg>
+            </button>
+            <button
+              onClick={onPlayPause}
+              className="text-gray-400 hover:text-white transition-colors p-1"
+              disabled={!compilationSuccess}
+              title={isPlaying ? 'Pause' : 'Play'}
+            >
+              {isPlaying ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="6" y="4" width="4" height="16"></rect>
+                  <rect x="14" y="4" width="4" height="16"></rect>
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+              )}
+            </button>
+          </div>
+
+          {/* Real-time Information */}
+          <div className="flex items-center gap-4 text-sm text-gray-400">
+            <span>{uTime.toFixed(2)}</span>
+            <span>{fps.toFixed(1)} fps</span>
+            <span>{resolution.width} x {resolution.height}</span>
+          </div>
+        </div>
+
+        {/* Future controls placeholder */}
+        <div className="flex items-center gap-2">
+          {/* Volume and fullscreen controls will go here */}
+        </div>
       </div>
     </div>
   );

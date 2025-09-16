@@ -35,6 +35,7 @@ function ShaderEditor() {
   const [compilationErrors, setCompilationErrors] = useState<CompilationError[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentCode, setCurrentCode] = useState<string>(defaultShaderCode);
+  const [panelResizeCounter, setPanelResizeCounter] = useState(0);
 
   useEffect(() => {
     if (shaderId) {
@@ -64,9 +65,14 @@ function ShaderEditor() {
     }
   }, []);
 
+  const handlePanelResize = useCallback(() => {
+    // Increment counter to trigger canvas resize when panels are resized
+    setPanelResizeCounter(prev => prev + 1);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <PanelGroup direction="horizontal" className="h-screen">
+      <PanelGroup direction="horizontal" className="h-screen" onLayout={handlePanelResize}>
         {/* Shader Viewer - Left Panel */}
         <Panel defaultSize={50} minSize={30}>
           <div className="h-full flex flex-col">
@@ -80,6 +86,7 @@ function ShaderEditor() {
                   setIsPlaying(true);
                 }}
                 onCompilationResult={handleCompilationResult}
+                panelResizeCounter={panelResizeCounter}
               />
             </div>
             <div className="flex-1"></div>
