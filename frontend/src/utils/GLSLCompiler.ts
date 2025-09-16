@@ -17,14 +17,14 @@ export interface CompileResult {
 }
 
 // Minimal vertex shader for testing fragment shaders
-const VERTEX_SHADER_SOURCE = `
+export const VERTEX_SHADER_SOURCE = `
 attribute vec2 a_position;
 void main() {
   gl_Position = vec4(a_position, 0.0, 1.0);
 }`;
 
 // Wrapper template for fragment shaders with common uniforms
-const FRAGMENT_SHADER_WRAPPER = `
+export const FRAGMENT_SHADER_WRAPPER = `
 precision mediump float;
 
 // Standard uniforms
@@ -44,7 +44,7 @@ uniform vec4 iMouse;
 /**
  * Creates and compiles a WebGL shader
  */
-function createShader(gl: WebGLRenderingContext, type: number, source: string): WebGLShader | null {
+export function createShader(gl: WebGLRenderingContext, type: number, source: string): WebGLShader | null {
   const shader = gl.createShader(type);
   if (!shader) {
     return null;
@@ -66,7 +66,7 @@ function createShader(gl: WebGLRenderingContext, type: number, source: string): 
 /**
  * Parses WebGL shader compilation errors and converts them to user-friendly format
  */
-function parseShaderError(error: string, userCodeStartLine: number = 0): CompilationError[] {
+export function parseShaderError(error: string, userCodeStartLine: number = 0): CompilationError[] {
   const errors: CompilationError[] = [];
   const lines = error.split('\n');
   
@@ -150,7 +150,7 @@ function parseShaderError(error: string, userCodeStartLine: number = 0): Compila
 /**
  * Formats error messages to be more user-friendly
  */
-function formatErrorMessage(message: string): string {
+export function formatErrorMessage(message: string): string {
   // Remove quotes around identifiers for cleaner messages
   message = message.replace(/['"`]([^'"`]+)['"`]/g, '$1');
   
@@ -180,7 +180,7 @@ function formatErrorMessage(message: string): string {
 /**
  * Prepares the shader code by adding necessary uniforms and wrappers
  */
-function prepareShaderCode(userCode: string): { code: string; userCodeStartLine: number } {
+export function prepareShaderCode(userCode: string): { code: string; userCodeStartLine: number } {
   // Check if the code already has precision declaration
   const precisionMatch = userCode.match(/precision\s+(lowp|mediump|highp)\s+float\s*;/);
   

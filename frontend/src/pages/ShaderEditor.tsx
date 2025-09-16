@@ -75,7 +75,10 @@ function ShaderEditor() {
                 userCode={currentCode}
                 isPlaying={isPlaying}
                 onPlayPause={() => setIsPlaying(!isPlaying)}
-                onReset={() => console.log('Reset shader')}
+                onReset={() => {
+                  console.log('Reset shader');
+                  setIsPlaying(true);
+                }}
                 onCompilationResult={handleCompilationResult}
               />
             </div>
