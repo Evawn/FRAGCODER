@@ -139,6 +139,7 @@ interface ShaderCodeEditorProps {
 
 function ShaderCodeEditor({ shader, onCompile, compilationErrors, compilationSuccess }: ShaderCodeEditorProps) {
   const [code, setCode] = useState(shader?.code || defaultShaderCode);
+  const [isUniformsExpanded, setIsUniformsExpanded] = useState(false);
 
   useEffect(() => {
     if (shader?.code) {
@@ -149,6 +150,15 @@ function ShaderCodeEditor({ shader, onCompile, compilationErrors, compilationSuc
   const handleCompile = () => {
     onCompile(code);
   };
+
+  // Standard GLSL uniform declarations for shader inputs
+  const uniformHeader = `// Standard Shader Uniforms
+uniform vec3 iResolution;    // viewport resolution (in pixels)
+uniform float iTime;         // shader playback time (in seconds)
+uniform float iTimeDelta;    // render time (in seconds)
+uniform int iFrame;          // shader playback frame
+uniform vec4 iMouse;         // mouse pixel coords. xy: current, zw: click
+uniform vec4 iDate;          // year, month, day, time in seconds`;
 
   return (
     <div className="h-full flex flex-col">
@@ -162,6 +172,35 @@ function ShaderCodeEditor({ shader, onCompile, compilationErrors, compilationSuc
           >
             Compile
           </button>
+        </div>
+      </div>
+
+      {/* Shader Uniforms Dropdown */}
+      <div className="bg-gray-800 border-b border-gray-700">
+        <button
+          onClick={() => setIsUniformsExpanded(!isUniformsExpanded)}
+          className="w-full flex items-center justify-between p-3 text-left hover:bg-gray-700 transition-colors duration-150"
+        >
+          <span className="text-sm font-medium text-gray-300">Shader Uniforms</span>
+          <svg
+            className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+              isUniformsExpanded ? 'rotate-180' : ''
+            }`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        <div className={`overflow-hidden transition-all duration-200 ease-in-out ${
+          isUniformsExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+        }`}>
+          <div className="px-3 pb-3">
+            <pre className="text-xs text-gray-400 font-mono bg-gray-900 p-3 rounded border border-gray-600 overflow-x-auto leading-relaxed">
+              {uniformHeader}
+            </pre>
+          </div>
         </div>
       </div>
 
