@@ -67,6 +67,34 @@ const errorState = StateField.define<CompilationError[]>({
         return effect.value;
       }
     }
+    
+    // Update error line numbers when document changes occur
+    if (tr.docChanged && errors.length > 0) {
+      const updatedErrors = errors.map(error => {
+        if (error.line <= 0) return error; // General errors don't need line tracking
+        
+        // Map the error line number through document changes
+        try {
+          const originalPos = tr.startState.doc.line(error.line).from;
+          const newPos = tr.changes.mapPos(originalPos, -1); // Use -1 to favor staying before insertions
+          const newLine = tr.state.doc.lineAt(newPos).number;
+          
+          return {
+            ...error,
+            line: newLine
+          };
+        } catch (e) {
+          // If line mapping fails (e.g., line was deleted), mark as general error
+          return {
+            ...error,
+            line: 0
+          };
+        }
+      });
+      
+      return updatedErrors;
+    }
+    
     return errors;
   }
 });
@@ -76,7 +104,8 @@ const errorDecorations = StateField.define<DecorationSet>({
     return Decoration.none;
   },
   update(decorations, tr) {
-    decorations = decorations.map(tr.changes);
+    // Don't map decorations - rebuild them from current error state
+    // This prevents annotations from moving when lines are inserted/deleted
 
     for (let effect of tr.effects) {
       if (effect.is(setErrorsEffect)) {
@@ -88,9 +117,12 @@ const errorDecorations = StateField.define<DecorationSet>({
           if (error.line > 0) {
             try {
               const line = tr.state.doc.line(error.line);
+              
+              // Position widget at the end of the error line with side: 1
+              // This ensures the annotation stays anchored to the end of the original line
               const widget = Decoration.widget({
                 widget: new ErrorWidget(error),
-                side: 1,
+                side: 1, // Place after the line content
                 block: true
               });
               decorations.push(widget.range(line.to));
@@ -123,6 +155,52 @@ const errorDecorations = StateField.define<DecorationSet>({
         decorations.sort((a, b) => a.from - b.from);
         return Decoration.set(decorations);
       }
+    }
+
+    // Rebuild decorations from current error state on any document change
+    if (tr.docChanged) {
+      const errors = tr.state.field(errorState);
+      const decorations: any[] = [];
+      const generalErrors: CompilationError[] = [];
+
+      errors.forEach(error => {
+        if (error.line > 0) {
+          try {
+            const line = tr.state.doc.line(error.line);
+            
+            const widget = Decoration.widget({
+              widget: new ErrorWidget(error),
+              side: 1,
+              block: true
+            });
+            decorations.push(widget.range(line.to));
+
+            const lineDeco = Decoration.line({
+              class: 'cm-error-line'
+            });
+            decorations.push(lineDeco.range(line.from));
+          } catch (e) {
+            generalErrors.push(error);
+          }
+        } else {
+          generalErrors.push(error);
+        }
+      });
+
+      if (generalErrors.length > 0) {
+        const lastLine = tr.state.doc.length;
+        generalErrors.forEach(error => {
+          const widget = Decoration.widget({
+            widget: new ErrorWidget(error),
+            side: 1,
+            block: true
+          });
+          decorations.push(widget.range(lastLine));
+        });
+      }
+
+      decorations.sort((a, b) => a.from - b.from);
+      return Decoration.set(decorations);
     }
 
     return decorations;
