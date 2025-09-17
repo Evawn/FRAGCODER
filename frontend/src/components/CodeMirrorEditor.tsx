@@ -292,20 +292,25 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     EditorView.theme({
       '&': {
         fontSize: '14px',
-        fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace'
+        fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
+        height: '60vh',
+        maxHeight: '60vh'
       },
       '.cm-content': {
         padding: '16px',
-        minHeight: '100%'
+        minHeight: 'auto'
       },
       '.cm-focused': {
         outline: 'none'
       },
       '.cm-editor': {
-        height: '100%'
+        height: '100%',
+        maxHeight: '100%'
       },
       '.cm-scroller': {
-        height: '100%'
+        height: '100%',
+        maxHeight: '100%',
+        overflow: 'auto'
       },
       '.cm-error-line': {
         backgroundColor: 'rgba(239, 68, 68, 0.1)',
@@ -336,7 +341,7 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   };
 
   return (
-    <div className={`h-full border-2 rounded transition-colors duration-200 ${getBorderColor()}`}>
+    <div className={`border-2 rounded transition-colors duration-200 ${getBorderColor()}`} style={{ height: '60vh', maxHeight: '60vh' }}>
       <CodeMirror
         ref={editorRef}
         value={value}
@@ -360,7 +365,8 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           defaultKeymap: false // Disable default keymap to avoid Enter conflicts
         }}
         style={{
-          height: '100%'
+          height: '100%',
+          maxHeight: '100%'
         }}
       />
     </div>

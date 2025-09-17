@@ -163,17 +163,15 @@ function ShaderCodeEditor({ shader, onCompile, compilationErrors, compilationSuc
       </div>
 
       {/* Code Editor Area */}
-      <div className="flex-1 bg-gray-900 flex flex-col">
-        <div className="flex-1">
-          <CodeMirrorEditor
-            value={code}
-            onChange={setCode}
-            placeholder="// Write your GLSL fragment shader here..."
-            errors={compilationErrors}
-            compilationSuccess={compilationSuccess}
-            onCompile={handleCompile}
-          />
-        </div>
+      <div className="flex-1 bg-gray-900 flex flex-col p-4">
+        <CodeMirrorEditor
+          value={code}
+          onChange={setCode}
+          placeholder="// Write your GLSL fragment shader here..."
+          errors={compilationErrors}
+          compilationSuccess={compilationSuccess}
+          onCompile={handleCompile}
+        />
       </div>
 
     </div>
