@@ -2,7 +2,7 @@ import { LRLanguage, LanguageSupport } from "@codemirror/language"
 import { styleTags, tags as t } from "@lezer/highlight"
 import { parser } from "lezer-glsl"
 import { completeFromList } from "@codemirror/autocomplete"
-import type { CompletionContext } from "@codemirror/autocomplete"
+import type { Completion, CompletionContext, CompletionResult } from "@codemirror/autocomplete"
 
 // Create highlighting rules for GLSL tokens
 const glslHighlighting = styleTags({
@@ -201,7 +201,55 @@ const glslCompletions = [
   { label: "false", type: "constant", detail: "boolean false" }
 ]
 
-const glslCompletion = completeFromList(glslCompletions)
+// Function to extract user-defined variables from GLSL code
+function extractVariables(code: string): Completion[] {
+  const variables = new Set<string>()
+  
+  // Regex patterns to match different types of variable declarations
+  const patterns = [
+    // Basic variable declarations: type name; or type name = value;
+    /(?:^|\s)((?:bool|int|uint|float|double|vec[234]|bvec[234]|ivec[234]|uvec[234]|mat[234]|mat[234]x[234]|sampler\w+|image\w+)\s+)(\w+)(?:\s*=|;)/gm,
+    
+    // Uniform/varying/attribute declarations
+    /(?:^|\s)((?:uniform|varying|attribute|in|out)\s+(?:bool|int|uint|float|double|vec[234]|bvec[234]|ivec[234]|uvec[234]|mat[234]|mat[234]x[234]|sampler\w+|image\w+)\s+)(\w+)/gm,
+    
+    // Function parameters: extract from function signatures
+    /(?:^|\s)\w+\s+\w+\s*\([^)]*?(?:bool|int|uint|float|double|vec[234]|bvec[234]|ivec[234]|uvec[234]|mat[234]|mat[234]x[234]|sampler\w+|image\w+)\s+(\w+)/gm,
+    
+    // For loop variables: for(int i = 0; ...)
+    /for\s*\(\s*(?:int|uint|float)\s+(\w+)/gm
+  ]
+  
+  patterns.forEach(pattern => {
+    let match
+    while ((match = pattern.exec(code)) !== null) {
+      const varName = match[match.length - 1] // Last capture group is always the variable name
+      if (varName && !glslCompletions.some(comp => comp.label === varName)) {
+        variables.add(varName)
+      }
+    }
+  })
+  
+  // Convert to completion objects
+  return Array.from(variables).map(varName => ({
+    label: varName,
+    type: "variable",
+    detail: "user-defined variable"
+  }))
+}
+
+// Dynamic completion function that combines static and user-defined completions
+function glslCompletion(context: CompletionContext): CompletionResult | null {
+  const code = context.state.doc.toString()
+  const userVariables = extractVariables(code)
+  
+  // Combine static completions with user-defined variables
+  const allCompletions = [...glslCompletions, ...userVariables]
+  
+  // Use the built-in completeFromList with our combined completions
+  const staticCompletion = completeFromList(allCompletions)
+  return staticCompletion(context)
+}
 
 export function glsl() {
   return new LanguageSupport(glslLanguage, [
