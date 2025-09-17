@@ -8,6 +8,7 @@ interface UseWebGLRendererProps {
   isPlaying: boolean;
   onCompilationResult: (success: boolean, errors: CompilationError[]) => void;
   panelResizeCounter: number;
+  compileTrigger: number;
 }
 
 interface UseWebGLRendererReturn {
@@ -24,7 +25,8 @@ export function useWebGLRenderer({
   userCode,
   isPlaying,
   onCompilationResult,
-  panelResizeCounter
+  panelResizeCounter,
+  compileTrigger
 }: UseWebGLRendererProps): UseWebGLRendererReturn {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<WebGLRenderer | null>(null);
@@ -70,7 +72,7 @@ export function useWebGLRenderer({
     };
   }, [onCompilationResult]);
 
-  // Compile shader when user code changes or renderer becomes ready
+  // Compile shader when user code changes, compile trigger changes, or renderer becomes ready
   useEffect(() => {
     const renderer = rendererRef.current;
     if (!renderer || !isRendererReady) return;
@@ -118,7 +120,7 @@ export function useWebGLRenderer({
       // Stop rendering on error
       renderer.stop();
     }
-  }, [userCode, onCompilationResult, isRendererReady]);
+  }, [userCode, compileTrigger, onCompilationResult, isRendererReady]);
 
   // Control playback
   useEffect(() => {

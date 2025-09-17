@@ -8,6 +8,7 @@ interface ShaderPlayerProps {
   onReset: () => void;
   onCompilationResult: (success: boolean, errors: CompilationError[]) => void;
   panelResizeCounter: number;
+  compileTrigger: number;
 }
 
 export default function ShaderPlayer({
@@ -16,7 +17,8 @@ export default function ShaderPlayer({
   onPlayPause,
   onReset,
   onCompilationResult,
-  panelResizeCounter
+  panelResizeCounter,
+  compileTrigger
 }: ShaderPlayerProps) {
   const {
     canvasRef,
@@ -30,7 +32,8 @@ export default function ShaderPlayer({
     userCode,
     isPlaying,
     onCompilationResult,
-    panelResizeCounter
+    panelResizeCounter,
+    compileTrigger
   });
 
   // Handle reset

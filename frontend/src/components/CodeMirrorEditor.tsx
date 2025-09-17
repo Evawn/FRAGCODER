@@ -5,7 +5,7 @@ import { EditorView, keymap, Decoration, WidgetType } from '@codemirror/view';
 import { indentOnInput, bracketMatching, foldGutter, codeFolding, indentUnit } from '@codemirror/language';
 import { lineNumbers, highlightActiveLineGutter } from '@codemirror/view';
 import { acceptCompletion, completionStatus } from '@codemirror/autocomplete';
-import { indentMore } from '@codemirror/commands';
+import { indentMore, insertNewlineAndIndent, selectAll, cursorDocStart, cursorDocEnd, cursorLineStart, cursorLineEnd, deleteCharBackward, deleteCharForward } from '@codemirror/commands';
 import { StateField, StateEffect } from '@codemirror/state';
 import { glsl } from '../utils/GLSLLanguage';
 import type { CompilationError } from '../utils/GLSLCompiler';
@@ -18,6 +18,7 @@ interface CodeMirrorEditorProps {
   readOnly?: boolean;
   errors?: CompilationError[];
   compilationSuccess?: boolean;
+  onCompile?: () => void;
 }
 
 class ErrorWidget extends WidgetType {
@@ -44,6 +45,10 @@ class ErrorWidget extends WidgetType {
       height: 20px;
       display: flex;
       align-items: center;
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
     `;
 
     wrap.textContent = this.error.message;
@@ -232,20 +237,27 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   placeholder = "// Write your GLSL fragment shader here...",
   readOnly = false,
   errors = [],
-  compilationSuccess
+  compilationSuccess,
+  onCompile
 }) => {
   const extensions = useMemo(() => [
-    glsl(),
-    lineNumbers(),
-    highlightActiveLineGutter(),
-    indentOnInput(),
-    bracketMatching(),
-    codeFolding(),
-    foldGutter(),
-    indentUnit.of("    "), // 4 spaces
-    errorState,
-    errorDecorations,
     keymap.of([
+      {
+        key: 'Shift-Enter',
+        preventDefault: true,
+        run: () => {
+          onCompile?.();
+          return true;
+        }
+      },
+      {
+        key: 'Ctrl-s',
+        preventDefault: true,
+        run: () => {
+          onCompile?.();
+          return true;
+        }
+      },
       {
         key: 'Tab',
         preventDefault: true,
@@ -256,8 +268,27 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
             return indentMore(view);
           }
         }
-      }
+      },
+      // Essential editor commands since we disabled defaultKeymap
+      { key: 'Enter', run: insertNewlineAndIndent },
+      { key: 'Ctrl-a', run: selectAll },
+      { key: 'Ctrl-Home', run: cursorDocStart },
+      { key: 'Ctrl-End', run: cursorDocEnd },
+      { key: 'Home', run: cursorLineStart },
+      { key: 'End', run: cursorLineEnd },
+      { key: 'Backspace', run: deleteCharBackward },
+      { key: 'Delete', run: deleteCharForward }
     ]),
+    glsl(),
+    lineNumbers(),
+    highlightActiveLineGutter(),
+    indentOnInput(),
+    bracketMatching(),
+    codeFolding(),
+    foldGutter(),
+    indentUnit.of("    "), // 4 spaces
+    errorState,
+    errorDecorations,
     EditorView.theme({
       '&': {
         fontSize: '14px',
@@ -287,7 +318,7 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       }
     }),
     EditorView.lineWrapping
-  ], []);
+  ], [onCompile]);
 
   const editorRef = React.useRef<any>(null);
 
@@ -325,7 +356,8 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           closeBrackets: true,
           autocompletion: true,
           highlightSelectionMatches: false,
-          searchKeymap: true
+          searchKeymap: false, // Disable default search keymap to avoid conflicts
+          defaultKeymap: false // Disable default keymap to avoid Enter conflicts
         }}
         style={{
           height: '100%'

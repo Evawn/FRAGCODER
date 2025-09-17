@@ -37,6 +37,7 @@ function ShaderEditor() {
   const [loading, setLoading] = useState(false);
   const [currentCode, setCurrentCode] = useState<string>(defaultShaderCode);
   const [panelResizeCounter, setPanelResizeCounter] = useState(0);
+  const [compileTrigger, setCompileTrigger] = useState(0);
 
   useEffect(() => {
     if (shaderId) {
@@ -89,6 +90,7 @@ function ShaderEditor() {
                 }}
                 onCompilationResult={handleCompilationResult}
                 panelResizeCounter={panelResizeCounter}
+                compileTrigger={compileTrigger}
               />
             </div>
             <div className="flex-1"></div>
@@ -109,6 +111,7 @@ function ShaderEditor() {
               onCompile={(code) => {
                 console.log('Triggering shader compilation...');
                 setCurrentCode(code);
+                setCompileTrigger(prev => prev + 1);
               }}
               compilationErrors={compilationErrors}
               compilationSuccess={compilationSuccess}
@@ -165,6 +168,7 @@ function ShaderCodeEditor({ shader, onCompile, compilationErrors, compilationSuc
             placeholder="// Write your GLSL fragment shader here..."
             errors={compilationErrors}
             compilationSuccess={compilationSuccess}
+            onCompile={handleCompile}
           />
         </div>
       </div>
