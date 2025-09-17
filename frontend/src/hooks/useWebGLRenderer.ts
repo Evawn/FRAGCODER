@@ -46,10 +46,10 @@ export function useWebGLRenderer({
     const initialized = renderer.initialize(canvasRef.current);
 
     if (!initialized) {
-      setError('WebGL is not supported in your browser');
+      setError('WebGL 2.0 is not supported in your browser');
       onCompilationResult(false, [{
         line: 0,
-        message: 'WebGL is not supported in your browser',
+        message: 'WebGL 2.0 is not supported in your browser',
         type: 'error'
       }]);
       return;
@@ -90,7 +90,7 @@ export function useWebGLRenderer({
     }
 
     try {
-      // Prepare the shader code
+      // Prepare the shader code (always WebGL 2.0 now)
       const { code: preparedCode, userCodeStartLine } = prepareShaderCode(userCode);
 
       // Compile the shader

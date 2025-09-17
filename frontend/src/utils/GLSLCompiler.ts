@@ -11,16 +11,15 @@ export interface CompileResult {
   compiledShader?: WebGLShader;
 }
 
-// Minimal vertex shader for testing fragment shaders
-export const VERTEX_SHADER_SOURCE = `
-attribute vec2 a_position;
+// Minimal vertex shader for WebGL 2.0
+export const VERTEX_SHADER_SOURCE = `#version 300 es
+in vec2 a_position;
 void main() {
   gl_Position = vec4(a_position, 0.0, 1.0);
 }`;
 
-// Wrapper template for fragment shaders with common uniforms
-export const FRAGMENT_SHADER_WRAPPER = `
-precision mediump float;
+// WebGL 2.0 fragment shader wrapper with GLSL ES 3.00 syntax
+export const FRAGMENT_SHADER_WRAPPER = `{VERSION_AND_PRECISION}
 
 uniform vec3      iResolution;           // viewport resolution (in pixels)  
 uniform float     iTime;                 // shader playback time (in seconds)  
@@ -29,8 +28,14 @@ uniform float     iFrameRate;            // shader frame rate
 uniform int       iFrame;                // shader playback frame  
 uniform vec4      iDate;                 // (year, month, day, time in seconds)
 
+out vec4 fragColor;                      // WebGL 2.0 output
+
 // User shader code starts here
 {USER_CODE}
+
+void main() {
+    mainImage(fragColor, gl_FragCoord.xy);
+}
 `;
 
 /**
@@ -170,138 +175,40 @@ export function formatErrorMessage(message: string): string {
 }
 
 /**
- * Prepares the shader code by adding necessary uniforms and wrappers
+ * Prepares the shader code by adding necessary uniforms and wrappers for WebGL 2.0
  */
 export function prepareShaderCode(userCode: string): { code: string; userCodeStartLine: number } {
+  // Check if user has provided a precision declaration and extract it
+  const precisionRegex = /^\s*(precision\s+(lowp|mediump|highp)\s+(float|int)\s*;)/im;
+  const precisionMatch = userCode.match(precisionRegex);
+
+  let cleanedUserCode = userCode;
+  let versionAndPrecision = '';
+
+  // For WebGL 2.0, add version directive and precision
+  if (precisionMatch) {
+    // Use user's precision declaration
+    const precisionDeclaration = precisionMatch[1].trim();
+    versionAndPrecision = `#version 300 es\n${precisionDeclaration}`;
+    // Remove the precision declaration from user code to avoid duplication
+    cleanedUserCode = userCode.replace(precisionRegex, '').trim();
+  } else {
+    // Default precision for WebGL 2.0
+    versionAndPrecision = '#version 300 es\nprecision mediump float;';
+  }
+
+  // Replace version and precision placeholder in wrapper
+  let wrapper = FRAGMENT_SHADER_WRAPPER.replace('{VERSION_AND_PRECISION}', versionAndPrecision);
+
+  // // Replace gl_FragColor with fragColor in user code (WebGL 2.0 uses output variables)
+  // cleanedUserCode = cleanedUserCode.replace(/gl_FragColor/g, 'fragColor');
+
   // Count lines in the wrapper before user code
-  const wrapperLines = FRAGMENT_SHADER_WRAPPER.split('\n');
+  const wrapperLines = wrapper.split('\n');
   const userCodeStartLine = wrapperLines.findIndex(line => line.includes('{USER_CODE}'));
 
-  // Replace the placeholder with user code
-  const finalCode = FRAGMENT_SHADER_WRAPPER.replace('{USER_CODE}', userCode);
+  // Replace the user code placeholder with cleaned code
+  const finalCode = wrapper.replace('{USER_CODE}', cleanedUserCode);
 
   return { code: finalCode, userCodeStartLine };
 }
-//   if (!shaderCode.trim()) {
-//     return {
-//       success: false,
-//       code: shaderCode,
-//       errors: [{
-//         line: 0,
-//         message: 'Shader code is empty',
-//         type: 'error'
-//       }]
-//     };
-//   }
-
-//   // Create a temporary canvas and WebGL context for compilation
-//   const canvas = document.createElement('canvas');
-//   const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-
-//   if (!gl) {
-//     return {
-//       success: false,
-//       code: shaderCode,
-//       errors: [{
-//         line: 0,
-//         message: 'WebGL is not supported in your browser',
-//         type: 'error'
-//       }]
-//     };
-//   }
-
-//   try {
-//     // Prepare the shader code with proper wrapper
-//     const { code: preparedCode, userCodeStartLine } = prepareShaderCode(shaderCode);
-
-//     // Create vertex shader (minimal, just for testing)
-//     const vertexShader = createShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER_SOURCE);
-//     if (!vertexShader) {
-//       throw new Error('Failed to create vertex shader');
-//     }
-
-//     // Try to compile the fragment shader
-//     let fragmentShader: WebGLShader | null = null;
-//     let compilationErrors: CompilationError[] = [];
-
-//     try {
-//       fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, preparedCode);
-//     } catch (error: any) {
-//       // Parse the compilation error
-//       compilationErrors = parseShaderError(error.message, userCodeStartLine);
-
-//       // Clean up vertex shader
-//       gl.deleteShader(vertexShader);
-
-//       return {
-//         success: false,
-//         code: shaderCode,
-//         errors: compilationErrors.length > 0 ? compilationErrors : [{
-//           line: 0,
-//           message: error.message || 'Shader compilation failed',
-//           type: 'error'
-//         }]
-//       };
-//     }
-
-//     // Try to link the program to catch additional errors
-//     const program = gl.createProgram();
-//     if (!program) {
-//       gl.deleteShader(vertexShader);
-//       if (fragmentShader) gl.deleteShader(fragmentShader);
-//       throw new Error('Failed to create shader program');
-//     }
-
-//     gl.attachShader(program, vertexShader);
-//     if (fragmentShader) {
-//       gl.attachShader(program, fragmentShader);
-//     }
-//     gl.linkProgram(program);
-
-//     const linkSuccess = gl.getProgramParameter(program, gl.LINK_STATUS);
-//     if (!linkSuccess) {
-//       const error = gl.getProgramInfoLog(program) || 'Unknown linking error';
-//       compilationErrors = parseShaderError(error, userCodeStartLine);
-
-//       // Clean up
-//       gl.deleteProgram(program);
-//       gl.deleteShader(vertexShader);
-//       if (fragmentShader) gl.deleteShader(fragmentShader);
-
-//       return {
-//         success: false,
-//         code: shaderCode,
-//         errors: compilationErrors.length > 0 ? compilationErrors : [{
-//           line: 0,
-//           message: 'Shader linking failed: ' + error,
-//           type: 'error'
-//         }]
-//       };
-//     }
-
-//     // Success! Clean up resources
-//     gl.deleteProgram(program);
-//     gl.deleteShader(vertexShader);
-//     if (fragmentShader) gl.deleteShader(fragmentShader);
-
-//     return {
-//       success: true,
-//       code: shaderCode,
-//       errors: []
-//     };
-
-//   } catch (error: any) {
-//     return {
-//       success: false,
-//       code: shaderCode,
-//       errors: [{
-//         line: 0,
-//         message: error.message || 'An unexpected error occurred during compilation',
-//         type: 'error'
-//       }]
-//     };
-//   }
-// }
-
-// Re-export the main function as Compile for backward compatibility
-//export const Compile = compile;

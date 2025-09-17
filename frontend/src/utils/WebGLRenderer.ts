@@ -19,7 +19,7 @@ interface MousePosition {
 }
 
 export class WebGLRenderer {
-  private gl: WebGLRenderingContext | null = null;
+  private gl: WebGL2RenderingContext | null = null;
   private program: WebGLProgram | null = null;
   private animationFrameId: number | null = null;
   private startTime: number = Date.now();
@@ -43,13 +43,16 @@ export class WebGLRenderer {
   initialize(canvas: HTMLCanvasElement): boolean {
     this.canvas = canvas;
     
-    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    // Only use WebGL 2.0
+    const gl = canvas.getContext('webgl2') as WebGL2RenderingContext;
+    
     if (!gl) {
-      console.error('WebGL is not supported');
+      console.error('WebGL 2.0 is not supported in your browser');
       return false;
     }
     
-    this.gl = gl as WebGLRenderingContext;
+    this.gl = gl;
+    console.log('Using WebGL 2.0');
     this.updateViewport();
     
     // Add mouse move listener
@@ -260,6 +263,13 @@ export class WebGLRenderer {
    */
   isReady(): boolean {
     return !!(this.gl && this.program);
+  }
+
+  /**
+   * Check if using WebGL 2.0 (always true now)
+   */
+  getIsWebGL2(): boolean {
+    return true;
   }
 
   /**

@@ -20,13 +20,16 @@ interface CompilationError {
   type: 'error' | 'warning';
 }
 
-const defaultShaderCode = `void main() {
-    vec2 uv = gl_FragCoord.xy / iResolution.xy;
-    vec3 color = vec3(uv, 0.5 + 0.5 * sin(iTime));
-    gl_FragColor = vec4(color, 1.0);
-    // vec4 fragColor;
-    // mainImage(fragColor, gl_FragCoord.xy);
-    // gl_FragColor = fragColor;
+const defaultShaderCode = `// https://www.shadertoy.com/view/wfXfDl
+
+void mainImage(out vec4 O, vec2 I) {
+    vec3  v = iResolution,
+          d = vec3( I+I, v ) - v,
+          p = iTime/v*9.-8., c = p, s;    
+    for(float i, l; l++<1e2; O = (s-c).zzzz/2e2)    
+      for(v = s = p += d/length(d)*s.y, i = 1e2; i>.01; i*=.4 )
+        v.xz *= .1*mat2(4,-9,9,4),
+        s = max( s, min( v = i*.8-abs(mod(v,i+i)-i), v.x) );
 }`;
 
 function ShaderEditor() {
