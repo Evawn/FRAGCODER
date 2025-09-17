@@ -6,7 +6,7 @@ import { indentOnInput, bracketMatching, foldGutter, codeFolding, indentUnit } f
 import { lineNumbers, highlightActiveLineGutter } from '@codemirror/view';
 import { acceptCompletion, completionStatus } from '@codemirror/autocomplete';
 import { indentMore } from '@codemirror/commands';
-import { glsl } from './GLSLLanguage';
+import { glsl } from '../utils/GLSLLanguage';
 
 interface CodeMirrorEditorProps {
   value: string;

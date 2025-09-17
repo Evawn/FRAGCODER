@@ -1,5 +1,5 @@
-import { useWebGLRenderer } from '../../hooks/useWebGLRenderer';
-import type { CompilationError } from '../../utils/GLSLCompiler';
+import { useWebGLRenderer } from '../hooks/useWebGLRenderer';
+import type { CompilationError } from '../utils/GLSLCompiler';
 
 interface ShaderPlayerProps {
   userCode: string;

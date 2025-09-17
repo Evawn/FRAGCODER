@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import SearchBar from '../components/gallery/SearchBar';
-import ShaderGrid from '../components/gallery/ShaderGrid';
-import LoadingSpinner from '../components/common/LoadingSpinner';
+import SearchBar from '../components/SearchBar';
+import ShaderGrid from '../components/ShaderGrid';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 interface Shader {
   id: string;

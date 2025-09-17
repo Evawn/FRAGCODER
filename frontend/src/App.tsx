@@ -1,8 +1,8 @@
 import { Routes, Route } from 'react-router-dom'
 import Navigation from './components/Navigation'
-import Gallery from './pages/Gallery'
-import ShaderEditor from './pages/ShaderEditor'
-import Auth from './pages/Auth'
+import Gallery from './pages/GalleryPage'
+import ShaderEditor from './pages/ShaderEditorPage'
+import Auth from './pages/AuthPage'
 
 function App() {
   return (

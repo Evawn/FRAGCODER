@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import CodeMirrorEditor from '../components/common/CodeMirrorEditor';
-import ShaderPlayer from '../components/shader/ShaderPlayer';
+import CodeMirrorEditor from '../components/CodeMirrorEditor';
+import ShaderPlayer from '../components/ShaderPlayer';
 
 interface ShaderData {
   id: string;
