@@ -21,9 +21,12 @@ interface CompilationError {
 }
 
 const defaultShaderCode = `void main() {
-    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
-    vec3 color = vec3(uv, 0.5 + 0.5 * sin(u_time));
+    vec2 uv = gl_FragCoord.xy / iResolution.xy;
+    vec3 color = vec3(uv, 0.5 + 0.5 * sin(iTime));
     gl_FragColor = vec4(color, 1.0);
+    // vec4 fragColor;
+    // mainImage(fragColor, gl_FragCoord.xy);
+    // gl_FragColor = fragColor;
 }`;
 
 function ShaderEditor() {
@@ -61,7 +64,7 @@ function ShaderEditor() {
     console.log('Compilation result:', success ? 'success' : 'failed', errors);
     setCompilationErrors(errors);
     setCompilationSuccess(success);
-    
+
     // Auto-play when compilation succeeds
     if (success) {
       setIsPlaying(true);

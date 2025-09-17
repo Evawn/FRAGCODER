@@ -1,8 +1,3 @@
-// Specification:
-// function Compile() takes a string of GLSL code, compiles it for WebGL, and returns the success status, the code, and any errors.
-// The errors should be processed to be distilled to user-friendly messages and their line number, to later be displayed in the editor
-// This util is to be called when the user clicks "Compile" in the editor
-
 export interface CompilationError {
   line: number;
   message: string;
@@ -27,15 +22,12 @@ void main() {
 export const FRAGMENT_SHADER_WRAPPER = `
 precision mediump float;
 
-// Standard uniforms
-uniform vec2 u_resolution;
-uniform float u_time;
-uniform vec2 u_mouse;
-
-// Shadertoy compatibility uniforms
-uniform vec2 iResolution;
-uniform float iTime;
-uniform vec4 iMouse;
+uniform vec3      iResolution;           // viewport resolution (in pixels)  
+uniform float     iTime;                 // shader playback time (in seconds)  
+uniform float     iTimeDelta;            // render time (in seconds)  
+uniform float     iFrameRate;            // shader frame rate  
+uniform int       iFrame;                // shader playback frame  
+uniform vec4      iDate;                 // (year, month, day, time in seconds)
 
 // User shader code starts here
 {USER_CODE}
@@ -69,17 +61,17 @@ export function createShader(gl: WebGLRenderingContext, type: number, source: st
 export function parseShaderError(error: string, userCodeStartLine: number = 0): CompilationError[] {
   const errors: CompilationError[] = [];
   const lines = error.split('\n');
-  
+
   for (const line of lines) {
     if (!line.trim()) continue;
-    
+
     // Common WebGL error patterns
     // Format: "ERROR: 0:15: 'variable' : undeclared identifier"
     const errorMatch = line.match(/ERROR:\s*(\d+):(\d+):\s*(.+)/);
     if (errorMatch) {
       const errorLine = parseInt(errorMatch[2]);
       const message = errorMatch[3].trim();
-      
+
       // Handle different line number calculation based on how code was prepared
       let lineNumber: number;
       if (userCodeStartLine < 0) {
@@ -97,7 +89,7 @@ export function parseShaderError(error: string, userCodeStartLine: number = 0): 
         // Normal case: subtract the wrapper offset
         lineNumber = errorLine - userCodeStartLine;
       }
-      
+
       errors.push({
         line: Math.max(1, lineNumber),
         message: formatErrorMessage(message),
@@ -105,13 +97,13 @@ export function parseShaderError(error: string, userCodeStartLine: number = 0): 
       });
       continue;
     }
-    
+
     // Warning pattern
     const warningMatch = line.match(/WARNING:\s*(\d+):(\d+):\s*(.+)/);
     if (warningMatch) {
       const errorLine = parseInt(warningMatch[2]);
       const message = warningMatch[3].trim();
-      
+
       // Handle different line number calculation based on how code was prepared
       let lineNumber: number;
       if (userCodeStartLine < 0) {
@@ -125,7 +117,7 @@ export function parseShaderError(error: string, userCodeStartLine: number = 0): 
       } else {
         lineNumber = errorLine - userCodeStartLine;
       }
-      
+
       errors.push({
         line: Math.max(1, lineNumber),
         message: formatErrorMessage(message),
@@ -133,7 +125,7 @@ export function parseShaderError(error: string, userCodeStartLine: number = 0): 
       });
       continue;
     }
-    
+
     // Generic error without line number
     if (line.toLowerCase().includes('error') || line.toLowerCase().includes('failed')) {
       errors.push({
@@ -143,7 +135,7 @@ export function parseShaderError(error: string, userCodeStartLine: number = 0): 
       });
     }
   }
-  
+
   return errors;
 }
 
@@ -153,7 +145,7 @@ export function parseShaderError(error: string, userCodeStartLine: number = 0): 
 export function formatErrorMessage(message: string): string {
   // Remove quotes around identifiers for cleaner messages
   message = message.replace(/['"`]([^'"`]+)['"`]/g, '$1');
-  
+
   // Common error transformations
   const errorMappings: { [key: string]: string } = {
     'undeclared identifier': 'Variable not declared',
@@ -166,14 +158,14 @@ export function formatErrorMessage(message: string): string {
     'l-value required': 'Cannot assign to this expression',
     'cannot assign to': 'Cannot assign to constant or expression',
   };
-  
+
   for (const [pattern, replacement] of Object.entries(errorMappings)) {
     if (message.toLowerCase().includes(pattern)) {
       // Keep the specific details but prepend with friendly message
       return `${replacement}: ${message}`;
     }
   }
-  
+
   return message;
 }
 
@@ -181,192 +173,135 @@ export function formatErrorMessage(message: string): string {
  * Prepares the shader code by adding necessary uniforms and wrappers
  */
 export function prepareShaderCode(userCode: string): { code: string; userCodeStartLine: number } {
-  // Check if the code already has precision declaration
-  const precisionMatch = userCode.match(/precision\s+(lowp|mediump|highp)\s+float\s*;/);
-  
   // Count lines in the wrapper before user code
   const wrapperLines = FRAGMENT_SHADER_WRAPPER.split('\n');
   const userCodeStartLine = wrapperLines.findIndex(line => line.includes('{USER_CODE}'));
-  
-  // If user already declared precision, don't wrap
-  if (precisionMatch) {
-    // Check if uniforms are already declared
-    const hasUniforms = userCode.includes('u_resolution') || userCode.includes('iResolution');
-    
-    if (!hasUniforms) {
-      // Find where to insert uniforms (after precision declaration)
-      const precisionIndex = userCode.indexOf(precisionMatch[0]);
-      const precisionEndIndex = precisionIndex + precisionMatch[0].length;
-      
-      // Find the next newline after precision declaration
-      let insertIndex = userCode.indexOf('\n', precisionEndIndex);
-      if (insertIndex === -1) {
-        insertIndex = precisionEndIndex;
-      } else {
-        insertIndex += 1; // Include the newline
-      }
-      
-      const uniforms = `
-// Standard uniforms
-uniform vec2 u_resolution;
-uniform float u_time;
-uniform vec2 u_mouse;
 
-// Shadertoy compatibility uniforms
-uniform vec2 iResolution;
-uniform float iTime;
-uniform vec4 iMouse;
-
-`;
-      
-      // Insert uniforms after precision declaration
-      const beforePrecision = userCode.substring(0, insertIndex);
-      const afterPrecision = userCode.substring(insertIndex);
-      const finalCode = beforePrecision + uniforms + afterPrecision;
-      
-      // Calculate line offset for error reporting
-      const linesBeforeInsertion = beforePrecision.split('\n').length - 1;
-      
-      return { 
-        code: finalCode,
-        userCodeStartLine: -linesBeforeInsertion // Negative to indicate uniforms were inserted
-      };
-    }
-    
-    return { code: userCode, userCodeStartLine: 0 };
-  }
-  
   // Replace the placeholder with user code
   const finalCode = FRAGMENT_SHADER_WRAPPER.replace('{USER_CODE}', userCode);
-  
+
   return { code: finalCode, userCodeStartLine };
 }
+//   if (!shaderCode.trim()) {
+//     return {
+//       success: false,
+//       code: shaderCode,
+//       errors: [{
+//         line: 0,
+//         message: 'Shader code is empty',
+//         type: 'error'
+//       }]
+//     };
+//   }
 
-/**
- * Main compilation function
- * Compiles GLSL fragment shader code and returns the result with any errors
- */
-export function compile(shaderCode: string): CompileResult {
-  if (!shaderCode.trim()) {
-    return {
-      success: false,
-      code: shaderCode,
-      errors: [{
-        line: 0,
-        message: 'Shader code is empty',
-        type: 'error'
-      }]
-    };
-  }
+//   // Create a temporary canvas and WebGL context for compilation
+//   const canvas = document.createElement('canvas');
+//   const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
 
-  // Create a temporary canvas and WebGL context for compilation
-  const canvas = document.createElement('canvas');
-  const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-  
-  if (!gl) {
-    return {
-      success: false,
-      code: shaderCode,
-      errors: [{
-        line: 0,
-        message: 'WebGL is not supported in your browser',
-        type: 'error'
-      }]
-    };
-  }
+//   if (!gl) {
+//     return {
+//       success: false,
+//       code: shaderCode,
+//       errors: [{
+//         line: 0,
+//         message: 'WebGL is not supported in your browser',
+//         type: 'error'
+//       }]
+//     };
+//   }
 
-  try {
-    // Prepare the shader code with proper wrapper
-    const { code: preparedCode, userCodeStartLine } = prepareShaderCode(shaderCode);
-    
-    // Create vertex shader (minimal, just for testing)
-    const vertexShader = createShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER_SOURCE);
-    if (!vertexShader) {
-      throw new Error('Failed to create vertex shader');
-    }
+//   try {
+//     // Prepare the shader code with proper wrapper
+//     const { code: preparedCode, userCodeStartLine } = prepareShaderCode(shaderCode);
 
-    // Try to compile the fragment shader
-    let fragmentShader: WebGLShader | null = null;
-    let compilationErrors: CompilationError[] = [];
-    
-    try {
-      fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, preparedCode);
-    } catch (error: any) {
-      // Parse the compilation error
-      compilationErrors = parseShaderError(error.message, userCodeStartLine);
-      
-      // Clean up vertex shader
-      gl.deleteShader(vertexShader);
-      
-      return {
-        success: false,
-        code: shaderCode,
-        errors: compilationErrors.length > 0 ? compilationErrors : [{
-          line: 0,
-          message: error.message || 'Shader compilation failed',
-          type: 'error'
-        }]
-      };
-    }
+//     // Create vertex shader (minimal, just for testing)
+//     const vertexShader = createShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER_SOURCE);
+//     if (!vertexShader) {
+//       throw new Error('Failed to create vertex shader');
+//     }
 
-    // Try to link the program to catch additional errors
-    const program = gl.createProgram();
-    if (!program) {
-      gl.deleteShader(vertexShader);
-      if (fragmentShader) gl.deleteShader(fragmentShader);
-      throw new Error('Failed to create shader program');
-    }
+//     // Try to compile the fragment shader
+//     let fragmentShader: WebGLShader | null = null;
+//     let compilationErrors: CompilationError[] = [];
 
-    gl.attachShader(program, vertexShader);
-    if (fragmentShader) {
-      gl.attachShader(program, fragmentShader);
-    }
-    gl.linkProgram(program);
+//     try {
+//       fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, preparedCode);
+//     } catch (error: any) {
+//       // Parse the compilation error
+//       compilationErrors = parseShaderError(error.message, userCodeStartLine);
 
-    const linkSuccess = gl.getProgramParameter(program, gl.LINK_STATUS);
-    if (!linkSuccess) {
-      const error = gl.getProgramInfoLog(program) || 'Unknown linking error';
-      compilationErrors = parseShaderError(error, userCodeStartLine);
-      
-      // Clean up
-      gl.deleteProgram(program);
-      gl.deleteShader(vertexShader);
-      if (fragmentShader) gl.deleteShader(fragmentShader);
-      
-      return {
-        success: false,
-        code: shaderCode,
-        errors: compilationErrors.length > 0 ? compilationErrors : [{
-          line: 0,
-          message: 'Shader linking failed: ' + error,
-          type: 'error'
-        }]
-      };
-    }
+//       // Clean up vertex shader
+//       gl.deleteShader(vertexShader);
 
-    // Success! Clean up resources
-    gl.deleteProgram(program);
-    gl.deleteShader(vertexShader);
-    if (fragmentShader) gl.deleteShader(fragmentShader);
+//       return {
+//         success: false,
+//         code: shaderCode,
+//         errors: compilationErrors.length > 0 ? compilationErrors : [{
+//           line: 0,
+//           message: error.message || 'Shader compilation failed',
+//           type: 'error'
+//         }]
+//       };
+//     }
 
-    return {
-      success: true,
-      code: shaderCode,
-      errors: []
-    };
+//     // Try to link the program to catch additional errors
+//     const program = gl.createProgram();
+//     if (!program) {
+//       gl.deleteShader(vertexShader);
+//       if (fragmentShader) gl.deleteShader(fragmentShader);
+//       throw new Error('Failed to create shader program');
+//     }
 
-  } catch (error: any) {
-    return {
-      success: false,
-      code: shaderCode,
-      errors: [{
-        line: 0,
-        message: error.message || 'An unexpected error occurred during compilation',
-        type: 'error'
-      }]
-    };
-  }
-}
+//     gl.attachShader(program, vertexShader);
+//     if (fragmentShader) {
+//       gl.attachShader(program, fragmentShader);
+//     }
+//     gl.linkProgram(program);
+
+//     const linkSuccess = gl.getProgramParameter(program, gl.LINK_STATUS);
+//     if (!linkSuccess) {
+//       const error = gl.getProgramInfoLog(program) || 'Unknown linking error';
+//       compilationErrors = parseShaderError(error, userCodeStartLine);
+
+//       // Clean up
+//       gl.deleteProgram(program);
+//       gl.deleteShader(vertexShader);
+//       if (fragmentShader) gl.deleteShader(fragmentShader);
+
+//       return {
+//         success: false,
+//         code: shaderCode,
+//         errors: compilationErrors.length > 0 ? compilationErrors : [{
+//           line: 0,
+//           message: 'Shader linking failed: ' + error,
+//           type: 'error'
+//         }]
+//       };
+//     }
+
+//     // Success! Clean up resources
+//     gl.deleteProgram(program);
+//     gl.deleteShader(vertexShader);
+//     if (fragmentShader) gl.deleteShader(fragmentShader);
+
+//     return {
+//       success: true,
+//       code: shaderCode,
+//       errors: []
+//     };
+
+//   } catch (error: any) {
+//     return {
+//       success: false,
+//       code: shaderCode,
+//       errors: [{
+//         line: 0,
+//         message: error.message || 'An unexpected error occurred during compilation',
+//         type: 'error'
+//       }]
+//     };
+//   }
+// }
 
 // Re-export the main function as Compile for backward compatibility
-export const Compile = compile;
+//export const Compile = compile;
