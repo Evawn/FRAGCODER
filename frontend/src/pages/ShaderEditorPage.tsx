@@ -1,18 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import CodeMirrorEditor from '../components/editor/CodeMirrorEditor';
+import ShaderEditor from '../components/editor/ShaderEditor';
+import type { ShaderData } from '../components/editor/ShaderEditor';
 import ShaderPlayer from '../components/ShaderPlayer';
-
-interface ShaderData {
-  id: string;
-  title: string;
-  code: string;
-  description?: string;
-  isPublic: boolean;
-  userId: string;
-  forkedFrom?: string;
-}
 
 interface CompilationError {
   line: number;
@@ -32,7 +23,7 @@ void mainImage(out vec4 O, vec2 I) {
         s = max( s, min( v = i*.8-abs(mod(v,i+i)-i), v.x) );
 }`;
 
-function ShaderEditor() {
+function ShaderEditorPage() {
   const [searchParams] = useSearchParams();
   const shaderId = searchParams.get('id');
 
@@ -112,7 +103,7 @@ function ShaderEditor() {
         {/* Shader Editor - Right Panel */}
         <Panel defaultSize={50} minSize={30}>
           <div className="h-full flex flex-col">
-            <ShaderCodeEditor
+            <ShaderEditor
               shader={shader}
               onCompile={(code) => {
                 console.log('Triggering shader compilation...');
@@ -129,95 +120,4 @@ function ShaderEditor() {
   );
 }
 
-
-interface ShaderCodeEditorProps {
-  shader: ShaderData | null;
-  onCompile: (code: string) => void;
-  compilationErrors: CompilationError[];
-  compilationSuccess?: boolean;
-}
-
-function ShaderCodeEditor({ shader, onCompile, compilationErrors, compilationSuccess }: ShaderCodeEditorProps) {
-  const [code, setCode] = useState(shader?.code || defaultShaderCode);
-  const [isUniformsExpanded, setIsUniformsExpanded] = useState(false);
-
-  useEffect(() => {
-    if (shader?.code) {
-      setCode(shader.code);
-    }
-  }, [shader]);
-
-  const handleCompile = () => {
-    onCompile(code);
-  };
-
-  // Standard GLSL uniform declarations for shader inputs
-  const uniformHeader = `// Standard Shader Uniforms
-uniform vec3 iResolution;    // viewport resolution (in pixels)
-uniform float iTime;         // shader playback time (in seconds)
-uniform float iTimeDelta;    // render time (in seconds)
-uniform int iFrame;          // shader playback frame
-uniform vec4 iMouse;         // mouse pixel coords. xy: current, zw: click
-uniform vec4 iDate;          // year, month, day, time in seconds`;
-
-  return (
-    <div className="h-full flex flex-col">
-      {/* Header with compile button */}
-      <div className="bg-gray-800 p-4 border-b border-gray-700">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">GLSL Editor</h2>
-          <button
-            onClick={handleCompile}
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
-          >
-            Compile
-          </button>
-        </div>
-      </div>
-
-      {/* Shader Uniforms Dropdown */}
-      <div className="bg-gray-800 border-b border-gray-700">
-        <button
-          onClick={() => setIsUniformsExpanded(!isUniformsExpanded)}
-          className="w-full flex items-center justify-between p-3 text-left hover:bg-gray-700 transition-colors duration-150"
-        >
-          <span className="text-sm font-medium text-gray-300">Shader Uniforms</span>
-          <svg
-            className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
-              isUniformsExpanded ? 'rotate-180' : ''
-            }`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-        <div className={`overflow-hidden transition-all duration-200 ease-in-out ${
-          isUniformsExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-        }`}>
-          <div className="px-3 pb-3">
-            <pre className="text-xs text-gray-400 font-mono bg-gray-900 p-3 rounded border border-gray-600 overflow-x-auto leading-relaxed">
-              {uniformHeader}
-            </pre>
-          </div>
-        </div>
-      </div>
-
-      {/* Code Editor Area */}
-      <div className="flex-1 bg-gray-900 flex flex-col p-4">
-        <CodeMirrorEditor
-          value={code}
-          onChange={setCode}
-          placeholder="// Write your GLSL fragment shader here..."
-          errors={compilationErrors}
-          compilationSuccess={compilationSuccess}
-          onCompile={handleCompile}
-        />
-      </div>
-
-    </div>
-  );
-}
-
-export default ShaderEditor
+export default ShaderEditorPage
