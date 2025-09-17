@@ -76,21 +76,36 @@ const errorState = StateField.define<CompilationError[]>({
         // Map the error line number through document changes
         try {
           const originalPos = tr.startState.doc.line(error.line).from;
-          const newPos = tr.changes.mapPos(originalPos, -1); // Use -1 to favor staying before insertions
-          const newLine = tr.state.doc.lineAt(newPos).number;
+          const originalLineEnd = tr.startState.doc.line(error.line).to;
+          
+          // Map both start and end of the original line
+          const newPosStart = tr.changes.mapPos(originalPos, -1);
+          const newPosEnd = tr.changes.mapPos(originalLineEnd, 1);
+          
+          // If the entire line was deleted, the mapped positions will be the same
+          // or the start position will be invalid
+          if (newPosStart < 0 || newPosStart >= newPosEnd) {
+            return null; // Line was deleted, remove error
+          }
+          
+          const newLine = tr.state.doc.lineAt(newPosStart).number;
+          
+          // Verify the line still exists and has content
+          const lineInfo = tr.state.doc.line(newLine);
+          if (lineInfo.from >= lineInfo.to && newLine > 1) {
+            // Empty line, but check if it's just whitespace that was cleared
+            return null;
+          }
           
           return {
             ...error,
             line: newLine
           };
         } catch (e) {
-          // If line mapping fails (e.g., line was deleted), mark as general error
-          return {
-            ...error,
-            line: 0
-          };
+          // If line mapping fails (e.g., line was deleted), remove the error
+          return null;
         }
-      });
+      }).filter(error => error !== null); // Remove null entries
       
       return updatedErrors;
     }
