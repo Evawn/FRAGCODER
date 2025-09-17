@@ -118,19 +118,19 @@ const errorDecorations = StateField.define<DecorationSet>({
             try {
               const line = tr.state.doc.line(error.line);
               
-              // Position widget at the end of the error line with side: 1
-              // This ensures the annotation stays anchored to the end of the original line
+              // Add line decoration first (it has no side, defaults to 0)
+              const lineDeco = Decoration.line({
+                class: 'cm-error-line'
+              });
+              decorations.push(lineDeco.range(line.from));
+
+              // Add widget decoration after (with side: 1)
               const widget = Decoration.widget({
                 widget: new ErrorWidget(error),
                 side: 1, // Place after the line content
                 block: true
               });
               decorations.push(widget.range(line.to));
-
-              const lineDeco = Decoration.line({
-                class: 'cm-error-line'
-              });
-              decorations.push(lineDeco.range(line.from));
             } catch (e) {
               generalErrors.push(error);
             }
@@ -152,6 +152,7 @@ const errorDecorations = StateField.define<DecorationSet>({
         }
 
         // Sort decorations by position to satisfy CodeMirror's requirements
+        // Line decorations (at line.from) will naturally come before widget decorations (at line.to)
         decorations.sort((a, b) => a.from - b.from);
         return Decoration.set(decorations);
       }
@@ -168,17 +169,19 @@ const errorDecorations = StateField.define<DecorationSet>({
           try {
             const line = tr.state.doc.line(error.line);
             
+            // Add line decoration first (it has no side, defaults to 0)
+            const lineDeco = Decoration.line({
+              class: 'cm-error-line'
+            });
+            decorations.push(lineDeco.range(line.from));
+
+            // Add widget decoration after (with side: 1)
             const widget = Decoration.widget({
               widget: new ErrorWidget(error),
               side: 1,
               block: true
             });
             decorations.push(widget.range(line.to));
-
-            const lineDeco = Decoration.line({
-              class: 'cm-error-line'
-            });
-            decorations.push(lineDeco.range(line.from));
           } catch (e) {
             generalErrors.push(error);
           }
