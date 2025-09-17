@@ -1,27 +1,144 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import { oneDark } from '@codemirror/theme-one-dark';
-import { EditorView, keymap } from '@codemirror/view';
+import { EditorView, keymap, Decoration, WidgetType } from '@codemirror/view';
 import { indentOnInput, bracketMatching, foldGutter, codeFolding, indentUnit } from '@codemirror/language';
 import { lineNumbers, highlightActiveLineGutter } from '@codemirror/view';
 import { acceptCompletion, completionStatus } from '@codemirror/autocomplete';
 import { indentMore } from '@codemirror/commands';
+import { StateField, StateEffect } from '@codemirror/state';
 import { glsl } from '../utils/GLSLLanguage';
+import type { CompilationError } from '../utils/GLSLCompiler';
+import type { DecorationSet } from '@codemirror/view';
 
 interface CodeMirrorEditorProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   readOnly?: boolean;
+  errors?: CompilationError[];
+  compilationSuccess?: boolean;
 }
+
+class ErrorWidget extends WidgetType {
+  private error: CompilationError;
+  
+  constructor(error: CompilationError) {
+    super();
+    this.error = error;
+  }
+
+  toDOM() {
+    const wrap = document.createElement('div');
+    wrap.className = 'cm-error-annotation';
+    wrap.style.cssText = `
+      background-color: #dc2626;
+      color: white;
+      padding: 2px 8px;
+      margin: 0;
+      border-radius: 2px;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 14px;
+      line-height: 1.2;
+      border-left: 3px solid #991b1b;
+      height: 20px;
+      display: flex;
+      align-items: center;
+    `;
+
+    wrap.textContent = this.error.message;
+    return wrap;
+  }
+
+  get estimatedHeight() {
+    return 20;
+  }
+}
+
+const setErrorsEffect = StateEffect.define<CompilationError[]>();
+
+const errorState = StateField.define<CompilationError[]>({
+  create() {
+    return [];
+  },
+  update(errors, tr) {
+    for (let effect of tr.effects) {
+      if (effect.is(setErrorsEffect)) {
+        return effect.value;
+      }
+    }
+    return errors;
+  }
+});
+
+const errorDecorations = StateField.define<DecorationSet>({
+  create() {
+    return Decoration.none;
+  },
+  update(decorations, tr) {
+    decorations = decorations.map(tr.changes);
+
+    for (let effect of tr.effects) {
+      if (effect.is(setErrorsEffect)) {
+        const errors = effect.value;
+        const decorations: any[] = [];
+        const generalErrors: CompilationError[] = [];
+
+        errors.forEach(error => {
+          if (error.line > 0) {
+            try {
+              const line = tr.state.doc.line(error.line);
+              const widget = Decoration.widget({
+                widget: new ErrorWidget(error),
+                side: 1,
+                block: true
+              });
+              decorations.push(widget.range(line.to));
+
+              const lineDeco = Decoration.line({
+                class: 'cm-error-line'
+              });
+              decorations.push(lineDeco.range(line.from));
+            } catch (e) {
+              generalErrors.push(error);
+            }
+          } else {
+            generalErrors.push(error);
+          }
+        });
+
+        if (generalErrors.length > 0) {
+          const lastLine = tr.state.doc.length;
+          generalErrors.forEach(error => {
+            const widget = Decoration.widget({
+              widget: new ErrorWidget(error),
+              side: 1,
+              block: true
+            });
+            decorations.push(widget.range(lastLine));
+          });
+        }
+
+        // Sort decorations by position to satisfy CodeMirror's requirements
+        decorations.sort((a, b) => a.from - b.from);
+        return Decoration.set(decorations);
+      }
+    }
+
+    return decorations;
+  },
+  provide: f => EditorView.decorations.from(f)
+});
 
 const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   value,
   onChange,
   placeholder = "// Write your GLSL fragment shader here...",
-  readOnly = false
+  readOnly = false,
+  errors = [],
+  compilationSuccess
 }) => {
-  const extensions = [
+  const extensions = useMemo(() => [
     glsl(),
     lineNumbers(),
     highlightActiveLineGutter(),
@@ -30,6 +147,8 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     codeFolding(),
     foldGutter(),
     indentUnit.of("    "), // 4 spaces
+    errorState,
+    errorDecorations,
     keymap.of([
       {
         key: 'Tab',
@@ -60,14 +179,39 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       },
       '.cm-scroller': {
         height: '100%'
+      },
+      '.cm-error-line': {
+        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        borderLeft: '3px solid #ef4444'
+      },
+      '.cm-error-annotation': {
+        display: 'block',
+        width: '100%',
+        boxSizing: 'border-box'
       }
     }),
     EditorView.lineWrapping
-  ];
+  ], []);
+
+  const editorRef = React.useRef<any>(null);
+
+  React.useEffect(() => {
+    if (editorRef.current && editorRef.current.view) {
+      editorRef.current.view.dispatch({
+        effects: setErrorsEffect.of(errors)
+      });
+    }
+  }, [errors]);
+
+  const getBorderColor = () => {
+    if (compilationSuccess === undefined) return 'border-gray-600';
+    return compilationSuccess ? 'border-green-500' : 'border-red-500';
+  };
 
   return (
-    <div className="h-full">
+    <div className={`h-full border-2 rounded transition-colors duration-200 ${getBorderColor()}`}>
       <CodeMirror
+        ref={editorRef}
         value={value}
         onChange={onChange}
         placeholder={placeholder}

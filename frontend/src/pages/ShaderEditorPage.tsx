@@ -33,6 +33,7 @@ function ShaderEditor() {
   const [shader, setShader] = useState<ShaderData | null>(null);
   const [isPlaying, setIsPlaying] = useState(true);
   const [compilationErrors, setCompilationErrors] = useState<CompilationError[]>([]);
+  const [compilationSuccess, setCompilationSuccess] = useState<boolean | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [currentCode, setCurrentCode] = useState<string>(defaultShaderCode);
   const [panelResizeCounter, setPanelResizeCounter] = useState(0);
@@ -58,6 +59,7 @@ function ShaderEditor() {
   const handleCompilationResult = useCallback((success: boolean, errors: CompilationError[]) => {
     console.log('Compilation result:', success ? 'success' : 'failed', errors);
     setCompilationErrors(errors);
+    setCompilationSuccess(success);
     
     // Auto-play when compilation succeeds
     if (success) {
@@ -109,6 +111,7 @@ function ShaderEditor() {
                 setCurrentCode(code);
               }}
               compilationErrors={compilationErrors}
+              compilationSuccess={compilationSuccess}
             />
           </div>
         </Panel>
@@ -122,9 +125,10 @@ interface ShaderCodeEditorProps {
   shader: ShaderData | null;
   onCompile: (code: string) => void;
   compilationErrors: CompilationError[];
+  compilationSuccess?: boolean;
 }
 
-function ShaderCodeEditor({ shader, onCompile, compilationErrors }: ShaderCodeEditorProps) {
+function ShaderCodeEditor({ shader, onCompile, compilationErrors, compilationSuccess }: ShaderCodeEditorProps) {
   const [code, setCode] = useState(shader?.code || defaultShaderCode);
 
   useEffect(() => {
@@ -159,27 +163,10 @@ function ShaderCodeEditor({ shader, onCompile, compilationErrors }: ShaderCodeEd
             value={code}
             onChange={setCode}
             placeholder="// Write your GLSL fragment shader here..."
+            errors={compilationErrors}
+            compilationSuccess={compilationSuccess}
           />
         </div>
-        
-        {/* Compilation Errors */}
-        {compilationErrors.length > 0 && (
-          <div className="bg-gray-800 border-t border-gray-700 p-4 max-h-32 overflow-y-auto">
-            <h3 className="text-sm font-semibold text-red-400 mb-2">Compilation Errors:</h3>
-            <div className="space-y-1">
-              {compilationErrors.map((error, index) => (
-                <div key={index} className="text-sm">
-                  <span className="text-gray-400">
-                    {error.line > 0 ? `Line ${error.line}: ` : ''}
-                  </span>
-                  <span className={error.type === 'error' ? 'text-red-300' : 'text-yellow-300'}>
-                    {error.message}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
     </div>
