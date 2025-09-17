@@ -2,7 +2,7 @@ import React from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { EditorView, keymap } from '@codemirror/view';
-import { indentOnInput, bracketMatching, foldGutter, codeFolding } from '@codemirror/language';
+import { indentOnInput, bracketMatching, foldGutter, codeFolding, indentUnit } from '@codemirror/language';
 import { lineNumbers, highlightActiveLineGutter } from '@codemirror/view';
 import { acceptCompletion, completionStatus } from '@codemirror/autocomplete';
 import { indentMore } from '@codemirror/commands';
@@ -29,6 +29,7 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     bracketMatching(),
     codeFolding(),
     foldGutter(),
+    indentUnit.of("    "), // 4 spaces
     keymap.of([
       {
         key: 'Tab',
