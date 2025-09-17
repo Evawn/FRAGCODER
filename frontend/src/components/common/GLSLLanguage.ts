@@ -1,16 +1,15 @@
-import { cpp, cppLanguage } from "@codemirror/lang-cpp"
 import { LRLanguage, LanguageSupport } from "@codemirror/language"
 import { styleTags, tags as t } from "@lezer/highlight"
-
+import { parser } from "lezer-glsl"
 
 // Create highlighting rules for GLSL tokens
 const glslHighlighting = styleTags({
   // GLSL Keywords
   "precision highp mediump lowp uniform varying attribute in out inout layout location binding invariant centroid flat smooth noperspective patch sample subroutine": t.keyword,
-  
+
   // Standard keywords
   "const void if else for while do break continue return discard switch case default": t.keyword,
-  
+
   // Types - these should get type highlighting (same as float)
   "bool int uint float double bvec2 bvec3 bvec4 ivec2 ivec3 ivec4 uvec2 uvec3 uvec4 vec2 vec3 vec4 dvec2 dvec3 dvec4": t.typeName,
   "mat2 mat3 mat4 mat2x2 mat2x3 mat2x4 mat3x2 mat3x3 mat3x4 mat4x2 mat4x3 mat4x4": t.typeName,
@@ -23,7 +22,7 @@ const glslHighlighting = styleTags({
   "iimage1D iimage2D iimage3D iimageCube iimage1DArray iimage2DArray iimageCubeArray iimage2DRect iimageBuffer iimage2DMS iimage2DMSArray": t.typeName,
   "uimage1D uimage2D uimage3D uimageCube uimage1DArray uimage2DArray uimageCubeArray uimage2DRect uimageBuffer uimage2DMS uimage2DMSArray": t.typeName,
   "atomic_uint": t.typeName,
-  
+
   // Built-in functions
   "radians degrees sin cos tan asin acos atan sinh cosh tanh asinh acosh atanh": t.function(t.variableName),
   "pow exp log exp2 log2 sqrt inversesqrt abs sign floor trunc round roundEven ceil fract mod modf min max clamp mix step smoothstep": t.function(t.variableName),
@@ -47,7 +46,7 @@ const glslHighlighting = styleTags({
   "memoryBarrier memoryBarrierAtomicCounter memoryBarrierBuffer memoryBarrierShared memoryBarrierImage groupMemoryBarrier": t.function(t.variableName),
   "atomicAdd atomicMin atomicMax atomicAnd atomicOr atomicXor atomicExchange atomicCompSwap": t.function(t.variableName),
   "imageSize imageLoad imageStore imageAtomicAdd imageAtomicMin imageAtomicMax imageAtomicAnd imageAtomicOr imageAtomicXor imageAtomicExchange imageAtomicCompSwap": t.function(t.variableName),
-  
+
   // Built-in variables
   "gl_VertexID gl_InstanceID gl_DrawID gl_BaseVertex gl_BaseInstance gl_Position gl_PointSize gl_ClipDistance": t.variableName,
   "gl_PatchVerticesIn gl_PrimitiveID gl_InvocationID gl_TessLevelOuter gl_TessLevelInner gl_TessCoord": t.variableName,
@@ -55,14 +54,14 @@ const glslHighlighting = styleTags({
   "gl_FragCoord gl_FrontFacing gl_PointCoord gl_SampleID gl_SamplePosition gl_SampleMaskIn": t.variableName,
   "gl_FragColor gl_FragData gl_FragDepth gl_SampleMask gl_NumWorkGroups gl_WorkGroupSize gl_WorkGroupID": t.variableName,
   "gl_LocalInvocationID gl_GlobalInvocationID gl_LocalInvocationIndex gl_DepthRange": t.variableName,
-  
+
   // Literals
   "true false": t.bool
 })
 
 export const glslLanguage = LRLanguage.define({
   name: "glsl",
-  parser: cppLanguage.parser.configure({
+  parser: parser.configure({
     props: [glslHighlighting]
   })
 })
