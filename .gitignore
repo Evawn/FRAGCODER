@@ -22,3 +22,4 @@ frontend/dist/
 node_modules/
 CLAUDE.md
 .claude/
+temp/
