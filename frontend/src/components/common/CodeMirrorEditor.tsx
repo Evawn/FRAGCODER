@@ -1,9 +1,11 @@
 import React from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import { oneDark } from '@codemirror/theme-one-dark';
-import { EditorView } from '@codemirror/view';
+import { EditorView, keymap } from '@codemirror/view';
 import { indentOnInput, bracketMatching, foldGutter, codeFolding } from '@codemirror/language';
 import { lineNumbers, highlightActiveLineGutter } from '@codemirror/view';
+import { acceptCompletion, completionStatus } from '@codemirror/autocomplete';
+import { indentMore } from '@codemirror/commands';
 import { glsl } from './GLSLLanguage';
 
 interface CodeMirrorEditorProps {
@@ -27,6 +29,19 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     bracketMatching(),
     codeFolding(),
     foldGutter(),
+    keymap.of([
+      {
+        key: 'Tab',
+        preventDefault: true,
+        run: (view) => {
+          if (completionStatus(view.state) === "active") {
+            return acceptCompletion(view);
+          } else {
+            return indentMore(view);
+          }
+        }
+      }
+    ]),
     EditorView.theme({
       '&': {
         fontSize: '14px',
@@ -58,6 +73,7 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         readOnly={readOnly}
         theme={oneDark}
         extensions={extensions}
+        indentWithTab={false}
         basicSetup={{
           lineNumbers: false, // We're adding this manually above
           foldGutter: false,  // We're adding this manually above
