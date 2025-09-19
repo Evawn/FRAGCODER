@@ -112,6 +112,11 @@ function ShaderEditorPage() {
               }}
               compilationErrors={compilationErrors}
               compilationSuccess={compilationSuccess}
+              onTabChange={() => {
+                // Clear errors when switching tabs
+                setCompilationErrors([]);
+                setCompilationSuccess(undefined);
+              }}
             />
           </div>
         </Panel>

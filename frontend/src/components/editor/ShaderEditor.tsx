@@ -17,6 +17,7 @@ interface ShaderEditorProps {
   onCompile: (code: string) => void;
   compilationErrors: CompilationError[];
   compilationSuccess?: boolean;
+  onTabChange?: () => void;
 }
 
 interface Tab {
@@ -38,10 +39,10 @@ void mainImage(out vec4 O, vec2 I) {
         s = max( s, min( v = i*.8-abs(mod(v,i+i)-i), v.x) );
 }`;
 
-function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess }: ShaderEditorProps) {
+function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess, onTabChange }: ShaderEditorProps) {
   const [code, setCode] = useState(shader?.code || defaultShaderCode);
   const [isUniformsExpanded, setIsUniformsExpanded] = useState(false);
-  
+
   // Tab management state
   const [tabs, setTabs] = useState<Tab[]>([
     { id: '1', name: 'Image', code: shader?.code || defaultShaderCode, isDeletable: false }
@@ -50,14 +51,14 @@ function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess
   const [showAddDropdown, setShowAddDropdown] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [tabToDelete, setTabToDelete] = useState<Tab | null>(null);
-  
+
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (shader?.code) {
       setCode(shader.code);
       // Update the Image tab's code when shader changes
-      setTabs(prevTabs => prevTabs.map(tab => 
+      setTabs(prevTabs => prevTabs.map(tab =>
         tab.id === '1' ? { ...tab, code: shader.code } : tab
       ));
     }
@@ -80,8 +81,10 @@ function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess
     const activeTab = tabs.find(tab => tab.id === activeTabId);
     if (activeTab) {
       setCode(activeTab.code);
+      // Notify parent that tab changed to clear errors
+      onTabChange?.();
     }
-  }, [activeTabId, tabs]);
+  }, [activeTabId]); // Only trigger on activeTabId change, not tab content changes
 
   const handleCompile = () => {
     onCompile(code);
@@ -90,7 +93,7 @@ function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess
   // Save current tab's code when it changes
   const handleCodeChange = (newCode: string) => {
     setCode(newCode);
-    setTabs(prevTabs => prevTabs.map(tab => 
+    setTabs(prevTabs => prevTabs.map(tab =>
       tab.id === activeTabId ? { ...tab, code: newCode } : tab
     ));
   };
@@ -205,12 +208,13 @@ uniform vec4 iDate;          // year, month, day, time in seconds`;
           {tabs.map(tab => (
             <div
               key={tab.id}
-              className={`flex items-center px-3 py-1.5 rounded-t cursor-pointer transition-colors group ${
-                activeTabId === tab.id
+              className={`flex items-center px-3 py-1.5 rounded-t cursor-pointer transition-colors group ${activeTabId === tab.id
                   ? 'bg-gray-900 text-white'
                   : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-gray-100'
-              }`}
-              onClick={() => setActiveTabId(tab.id)}
+                }`}
+              onClick={() => {
+                setActiveTabId(tab.id);
+              }}
             >
               <span className="text-sm font-medium whitespace-nowrap">{tab.name}</span>
               {tab.isDeletable && (
@@ -239,9 +243,8 @@ uniform vec4 iDate;          // year, month, day, time in seconds`;
         >
           <span className="text-sm font-medium text-gray-300">Shader Uniforms</span>
           <svg
-            className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
-              isUniformsExpanded ? 'rotate-180' : ''
-            }`}
+            className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isUniformsExpanded ? 'rotate-180' : ''
+              }`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -249,9 +252,8 @@ uniform vec4 iDate;          // year, month, day, time in seconds`;
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </button>
-        <div className={`overflow-hidden transition-all duration-200 ease-in-out ${
-          isUniformsExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-        }`}>
+        <div className={`overflow-hidden transition-all duration-200 ease-in-out ${isUniformsExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+          }`}>
           <div className="px-3 pb-3">
             <pre className="text-xs text-gray-400 font-mono bg-gray-900 p-3 rounded border border-gray-600 overflow-x-auto leading-relaxed">
               {uniformHeader}

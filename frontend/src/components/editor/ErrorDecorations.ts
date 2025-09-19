@@ -60,39 +60,28 @@ export const errorState = StateField.define<CompilationError[]>({
       const updatedErrors = errors.map(error => {
         if (error.line <= 0) return error; // General errors don't need line tracking
         
-        // Map the error line number through document changes
         try {
-          const originalPos = tr.startState.doc.line(error.line).from;
-          const originalLineEnd = tr.startState.doc.line(error.line).to;
+          // Get the position at the start of the error line
+          const originalLine = tr.startState.doc.line(error.line);
+          const mappedPos = tr.changes.mapPos(originalLine.from);
           
-          // Map both start and end of the original line
-          const newPosStart = tr.changes.mapPos(originalPos, -1);
-          const newPosEnd = tr.changes.mapPos(originalLineEnd, 1);
-          
-          // If the entire line was deleted, the mapped positions will be the same
-          // or the start position will be invalid
-          if (newPosStart < 0 || newPosStart >= newPosEnd) {
-            return null; // Line was deleted, remove error
-          }
-          
-          const newLine = tr.state.doc.lineAt(newPosStart).number;
-          
-          // Verify the line still exists and has content
-          const lineInfo = tr.state.doc.line(newLine);
-          if (lineInfo.from >= lineInfo.to && newLine > 1) {
-            // Empty line, but check if it's just whitespace that was cleared
+          // Check if the line was deleted
+          if (mappedPos < 0 || mappedPos > tr.state.doc.length) {
             return null;
           }
+          
+          // Get the new line number
+          const newLine = tr.state.doc.lineAt(mappedPos).number;
           
           return {
             ...error,
             line: newLine
           };
         } catch (e) {
-          // If line mapping fails (e.g., line was deleted), remove the error
+          // Line doesn't exist anymore
           return null;
         }
-      }).filter(error => error !== null); // Remove null entries
+      }).filter(error => error !== null);
       
       return updatedErrors;
     }
@@ -101,76 +90,19 @@ export const errorState = StateField.define<CompilationError[]>({
   }
 });
 
-export const errorDecorations = StateField.define<DecorationSet>({
-  create() {
-    return Decoration.none;
-  },
-  update(decorations, tr) {
-    // Don't map decorations - rebuild them from current error state
-    // This prevents annotations from moving when lines are inserted/deleted
+// Helper function to build decorations from errors with error boundary
+function buildDecorationsFromErrors(errors: CompilationError[], doc: any): any[] {
+  try {
+    const decorations: any[] = [];
+    const generalErrors: CompilationError[] = [];
 
-    for (let effect of tr.effects) {
-      if (effect.is(setErrorsEffect)) {
-        const errors = effect.value;
-        const decorations: any[] = [];
-        const generalErrors: CompilationError[] = [];
-
-        errors.forEach(error => {
-          if (error.line > 0) {
-            try {
-              const line = tr.state.doc.line(error.line);
-              
-              // Add line decoration first (it has no side, defaults to 0)
-              const lineDeco = Decoration.line({
-                class: 'cm-error-line'
-              });
-              decorations.push(lineDeco.range(line.from));
-
-              // Add widget decoration after (with side: 1)
-              const widget = Decoration.widget({
-                widget: new ErrorWidget(error),
-                side: 1, // Place after the line content
-                block: true
-              });
-              decorations.push(widget.range(line.to));
-            } catch (e) {
-              generalErrors.push(error);
-            }
-          } else {
-            generalErrors.push(error);
-          }
-        });
-
-        if (generalErrors.length > 0) {
-          const lastLine = tr.state.doc.length;
-          generalErrors.forEach(error => {
-            const widget = Decoration.widget({
-              widget: new ErrorWidget(error),
-              side: 1,
-              block: true
-            });
-            decorations.push(widget.range(lastLine));
-          });
-        }
-
-        // Sort decorations by position to satisfy CodeMirror's requirements
-        // Line decorations (at line.from) will naturally come before widget decorations (at line.to)
-        decorations.sort((a, b) => a.from - b.from);
-        return Decoration.set(decorations);
-      }
-    }
-
-    // Rebuild decorations from current error state on any document change
-    if (tr.docChanged) {
-      const errors = tr.state.field(errorState);
-      const decorations: any[] = [];
-      const generalErrors: CompilationError[] = [];
-
-      errors.forEach(error => {
-        if (error.line > 0) {
-          try {
-            const line = tr.state.doc.line(error.line);
-            
+    errors.forEach(error => {
+      if (error.line > 0) {
+        try {
+          const line = doc.line(error.line);
+          
+          // Validate line exists and has valid range
+          if (line && line.from < line.to) {
             // Add line decoration first (it has no side, defaults to 0)
             const lineDeco = Decoration.line({
               class: 'cm-error-line'
@@ -180,20 +112,25 @@ export const errorDecorations = StateField.define<DecorationSet>({
             // Add widget decoration after (with side: 1)
             const widget = Decoration.widget({
               widget: new ErrorWidget(error),
-              side: 1,
+              side: 1, // Place after the line content
               block: true
             });
             decorations.push(widget.range(line.to));
-          } catch (e) {
+          } else {
             generalErrors.push(error);
           }
-        } else {
+        } catch (e) {
+          // Line doesn't exist, treat as general error
           generalErrors.push(error);
         }
-      });
+      } else {
+        generalErrors.push(error);
+      }
+    });
 
-      if (generalErrors.length > 0) {
-        const lastLine = tr.state.doc.length;
+    if (generalErrors.length > 0) {
+      try {
+        const lastLine = doc.length;
         generalErrors.forEach(error => {
           const widget = Decoration.widget({
             widget: new ErrorWidget(error),
@@ -202,13 +139,79 @@ export const errorDecorations = StateField.define<DecorationSet>({
           });
           decorations.push(widget.range(lastLine));
         });
+      } catch (e) {
+        // Silently fail if we can't add general errors
+        console.warn('Failed to add general error decorations:', e);
       }
-
-      decorations.sort((a, b) => a.from - b.from);
-      return Decoration.set(decorations);
     }
 
+    // Sort decorations by position to satisfy CodeMirror's requirements
+    decorations.sort((a, b) => a.from - b.from);
     return decorations;
+  } catch (e) {
+    console.error('Error building decorations:', e);
+    return []; // Return empty array on failure
+  }
+}
+
+export const errorDecorations = StateField.define<DecorationSet>({
+  create() {
+    return Decoration.none;
+  },
+  update(decorations, tr) {
+    try {
+      // Check if errors were explicitly updated
+      for (let effect of tr.effects) {
+        if (effect.is(setErrorsEffect)) {
+          const errors = effect.value;
+          const newDecorations = buildDecorationsFromErrors(errors, tr.state.doc);
+          return Decoration.set(newDecorations);
+        }
+      }
+
+      // Only rebuild on document changes if we have existing errors
+      if (tr.docChanged) {
+        const errors = tr.state.field(errorState);
+        
+        // Skip rebuild if no errors
+        if (errors.length === 0) {
+          return Decoration.none;
+        }
+        
+        // Only rebuild if the document change might affect error positions
+        let hasRelevantChange = false;
+        try {
+          tr.changes.desc.iterChanges((fromA, toA, fromB, toB) => {
+            // Check if any error line is affected by this change
+            hasRelevantChange = errors.some(error => {
+              if (error.line <= 0) return false;
+              try {
+                const lineStart = tr.startState.doc.line(error.line).from;
+                const lineEnd = tr.startState.doc.line(error.line).to;
+                // Check if change overlaps with error line
+                return fromA <= lineEnd && toA >= lineStart;
+              } catch (e) {
+                return true; // Line doesn't exist, need rebuild
+              }
+            });
+            return !hasRelevantChange; // Continue iteration if no relevant change yet
+          });
+        } catch (e) {
+          hasRelevantChange = true; // On error, rebuild to be safe
+        }
+        
+        if (hasRelevantChange) {
+          const newDecorations = buildDecorationsFromErrors(errors, tr.state.doc);
+          return Decoration.set(newDecorations);
+        }
+      }
+
+      // Map existing decorations through the change
+      return decorations.map(tr.changes);
+    } catch (e) {
+      console.error('Error updating decorations:', e);
+      return Decoration.none; // Clear decorations on error
+    }
   },
   provide: f => EditorView.decorations.from(f)
 });

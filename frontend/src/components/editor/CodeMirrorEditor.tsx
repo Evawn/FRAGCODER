@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { EditorView, keymap } from '@codemirror/view';
@@ -106,14 +106,48 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   ], [onCompile]);
 
   const editorRef = React.useRef<any>(null);
+  const [isEditorReady, setIsEditorReady] = useState(false);
+  const errorUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Track when editor is ready
+  React.useEffect(() => {
+    const checkEditorReady = () => {
+      if (editorRef.current?.view) {
+        setIsEditorReady(true);
+      }
+    };
+    
+    // Check immediately and after a short delay
+    checkEditorReady();
+    const timer = setTimeout(checkEditorReady, 100);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   React.useEffect(() => {
-    if (editorRef.current && editorRef.current.view) {
-      editorRef.current.view.dispatch({
-        effects: setErrorsEffect.of(errors)
-      });
+    // Only dispatch errors when editor is ready
+    if (isEditorReady && editorRef.current?.view) {
+      // Clear any pending error update
+      if (errorUpdateTimeoutRef.current) {
+        clearTimeout(errorUpdateTimeoutRef.current);
+      }
+      
+      // Debounce error updates by 100ms to reduce re-renders
+      errorUpdateTimeoutRef.current = setTimeout(() => {
+        if (editorRef.current?.view) {
+          editorRef.current.view.dispatch({
+            effects: setErrorsEffect.of(errors)
+          });
+        }
+      }, 100);
     }
-  }, [errors]);
+    
+    return () => {
+      if (errorUpdateTimeoutRef.current) {
+        clearTimeout(errorUpdateTimeoutRef.current);
+      }
+    };
+  }, [errors, isEditorReady]);
 
   const getBorderColor = () => {
     if (compilationSuccess === undefined) return 'border-gray-600';
