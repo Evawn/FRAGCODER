@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import CodeMirrorEditor from './CodeMirrorEditor';
-import type { CompilationError } from '../../utils/GLSLCompiler';
+import type { CompilationError, TabShaderData } from '../../utils/GLSLCompiler';
 
 export interface ShaderData {
   id: string;
@@ -14,7 +14,7 @@ export interface ShaderData {
 
 interface ShaderEditorProps {
   shader: ShaderData | null;
-  onCompile: (code: string) => void;
+  onCompile: (tabs: TabShaderData[]) => void;
   compilationErrors: CompilationError[];
   compilationSuccess?: boolean;
   onTabChange?: () => void;
@@ -27,16 +27,34 @@ interface Tab {
   isDeletable: boolean;
 }
 
-const defaultImageCode = `// https://www.shadertoy.com/view/wfXfDl
+const defaultImageCode = `// Image - Display all buffers in quadrants
 
-void mainImage(out vec4 O, vec2 I) {
-    vec3  v = iResolution,
-          d = vec3( I+I, v ) - v,
-          p = iTime/v*9.-8., c = p, s;
-    for(float i, l; l++<1e2; O = (s-c).zzzz/2e2)
-      for(v = s = p += d/length(d)*s.y, i = 1e2; i>.01; i*=.4 )
-        v.xz *= .1*mat2(4,-9,9,4),
-        s = max( s, min( v = i*.8-abs(mod(v,i+i)-i), v.x) );
+void mainImage(out vec4 fragColor, vec2 fragCoord) {
+    vec2 uv = fragCoord / iResolution.xy;
+
+    // Determine which quadrant we're in
+    vec2 quadrant = step(0.5, uv);
+
+    // Normalize UV to quadrant space (0-1 within each quadrant)
+    vec2 quadUV = fract(uv * 2.0);
+
+    // Select buffer based on quadrant
+    vec4 color;
+    if (quadrant.x < 0.5 && quadrant.y < 0.5) {
+        // Bottom-left: Buffer A (iChannel0)
+        color = texture(iChannel0, quadUV);
+    } else if (quadrant.x >= 0.5 && quadrant.y < 0.5) {
+        // Bottom-right: Buffer B (iChannel1)
+        color = texture(iChannel1, quadUV);
+    } else if (quadrant.x < 0.5 && quadrant.y >= 0.5) {
+        // Top-left: Buffer C (iChannel2)
+        color = texture(iChannel2, quadUV);
+    } else {
+        // Top-right: Buffer D (iChannel3)
+        color = texture(iChannel3, quadUV);
+    }
+
+    fragColor = color;
 }`;
 
 const defaultBufferACode = `// Buffer A - Red pulsing circle
@@ -146,7 +164,13 @@ function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess
   }, [activeTabId]); // Only trigger on activeTabId change, not tab content changes
 
   const handleCompile = () => {
-    onCompile(code);
+    // Convert tabs to TabShaderData format and pass all to parent
+    const tabsData: TabShaderData[] = tabs.map(tab => ({
+      id: tab.id,
+      name: tab.name,
+      code: tab.code
+    }));
+    onCompile(tabsData);
   };
 
   // Save current tab's code when it changes
@@ -210,12 +234,18 @@ function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess
 
   // Standard GLSL uniform declarations for shader inputs
   const uniformHeader = `// Standard Shader Uniforms
-uniform vec3 iResolution;    // viewport resolution (in pixels)
-uniform float iTime;         // shader playback time (in seconds)
-uniform float iTimeDelta;    // render time (in seconds)
-uniform int iFrame;          // shader playback frame
-uniform vec4 iMouse;         // mouse pixel coords. xy: current, zw: click
-uniform vec4 iDate;          // year, month, day, time in seconds`;
+uniform vec3 iResolution;          // viewport resolution (in pixels)
+uniform float iTime;               // shader playback time (in seconds)
+uniform float iTimeDelta;          // render time (in seconds)
+uniform int iFrame;                // shader playback frame
+uniform vec4 iMouse;               // mouse pixel coords. xy: current, zw: click
+uniform vec4 iDate;                // year, month, day, time in seconds
+uniform sampler2D iChannel0;       // input channel 0
+uniform sampler2D iChannel1;       // input channel 1
+uniform sampler2D iChannel2;       // input channel 2
+uniform sampler2D iChannel3;       // input channel 3
+uniform vec3 iChannelResolution[4]; // channel resolutions
+uniform float iChannelTime[4];     // channel playback times`;
 
   return (
     <div className="h-full flex flex-col">

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { WebGLRenderer } from '../utils/WebGLRenderer';
-import { prepareShaderCode, parseShaderError } from '../utils/GLSLCompiler';
-import type { CompilationError } from '../utils/GLSLCompiler';
+import { parseShaderError } from '../utils/GLSLCompiler';
+import type { CompilationError, TabShaderData } from '../utils/GLSLCompiler';
 
 interface UseWebGLRendererProps {
-  userCode: string;
+  tabs: TabShaderData[];
   isPlaying: boolean;
   onCompilationResult: (success: boolean, errors: CompilationError[]) => void;
   panelResizeCounter: number;
@@ -22,7 +22,7 @@ interface UseWebGLRendererReturn {
 }
 
 export function useWebGLRenderer({
-  userCode,
+  tabs,
   isPlaying,
   onCompilationResult,
   panelResizeCounter,
@@ -72,29 +72,26 @@ export function useWebGLRenderer({
     };
   }, [onCompilationResult]);
 
-  // Compile shader when user code changes, compile trigger changes, or renderer becomes ready
+  // Compile shader when tabs change, compile trigger changes, or renderer becomes ready
   useEffect(() => {
     const renderer = rendererRef.current;
     if (!renderer || !isRendererReady) return;
 
-    // Don't compile empty code
-    if (!userCode.trim()) {
+    // Don't compile if no tabs
+    if (!tabs || tabs.length === 0) {
       setCompilationSuccess(false);
       setError(null);
       onCompilationResult(false, [{
         line: 0,
-        message: 'Shader code is empty',
+        message: 'No shader tabs provided',
         type: 'error'
       }]);
       return;
     }
 
     try {
-      // Prepare the shader code (always WebGL 2.0 now)
-      const { code: preparedCode, userCodeStartLine } = prepareShaderCode(userCode);
-
-      // Compile the shader
-      renderer.compileShader(preparedCode);
+      // Compile all tabs using multipass renderer
+      renderer.compileShader(tabs);
 
       // Success!
       setCompilationSuccess(true);
@@ -106,8 +103,9 @@ export function useWebGLRenderer({
       const errorMessage = err instanceof Error ? err.message : 'Shader compilation failed';
 
       // Parse error for line numbers
-      const { userCodeStartLine } = prepareShaderCode(userCode);
-      const errors = parseShaderError(errorMessage, userCodeStartLine);
+      // For multipass, we'd need to know which pass failed to get accurate line numbers
+      // For now, use generic error parsing
+      const errors = parseShaderError(errorMessage, 0);
 
       setCompilationSuccess(false);
       setError('Shader compilation failed');
@@ -120,7 +118,7 @@ export function useWebGLRenderer({
       // Stop rendering on error
       renderer.stop();
     }
-  }, [userCode, compileTrigger, onCompilationResult, isRendererReady]);
+  }, [tabs, compileTrigger, onCompilationResult, isRendererReady]);
 
   // Control playback
   useEffect(() => {

@@ -11,6 +11,12 @@ export interface CompileResult {
   compiledShader?: WebGLShader;
 }
 
+export interface TabShaderData {
+  id: string;
+  name: string;
+  code: string;
+}
+
 // Minimal vertex shader for WebGL 2.0
 export const VERTEX_SHADER_SOURCE = `#version 300 es
 in vec2 a_position;
@@ -21,12 +27,18 @@ void main() {
 // WebGL 2.0 fragment shader wrapper with GLSL ES 3.00 syntax
 export const FRAGMENT_SHADER_WRAPPER = `{VERSION_AND_PRECISION}
 
-uniform vec3      iResolution;           // viewport resolution (in pixels)  
-uniform float     iTime;                 // shader playback time (in seconds)  
-uniform float     iTimeDelta;            // render time (in seconds)  
-uniform float     iFrameRate;            // shader frame rate  
-uniform int       iFrame;                // shader playback frame  
+uniform vec3      iResolution;           // viewport resolution (in pixels)
+uniform float     iTime;                 // shader playback time (in seconds)
+uniform float     iTimeDelta;            // render time (in seconds)
+uniform float     iFrameRate;            // shader frame rate
+uniform int       iFrame;                // shader playback frame
 uniform vec4      iDate;                 // (year, month, day, time in seconds)
+uniform sampler2D iChannel0;             // input channel 0
+uniform sampler2D iChannel1;             // input channel 1
+uniform sampler2D iChannel2;             // input channel 2
+uniform sampler2D iChannel3;             // input channel 3
+uniform vec3      iChannelResolution[4]; // channel resolution (in pixels)
+uniform float     iChannelTime[4];       // channel playback time (in seconds)
 
 out vec4 fragColor;                      // WebGL 2.0 output
 
@@ -211,4 +223,18 @@ export function prepareShaderCode(userCode: string): { code: string; userCodeSta
   const finalCode = wrapper.replace('{USER_CODE}', cleanedUserCode);
 
   return { code: finalCode, userCodeStartLine };
+}
+
+/**
+ * Prepares multipass shader code by prepending Common code before wrapping
+ * Used for Buffer A-D and Image passes that may share Common code
+ */
+export function prepareMultipassShaderCode(commonCode: string, userCode: string): { code: string; userCodeStartLine: number } {
+  // Prepend common code to user code if it exists
+  const combinedCode = commonCode.trim()
+    ? `${commonCode.trim()}\n\n${userCode}`
+    : userCode;
+
+  // Use existing prepareShaderCode logic for wrapping
+  return prepareShaderCode(combinedCode);
 }

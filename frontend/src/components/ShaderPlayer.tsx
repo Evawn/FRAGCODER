@@ -1,8 +1,8 @@
 import { useWebGLRenderer } from '../hooks/useWebGLRenderer';
-import type { CompilationError } from '../utils/GLSLCompiler';
+import type { CompilationError, TabShaderData } from '../utils/GLSLCompiler';
 
 interface ShaderPlayerProps {
-  userCode: string;
+  tabs: TabShaderData[];
   isPlaying: boolean;
   onPlayPause: () => void;
   onReset: () => void;
@@ -12,7 +12,7 @@ interface ShaderPlayerProps {
 }
 
 export default function ShaderPlayer({
-  userCode,
+  tabs,
   isPlaying,
   onPlayPause,
   onReset,
@@ -29,7 +29,7 @@ export default function ShaderPlayer({
     fps,
     resolution
   } = useWebGLRenderer({
-    userCode,
+    tabs,
     isPlaying,
     onCompilationResult,
     panelResizeCounter,

@@ -4,6 +4,7 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import ShaderEditor from '../components/editor/ShaderEditor';
 import type { ShaderData } from '../components/editor/ShaderEditor';
 import ShaderPlayer from '../components/ShaderPlayer';
+import type { TabShaderData } from '../utils/GLSLCompiler';
 
 interface CompilationError {
   line: number;
@@ -32,7 +33,9 @@ function ShaderEditorPage() {
   const [compilationErrors, setCompilationErrors] = useState<CompilationError[]>([]);
   const [compilationSuccess, setCompilationSuccess] = useState<boolean | undefined>(undefined);
   const [loading, setLoading] = useState(false);
-  const [currentCode, setCurrentCode] = useState<string>(defaultShaderCode);
+  const [allTabs, setAllTabs] = useState<TabShaderData[]>([
+    { id: '1', name: 'Image', code: defaultShaderCode }
+  ]);
   const [panelResizeCounter, setPanelResizeCounter] = useState(0);
   const [compileTrigger, setCompileTrigger] = useState(0);
 
@@ -78,7 +81,7 @@ function ShaderEditorPage() {
           <div className="h-full flex flex-col">
             <div className="w-full" style={{ aspectRatio: '4/3' }}>
               <ShaderPlayer
-                userCode={currentCode}
+                tabs={allTabs}
                 isPlaying={isPlaying}
                 onPlayPause={() => setIsPlaying(!isPlaying)}
                 onReset={() => {
@@ -105,9 +108,11 @@ function ShaderEditorPage() {
           <div className="h-full flex flex-col">
             <ShaderEditor
               shader={shader}
-              onCompile={(code) => {
-                console.log('Triggering shader compilation...');
-                setCurrentCode(code);
+              onCompile={(tabs) => {
+                console.log('Triggering shader compilation with tabs:', tabs);
+
+                // Store all tabs and trigger compilation
+                setAllTabs(tabs);
                 setCompileTrigger(prev => prev + 1);
               }}
               compilationErrors={compilationErrors}

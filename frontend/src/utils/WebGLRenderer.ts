@@ -1,4 +1,4 @@
-import { createShader, VERTEX_SHADER_SOURCE } from './GLSLCompiler';
+import { createShader, VERTEX_SHADER_SOURCE, prepareMultipassShaderCode, type TabShaderData } from './GLSLCompiler';
 
 const SHADER_UNIFORMS = {
   iResolution: 'iResolution',
@@ -7,6 +7,12 @@ const SHADER_UNIFORMS = {
   iFrameRate: 'iFrameRate',
   iFrame: 'iFrame',
   iDate: 'iDate',
+  iChannel0: 'iChannel0',
+  iChannel1: 'iChannel1',
+  iChannel2: 'iChannel2',
+  iChannel3: 'iChannel3',
+  iChannelResolution: 'iChannelResolution',
+  iChannelTime: 'iChannelTime',
   u_time: 'u_time',
   u_resolution: 'u_resolution',
   u_mouse: 'u_mouse',
@@ -18,9 +24,17 @@ interface MousePosition {
   y: number;
 }
 
+interface RenderPass {
+  name: string;
+  program: WebGLProgram;
+  framebuffer: WebGLFramebuffer | null;  // null for Image pass (renders to screen)
+  texture: WebGLTexture | null;          // Output texture (null for Image)
+}
+
 export class WebGLRenderer {
   private gl: WebGL2RenderingContext | null = null;
-  private program: WebGLProgram | null = null;
+  private passes: Map<string, RenderPass> = new Map();
+  private passOrder: string[] = ['Buffer A', 'Buffer B', 'Buffer C', 'Buffer D', 'Image'];
   private animationFrameId: number | null = null;
   private startTime: number = Date.now();
   private pausedTime: number = 0;
@@ -62,15 +76,108 @@ export class WebGLRenderer {
   }
 
   /**
-   * Compile and link shader program
+   * Compile and link shader programs for multipass rendering
    */
-  compileShader(fragmentShaderSource: string): void {
+  compileShader(tabs: TabShaderData[]): void {
     if (!this.gl) {
       throw new Error('WebGL context not initialized');
     }
 
-    // Clean up previous program
-    this.cleanupProgram();
+    // Clean up previous passes
+    this.cleanupPasses();
+
+    const gl = this.gl;
+
+    // Find Common tab code (or empty string if not present)
+    const commonTab = tabs.find(tab => tab.name === 'Common');
+    const commonCode = commonTab ? commonTab.code : '';
+
+    // Validate that Image tab exists
+    const imageTab = tabs.find(tab => tab.name === 'Image');
+    if (!imageTab) {
+      throw new Error('Image tab is required but not found in shader tabs');
+    }
+
+    // Compile each pass in order
+    for (const passName of this.passOrder) {
+      // Skip Common tab (it's prepended to other passes)
+      if (passName === 'Common') continue;
+
+      // Check if this tab exists
+      const tab = tabs.find(t => t.name === passName);
+      if (!tab) {
+        // This pass is disabled, skip it
+        continue;
+      }
+
+      try {
+        // Prepare shader code with Common prepended
+        const { code: preparedCode } = prepareMultipassShaderCode(commonCode, tab.code);
+
+        // Create program for this pass
+        const program = this.createProgram(preparedCode);
+
+        // Create framebuffer and texture for buffer passes (not Image)
+        let framebuffer: WebGLFramebuffer | null = null;
+        let texture: WebGLTexture | null = null;
+
+        if (passName !== 'Image') {
+          const fb = this.createFramebuffer();
+          framebuffer = fb.framebuffer;
+          texture = fb.texture;
+        }
+
+        // Store the render pass
+        this.passes.set(passName, {
+          name: passName,
+          program,
+          framebuffer,
+          texture
+        });
+
+      } catch (error) {
+        // Clean up partial compilation
+        this.cleanupPasses();
+        throw new Error(`Failed to compile ${passName}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+
+    // Set up geometry (full screen quad) - shared across all passes
+    // We'll use the Image program to set this up, then it applies to all
+    const imagePass = this.passes.get('Image');
+    if (imagePass) {
+      gl.useProgram(imagePass.program);
+      const positionAttributeLocation = gl.getAttribLocation(imagePass.program, 'a_position');
+      const positionBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+      gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array([
+          -1, -1,
+           1, -1,
+          -1,  1,
+          -1,  1,
+           1, -1,
+           1,  1,
+        ]),
+        gl.STATIC_DRAW
+      );
+
+      gl.enableVertexAttribArray(positionAttributeLocation);
+      gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+    }
+
+    // Reset animation start time when shader changes (preserve pause state)
+    this.resetAnimationTime();
+  }
+
+  /**
+   * Create and link a WebGL program from fragment shader source
+   */
+  private createProgram(fragmentShaderSource: string): WebGLProgram {
+    if (!this.gl) {
+      throw new Error('WebGL context not initialized');
+    }
 
     const gl = this.gl;
 
@@ -100,57 +207,101 @@ export class WebGLRenderer {
 
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
       const error = gl.getProgramInfoLog(program) || 'Unknown linking error';
-      
+
       // Clean up
       gl.deleteProgram(program);
       gl.deleteShader(vertexShader);
       gl.deleteShader(fragmentShader);
-      
+
       throw new Error(error);
     }
 
-    // Set up the program
-    this.program = program;
-    gl.useProgram(program);
+    // Clean up shaders (they're now part of the program)
+    gl.deleteShader(vertexShader);
+    gl.deleteShader(fragmentShader);
 
-    // Set up geometry (full screen quad)
-    const positionAttributeLocation = gl.getAttribLocation(program, 'a_position');
-    const positionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-    gl.bufferData(
-      gl.ARRAY_BUFFER,
-      new Float32Array([
-        -1, -1,
-         1, -1,
-        -1,  1,
-        -1,  1,
-         1, -1,
-         1,  1,
-      ]),
-      gl.STATIC_DRAW
+    return program;
+  }
+
+  /**
+   * Create a framebuffer and texture for render-to-texture
+   */
+  private createFramebuffer(): { framebuffer: WebGLFramebuffer; texture: WebGLTexture } {
+    if (!this.gl || !this.canvas) {
+      throw new Error('WebGL context or canvas not initialized');
+    }
+
+    const gl = this.gl;
+
+    // Create texture
+    const texture = gl.createTexture();
+    if (!texture) {
+      throw new Error('Failed to create texture');
+    }
+
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      this.canvas.width,
+      this.canvas.height,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      null
     );
 
-    gl.enableVertexAttribArray(positionAttributeLocation);
-    gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+    // Set texture parameters
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-    // Reset animation start time when shader changes (preserve pause state)
-    this.resetAnimationTime();
+    // Create framebuffer
+    const framebuffer = gl.createFramebuffer();
+    if (!framebuffer) {
+      gl.deleteTexture(texture);
+      throw new Error('Failed to create framebuffer');
+    }
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    gl.framebufferTexture2D(
+      gl.FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      texture,
+      0
+    );
+
+    // Check framebuffer completeness
+    const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    if (status !== gl.FRAMEBUFFER_COMPLETE) {
+      gl.deleteTexture(texture);
+      gl.deleteFramebuffer(framebuffer);
+      throw new Error(`Framebuffer incomplete: ${status}`);
+    }
+
+    // Unbind framebuffer
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    return { framebuffer, texture };
   }
 
   /**
    * Start the render loop
    */
   start(): void {
-    if (!this.program || !this.gl || this.animationFrameId !== null) {
+    if (!this.isReady() || !this.gl || this.animationFrameId !== null) {
       return;
     }
-    
+
     // If we were paused, calculate how long we were paused
     if (this.pauseStartTime !== null) {
       this.pausedTime += Date.now() - this.pauseStartTime;
       this.pauseStartTime = null;
     }
-    
+
     this.render();
   }
 
@@ -205,14 +356,37 @@ export class WebGLRenderer {
    */
   updateViewport(): void {
     if (!this.gl || !this.canvas) return;
-    
+
+    const gl = this.gl;
     const rect = this.canvas.getBoundingClientRect();
     this.canvas.width = rect.width * window.devicePixelRatio;
     this.canvas.height = rect.height * window.devicePixelRatio;
-    this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-    
+    gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+
+    // Resize all framebuffer textures to match new canvas size
+    for (const pass of this.passes.values()) {
+      if (pass.texture && pass.framebuffer) {
+        // Recreate texture at new size
+        gl.bindTexture(gl.TEXTURE_2D, pass.texture);
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0,
+          gl.RGBA,
+          this.canvas.width,
+          this.canvas.height,
+          0,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          null
+        );
+      }
+    }
+
+    // Unbind texture
+    gl.bindTexture(gl.TEXTURE_2D, null);
+
     // If not currently animating (paused), render a single frame to preserve the image
-    if (this.animationFrameId === null && this.program) {
+    if (this.animationFrameId === null && this.isReady()) {
       this.renderSingleFrame();
     }
   }
@@ -221,25 +395,40 @@ export class WebGLRenderer {
    * Render a single frame without starting the animation loop
    */
   renderSingleFrame(): void {
-    if (!this.gl || !this.program || !this.canvas) return;
+    if (!this.gl || !this.isReady() || !this.canvas) return;
 
     const gl = this.gl;
     // When paused, use the time that was frozen at pause
     // When not paused, use current time (though this method is mainly for paused state)
-    const currentTime = this.pauseStartTime !== null 
+    const currentTime = this.pauseStartTime !== null
       ? (this.pauseStartTime - this.startTime - this.pausedTime) / 1000.0
       : (Date.now() - this.startTime - this.pausedTime) / 1000.0;
 
     // For single frame rendering, use a fixed small time delta
     const timeDelta = 1.0 / 60.0; // Assume 60 FPS for consistent behavior
 
-    // Set all uniforms
-    this.setUniforms(currentTime, timeDelta);
+    // Render all passes in order
+    for (const passName of this.passOrder) {
+      const pass = this.passes.get(passName);
+      if (!pass) continue; // Skip disabled passes
 
-    // Clear and draw
-    gl.clearColor(0, 0, 0, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
+      // Bind framebuffer (null for Image pass = render to screen)
+      gl.bindFramebuffer(gl.FRAMEBUFFER, pass.framebuffer);
+
+      // Use this pass's program
+      gl.useProgram(pass.program);
+
+      // Set uniforms for this program
+      this.setUniforms(pass.program, currentTime, timeDelta);
+
+      // Clear and draw
+      gl.clearColor(0, 0, 0, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
+
+    // Ensure we end up unbound
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
   /**
@@ -247,13 +436,13 @@ export class WebGLRenderer {
    */
   dispose(): void {
     this.stop();
-    this.cleanupProgram();
-    
+    this.cleanupPasses();
+
     if (this.gl) {
       // Additional cleanup if needed
       this.gl = null;
     }
-    
+
     window.removeEventListener('mousemove', this.handleMouseMove);
     this.canvas = null;
   }
@@ -262,7 +451,7 @@ export class WebGLRenderer {
    * Check if renderer is ready to render
    */
   isReady(): boolean {
-    return !!(this.gl && this.program);
+    return !!(this.gl && this.passes.has('Image'));
   }
 
   /**
@@ -282,23 +471,67 @@ export class WebGLRenderer {
   /**
    * Set all shader uniforms
    */
-  private setUniforms(currentTime: number, timeDelta: number): void {
-    if (!this.gl || !this.program || !this.canvas) return;
+  private setUniforms(program: WebGLProgram, currentTime: number, timeDelta: number): void {
+    if (!this.gl || !this.canvas) return;
 
     const gl = this.gl;
 
     const uniforms = {
-      [SHADER_UNIFORMS.iResolution]: gl.getUniformLocation(this.program, SHADER_UNIFORMS.iResolution),
-      [SHADER_UNIFORMS.iTime]: gl.getUniformLocation(this.program, SHADER_UNIFORMS.iTime),
-      [SHADER_UNIFORMS.iTimeDelta]: gl.getUniformLocation(this.program, SHADER_UNIFORMS.iTimeDelta),
-      [SHADER_UNIFORMS.iFrameRate]: gl.getUniformLocation(this.program, SHADER_UNIFORMS.iFrameRate),
-      [SHADER_UNIFORMS.iFrame]: gl.getUniformLocation(this.program, SHADER_UNIFORMS.iFrame),
-      [SHADER_UNIFORMS.iDate]: gl.getUniformLocation(this.program, SHADER_UNIFORMS.iDate),
-      [SHADER_UNIFORMS.u_time]: gl.getUniformLocation(this.program, SHADER_UNIFORMS.u_time),
-      [SHADER_UNIFORMS.u_resolution]: gl.getUniformLocation(this.program, SHADER_UNIFORMS.u_resolution),
-      [SHADER_UNIFORMS.u_mouse]: gl.getUniformLocation(this.program, SHADER_UNIFORMS.u_mouse),
-      [SHADER_UNIFORMS.iMouse]: gl.getUniformLocation(this.program, SHADER_UNIFORMS.iMouse)
+      [SHADER_UNIFORMS.iResolution]: gl.getUniformLocation(program, SHADER_UNIFORMS.iResolution),
+      [SHADER_UNIFORMS.iTime]: gl.getUniformLocation(program, SHADER_UNIFORMS.iTime),
+      [SHADER_UNIFORMS.iTimeDelta]: gl.getUniformLocation(program, SHADER_UNIFORMS.iTimeDelta),
+      [SHADER_UNIFORMS.iFrameRate]: gl.getUniformLocation(program, SHADER_UNIFORMS.iFrameRate),
+      [SHADER_UNIFORMS.iFrame]: gl.getUniformLocation(program, SHADER_UNIFORMS.iFrame),
+      [SHADER_UNIFORMS.iDate]: gl.getUniformLocation(program, SHADER_UNIFORMS.iDate),
+      [SHADER_UNIFORMS.u_time]: gl.getUniformLocation(program, SHADER_UNIFORMS.u_time),
+      [SHADER_UNIFORMS.u_resolution]: gl.getUniformLocation(program, SHADER_UNIFORMS.u_resolution),
+      [SHADER_UNIFORMS.u_mouse]: gl.getUniformLocation(program, SHADER_UNIFORMS.u_mouse),
+      [SHADER_UNIFORMS.iMouse]: gl.getUniformLocation(program, SHADER_UNIFORMS.iMouse),
+      [SHADER_UNIFORMS.iChannelResolution]: gl.getUniformLocation(program, SHADER_UNIFORMS.iChannelResolution),
+      [SHADER_UNIFORMS.iChannelTime]: gl.getUniformLocation(program, SHADER_UNIFORMS.iChannelTime)
     };
+
+    // Bind buffer textures to iChannel uniforms (Buffer A-D → iChannel0-3)
+    const channelBuffers = ['Buffer A', 'Buffer B', 'Buffer C', 'Buffer D'];
+    for (let i = 0; i < 4; i++) {
+      const bufferPass = this.passes.get(channelBuffers[i]);
+
+      // Activate texture unit
+      gl.activeTexture(gl.TEXTURE0 + i);
+
+      if (bufferPass && bufferPass.texture) {
+        // Bind buffer's output texture
+        gl.bindTexture(gl.TEXTURE_2D, bufferPass.texture);
+      } else {
+        // Unbind texture (will sample black/zero)
+        gl.bindTexture(gl.TEXTURE_2D, null);
+      }
+
+      // Set sampler uniform to texture unit index
+      const channelUniformName = `iChannel${i}`;
+      const channelUniform = gl.getUniformLocation(program, channelUniformName);
+      if (channelUniform) {
+        gl.uniform1i(channelUniform, i);
+      }
+    }
+
+    // Set iChannelResolution array
+    if (uniforms[SHADER_UNIFORMS.iChannelResolution]) {
+      const resolutions = new Float32Array(12); // 4 channels * 3 components (vec3)
+      for (let i = 0; i < 4; i++) {
+        resolutions[i * 3 + 0] = this.canvas.width;
+        resolutions[i * 3 + 1] = this.canvas.height;
+        resolutions[i * 3 + 2] = this.canvas.width / this.canvas.height; // aspect ratio
+      }
+      gl.uniform3fv(uniforms[SHADER_UNIFORMS.iChannelResolution], resolutions);
+    }
+
+    // Set iChannelTime array
+    if (uniforms[SHADER_UNIFORMS.iChannelTime]) {
+      // For now, all channels use the same time as the main shader
+      const times = new Float32Array([currentTime, currentTime, currentTime, currentTime]);
+      gl.uniform1fv(uniforms[SHADER_UNIFORMS.iChannelTime], times);
+    }
 
     // Calculate frame rate
     this.updateFrameRate(timeDelta);
@@ -367,23 +600,37 @@ export class WebGLRenderer {
   }
 
 
-  private cleanupProgram(): void {
-    if (!this.gl || !this.program) return;
+  private cleanupPasses(): void {
+    if (!this.gl) return;
 
     const gl = this.gl;
-    gl.useProgram(null);
 
-    // Delete shaders
-    const shaders = gl.getAttachedShaders(this.program);
-    if (shaders) {
-      shaders.forEach(shader => {
-        gl.detachShader(this.program!, shader);
-        gl.deleteShader(shader);
-      });
+    // Clean up each pass
+    for (const pass of this.passes.values()) {
+      // Delete framebuffer if exists
+      if (pass.framebuffer) {
+        gl.deleteFramebuffer(pass.framebuffer);
+      }
+
+      // Delete texture if exists
+      if (pass.texture) {
+        gl.deleteTexture(pass.texture);
+      }
+
+      // Delete program
+      gl.useProgram(null);
+      const shaders = gl.getAttachedShaders(pass.program);
+      if (shaders) {
+        shaders.forEach(shader => {
+          gl.detachShader(pass.program, shader);
+          gl.deleteShader(shader);
+        });
+      }
+      gl.deleteProgram(pass.program);
     }
 
-    gl.deleteProgram(this.program);
-    this.program = null;
+    // Clear the passes map
+    this.passes.clear();
   }
 
   private handleMouseMove(e: MouseEvent): void {
@@ -397,25 +644,40 @@ export class WebGLRenderer {
   }
 
   private render(): void {
-    if (!this.gl || !this.program || !this.canvas) return;
+    if (!this.gl || !this.isReady() || !this.canvas) return;
 
     const gl = this.gl;
     const currentTime = (Date.now() - this.startTime - this.pausedTime) / 1000.0;
-    
+
     // Calculate time delta
     const timeDelta = this.lastFrameTime > 0 ? currentTime - this.lastFrameTime : 0;
     this.lastFrameTime = currentTime;
-    
+
     // Increment frame counter
     this.frameCount++;
 
-    // Set all uniforms
-    this.setUniforms(currentTime, timeDelta);
+    // Render all passes in order: Buffer A -> B -> C -> D -> Image
+    for (const passName of this.passOrder) {
+      const pass = this.passes.get(passName);
+      if (!pass) continue; // Skip disabled passes
 
-    // Clear and draw
-    gl.clearColor(0, 0, 0, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
+      // Bind framebuffer (null for Image pass = render to screen)
+      gl.bindFramebuffer(gl.FRAMEBUFFER, pass.framebuffer);
+
+      // Use this pass's program
+      gl.useProgram(pass.program);
+
+      // Set uniforms for this program
+      this.setUniforms(pass.program, currentTime, timeDelta);
+
+      // Clear and draw
+      gl.clearColor(0, 0, 0, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
+
+    // Ensure we end up unbound
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
     this.animationFrameId = requestAnimationFrame(this.render);
   }
