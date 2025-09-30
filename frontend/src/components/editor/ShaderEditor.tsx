@@ -27,7 +27,7 @@ interface Tab {
   isDeletable: boolean;
 }
 
-const defaultImageCode = `// Image - Display all buffers in quadrants
+export const defaultImageCode = `// Image - Display all buffers in quadrants
 
 void mainImage(out vec4 fragColor, vec2 fragCoord) {
     vec2 uv = fragCoord / iResolution.xy;

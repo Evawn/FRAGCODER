@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import ShaderEditor from '../components/editor/ShaderEditor';
+import ShaderEditor, { defaultImageCode } from '../components/editor/ShaderEditor';
 import type { ShaderData } from '../components/editor/ShaderEditor';
 import ShaderPlayer from '../components/ShaderPlayer';
 import type { TabShaderData } from '../utils/GLSLCompiler';
@@ -11,18 +11,6 @@ interface CompilationError {
   message: string;
   type: 'error' | 'warning';
 }
-
-const defaultShaderCode = `// https://www.shadertoy.com/view/wfXfDl
-
-void mainImage(out vec4 O, vec2 I) {
-    vec3  v = iResolution,
-          d = vec3( I+I, v ) - v,
-          p = iTime/v*9.-8., c = p, s;    
-    for(float i, l; l++<1e2; O = (s-c).zzzz/2e2)    
-      for(v = s = p += d/length(d)*s.y, i = 1e2; i>.01; i*=.4 )
-        v.xz *= .1*mat2(4,-9,9,4),
-        s = max( s, min( v = i*.8-abs(mod(v,i+i)-i), v.x) );
-}`;
 
 function ShaderEditorPage() {
   const [searchParams] = useSearchParams();
@@ -34,7 +22,7 @@ function ShaderEditorPage() {
   const [compilationSuccess, setCompilationSuccess] = useState<boolean | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [allTabs, setAllTabs] = useState<TabShaderData[]>([
-    { id: '1', name: 'Image', code: defaultShaderCode }
+    { id: '1', name: 'Image', code: defaultImageCode }
   ]);
   const [panelResizeCounter, setPanelResizeCounter] = useState(0);
   const [compileTrigger, setCompileTrigger] = useState(0);
