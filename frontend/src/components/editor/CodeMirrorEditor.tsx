@@ -77,7 +77,7 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     codeFolding(),
     foldGutter(),
     indentUnit.of("    "), // 4 spaces
-    //...createErrorDecorationExtensions(),
+    ...createErrorDecorationExtensions(),
     EditorView.theme({
       '&': {
         fontSize: '14px',

@@ -1,4 +1,4 @@
-import { createShader, VERTEX_SHADER_SOURCE, prepareMultipassShaderCode, type TabShaderData } from './GLSLCompiler';
+import { createShader, VERTEX_SHADER_SOURCE, prepareMultipassShaderCode, type TabShaderData, type PassErrorInfo, type MultipassCompilationError } from './GLSLCompiler';
 
 const SHADER_UNIFORMS = {
   iResolution: 'iResolution',
@@ -77,6 +77,8 @@ export class WebGLRenderer {
 
   /**
    * Compile and link shader programs for multipass rendering
+   * Compiles all passes and collects errors from all failed passes
+   * Throws a MultipassCompilationError if any pass fails
    */
   compileShader(tabs: TabShaderData[]): void {
     if (!this.gl) {
@@ -98,7 +100,14 @@ export class WebGLRenderer {
       throw new Error('Image tab is required but not found in shader tabs');
     }
 
-    // Compile each pass in order
+    // Track successful and failed compilations
+    const successfulPasses = new Map<string, RenderPass>();
+    const failedPasses: PassErrorInfo[] = [];
+
+    // Count Common code lines once for error reporting
+    const commonLineCount = commonCode.trim() ? commonCode.trim().split('\n').length + 1 : 0;
+
+    // Compile each pass in order, collecting errors
     for (const passName of this.passOrder) {
       // Skip Common tab (it's prepended to other passes)
       if (passName === 'Common') continue;
@@ -112,7 +121,7 @@ export class WebGLRenderer {
 
       try {
         // Prepare shader code with Common prepended
-        const { code: preparedCode } = prepareMultipassShaderCode(commonCode, tab.code);
+        const { code: preparedCode, userCodeStartLine } = prepareMultipassShaderCode(commonCode, tab.code);
 
         // Create program for this pass
         const program = this.createProgram(preparedCode);
@@ -127,8 +136,8 @@ export class WebGLRenderer {
           texture = fb.texture;
         }
 
-        // Store the render pass
-        this.passes.set(passName, {
+        // Store successful pass
+        successfulPasses.set(passName, {
           name: passName,
           program,
           framebuffer,
@@ -136,10 +145,49 @@ export class WebGLRenderer {
         });
 
       } catch (error) {
-        // Clean up partial compilation
-        this.cleanupPasses();
-        throw new Error(`Failed to compile ${passName}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        // Store error information for this pass
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const { userCodeStartLine } = prepareMultipassShaderCode(commonCode, tab.code);
+
+        failedPasses.push({
+          passName,
+          errorMessage,
+          userCodeStartLine,
+          commonLineCount
+        });
+
+        // Continue to next pass instead of throwing immediately
       }
+    }
+
+    // If any passes failed, cleanup and throw aggregated error
+    if (failedPasses.length > 0) {
+      // Clean up any successful passes since we can't render with partial success
+      for (const pass of successfulPasses.values()) {
+        if (pass.framebuffer) gl.deleteFramebuffer(pass.framebuffer);
+        if (pass.texture) gl.deleteTexture(pass.texture);
+        if (pass.program) {
+          const shaders = gl.getAttachedShaders(pass.program);
+          if (shaders) {
+            shaders.forEach(shader => {
+              gl.detachShader(pass.program, shader);
+              gl.deleteShader(shader);
+            });
+          }
+          gl.deleteProgram(pass.program);
+        }
+      }
+
+      // Create and throw multipass compilation error
+      const errorMessage = `Shader compilation failed in ${failedPasses.length} pass${failedPasses.length > 1 ? 'es' : ''}`;
+      const multipassError = new Error(errorMessage) as MultipassCompilationError;
+      multipassError.passErrors = failedPasses;
+      throw multipassError;
+    }
+
+    // All passes succeeded - store them in this.passes
+    for (const [passName, pass] of successfulPasses.entries()) {
+      this.passes.set(passName, pass);
     }
 
     // Set up geometry (full screen quad) - shared across all passes

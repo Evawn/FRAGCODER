@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { WebGLRenderer } from '../utils/WebGLRenderer';
-import { parseShaderError } from '../utils/GLSLCompiler';
-import type { CompilationError, TabShaderData } from '../utils/GLSLCompiler';
+import { parseShaderError, parseMultipassShaderError } from '../utils/GLSLCompiler';
+import type { CompilationError, TabShaderData, MultipassCompilationError } from '../utils/GLSLCompiler';
 
 interface UseWebGLRendererProps {
   tabs: TabShaderData[];
@@ -101,15 +101,40 @@ export function useWebGLRenderer({
       // Note: Playback control is handled by the separate playback useEffect
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Shader compilation failed';
+      let allErrors: CompilationError[] = [];
 
-      // Parse error for line numbers
-      // For multipass, we'd need to know which pass failed to get accurate line numbers
-      // For now, use generic error parsing
-      const errors = parseShaderError(errorMessage, 0);
+      // Check if this is a MultipassCompilationError with multiple pass errors
+      if ((err as MultipassCompilationError).passErrors) {
+        const multipassError = err as MultipassCompilationError;
+
+        // Parse errors from each failed pass
+        for (const passError of multipassError.passErrors) {
+          const parsedErrors = parseMultipassShaderError(
+            passError.errorMessage,
+            passError.passName,
+            passError.userCodeStartLine,
+            passError.commonLineCount
+          );
+          allErrors.push(...parsedErrors);
+        }
+      } else {
+        // Check if error has single-pass metadata (legacy support)
+        const passName = (err as any).passName;
+        const userCodeStartLine = (err as any).userCodeStartLine;
+        const commonLineCount = (err as any).commonLineCount;
+
+        if (passName && userCodeStartLine !== undefined && commonLineCount !== undefined) {
+          // Use multipass error parser with pass-specific information
+          allErrors = parseMultipassShaderError(errorMessage, passName, userCodeStartLine, commonLineCount);
+        } else {
+          // Fallback to generic error parsing
+          allErrors = parseShaderError(errorMessage, 0);
+        }
+      }
 
       setCompilationSuccess(false);
       setError('Shader compilation failed');
-      onCompilationResult(false, errors.length > 0 ? errors : [{
+      onCompilationResult(false, allErrors.length > 0 ? allErrors : [{
         line: 0,
         message: errorMessage,
         type: 'error'

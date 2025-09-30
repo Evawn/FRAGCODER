@@ -2,6 +2,8 @@ export interface CompilationError {
   line: number;
   message: string;
   type: 'error' | 'warning';
+  passName?: string;  // Which pass this error belongs to (Image, Buffer A-D, Common)
+  originalLine?: number;  // Original line number before adjustments
 }
 
 export interface CompileResult {
@@ -15,6 +17,17 @@ export interface TabShaderData {
   id: string;
   name: string;
   code: string;
+}
+
+export interface PassErrorInfo {
+  passName: string;
+  errorMessage: string;
+  userCodeStartLine: number;
+  commonLineCount: number;
+}
+
+export interface MultipassCompilationError extends Error {
+  passErrors: PassErrorInfo[];
 }
 
 // Minimal vertex shader for WebGL 2.0
@@ -157,6 +170,98 @@ export function parseShaderError(error: string, userCodeStartLine: number = 0): 
 }
 
 /**
+ * Parses WebGL shader compilation errors for multipass shaders
+ * Adjusts line numbers based on Common code prepending and tags errors with pass name
+ */
+export function parseMultipassShaderError(
+  error: string,
+  passName: string,
+  userCodeStartLine: number,
+  commonLineCount: number
+): CompilationError[] {
+  const errors: CompilationError[] = [];
+  const lines = error.split('\n');
+
+  for (const line of lines) {
+    if (!line.trim()) continue;
+
+    // Common WebGL error patterns
+    // Format: "ERROR: 0:15: 'variable' : undeclared identifier"
+    const errorMatch = line.match(/ERROR:\s*(\d+):(\d+):\s*(.+)/);
+    if (errorMatch) {
+      const errorLine = parseInt(errorMatch[2]);
+      const message = errorMatch[3].trim();
+      const originalLine = errorLine;
+
+      // Calculate adjusted line number
+      let adjustedLine: number;
+
+      // Subtract wrapper lines first
+      adjustedLine = errorLine - userCodeStartLine;
+
+      // For non-Common passes, also subtract the Common code lines
+      // if the error is after the Common code section
+      if (passName !== 'Common' && commonLineCount > 0) {
+        if (adjustedLine > commonLineCount) {
+          adjustedLine -= commonLineCount;
+        }
+      }
+
+      errors.push({
+        line: Math.max(1, adjustedLine),
+        originalLine,
+        message: formatErrorMessage(message),
+        type: 'error',
+        passName
+      });
+      continue;
+    }
+
+    // Warning pattern
+    const warningMatch = line.match(/WARNING:\s*(\d+):(\d+):\s*(.+)/);
+    if (warningMatch) {
+      const errorLine = parseInt(warningMatch[2]);
+      const message = warningMatch[3].trim();
+      const originalLine = errorLine;
+
+      // Calculate adjusted line number
+      let adjustedLine: number;
+
+      // Subtract wrapper lines first
+      adjustedLine = errorLine - userCodeStartLine;
+
+      // For non-Common passes, also subtract the Common code lines
+      if (passName !== 'Common' && commonLineCount > 0) {
+        if (adjustedLine > commonLineCount) {
+          adjustedLine -= commonLineCount;
+        }
+      }
+
+      errors.push({
+        line: Math.max(1, adjustedLine),
+        originalLine,
+        message: formatErrorMessage(message),
+        type: 'warning',
+        passName
+      });
+      continue;
+    }
+
+    // Generic error without line number
+    if (line.toLowerCase().includes('error') || line.toLowerCase().includes('failed')) {
+      errors.push({
+        line: 0,
+        message: line.trim(),
+        type: 'error',
+        passName
+      });
+    }
+  }
+
+  return errors;
+}
+
+/**
  * Formats error messages to be more user-friendly
  */
 export function formatErrorMessage(message: string): string {
@@ -229,12 +334,22 @@ export function prepareShaderCode(userCode: string): { code: string; userCodeSta
  * Prepares multipass shader code by prepending Common code before wrapping
  * Used for Buffer A-D and Image passes that may share Common code
  */
-export function prepareMultipassShaderCode(commonCode: string, userCode: string): { code: string; userCodeStartLine: number } {
+export function prepareMultipassShaderCode(commonCode: string, userCode: string): { code: string; userCodeStartLine: number; commonLineCount: number } {
+  // Count lines in common code (if any)
+  const commonLineCount = commonCode.trim()
+    ? commonCode.trim().split('\n').length + 1  // +1 for the extra newline we add
+    : 0;
+
   // Prepend common code to user code if it exists
   const combinedCode = commonCode.trim()
     ? `${commonCode.trim()}\n\n${userCode}`
     : userCode;
 
   // Use existing prepareShaderCode logic for wrapping
-  return prepareShaderCode(combinedCode);
+  const result = prepareShaderCode(combinedCode);
+
+  return {
+    ...result,
+    commonLineCount
+  };
 }

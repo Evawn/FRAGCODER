@@ -153,12 +153,29 @@ function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Get active tab name
+  const activeTab = tabs.find(tab => tab.id === activeTabId);
+  const activeTabName = activeTab?.name || 'Image';
+
+  // Filter compilation errors for the active tab
+  const filteredErrors = compilationErrors.filter(error => {
+    // Show errors that match the active tab's pass name
+    // If no passName is set on error, show it (generic errors)
+    return !error.passName || error.passName === activeTabName;
+  });
+
+  // Check if a tab has errors
+  const tabHasErrors = (tabName: string): boolean => {
+    return compilationErrors.some(error => error.passName === tabName);
+  };
+
   // Update code state when switching tabs
   useEffect(() => {
     const activeTab = tabs.find(tab => tab.id === activeTabId);
     if (activeTab) {
       setCode(activeTab.code);
-      // Notify parent that tab changed to clear errors
+      // Notify parent that tab changed
+      // Note: We no longer clear errors here, we filter them instead
       onTabChange?.();
     }
   }, [activeTabId]); // Only trigger on activeTabId change, not tab content changes
@@ -327,6 +344,13 @@ uniform float iChannelTime[4];     // channel playback times`;
                 setActiveTabId(tab.id);
               }}
             >
+              {/* Error indicator dot */}
+              {tabHasErrors(tab.name) && (
+                <span
+                  className="w-2 h-2 rounded-full bg-red-500 mr-2 flex-shrink-0"
+                  title={`${tab.name} has compilation errors`}
+                />
+              )}
               <span className="text-sm font-medium whitespace-nowrap">{tab.name}</span>
               {tab.isDeletable && (
                 <button
@@ -379,7 +403,7 @@ uniform float iChannelTime[4];     // channel playback times`;
           value={code}
           onChange={handleCodeChange}
           placeholder="// Write your GLSL fragment shader here..."
-          errors={compilationErrors}
+          errors={filteredErrors}
           compilationSuccess={compilationSuccess}
           onCompile={handleCompile}
         />

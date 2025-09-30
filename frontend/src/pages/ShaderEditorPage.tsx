@@ -106,9 +106,8 @@ function ShaderEditorPage() {
               compilationErrors={compilationErrors}
               compilationSuccess={compilationSuccess}
               onTabChange={() => {
-                // Clear errors when switching tabs
-                setCompilationErrors([]);
-                setCompilationSuccess(undefined);
+                // No longer clear errors on tab change - errors are now filtered by tab in ShaderEditor
+                // This allows error decorations to persist when switching between tabs
               }}
             />
           </div>
