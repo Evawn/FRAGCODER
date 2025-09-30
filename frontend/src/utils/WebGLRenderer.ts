@@ -7,22 +7,13 @@ const SHADER_UNIFORMS = {
   iFrameRate: 'iFrameRate',
   iFrame: 'iFrame',
   iDate: 'iDate',
-  iChannel0: 'iChannel0',
-  iChannel1: 'iChannel1',
-  iChannel2: 'iChannel2',
-  iChannel3: 'iChannel3',
-  iChannelResolution: 'iChannelResolution',
-  iChannelTime: 'iChannelTime',
+  BufferA: 'BufferA',
+  BufferB: 'BufferB',
+  BufferC: 'BufferC',
+  BufferD: 'BufferD',
   u_time: 'u_time',
-  u_resolution: 'u_resolution',
-  u_mouse: 'u_mouse',
-  iMouse: 'iMouse'
+  u_resolution: 'u_resolution'
 } as const;
-
-interface MousePosition {
-  x: number;
-  y: number;
-}
 
 interface RenderPass {
   name: string;
@@ -39,7 +30,6 @@ export class WebGLRenderer {
   private startTime: number = Date.now();
   private pausedTime: number = 0;
   private pauseStartTime: number | null = null;
-  private mousePosition: MousePosition = { x: 0, y: 0 };
   private canvas: HTMLCanvasElement | null = null;
   private frameCount: number = 0;
   private lastFrameTime: number = 0;
@@ -47,7 +37,6 @@ export class WebGLRenderer {
   private frameRateHistory: number[] = [];
   
   constructor() {
-    this.handleMouseMove = this.handleMouseMove.bind(this);
     this.render = this.render.bind(this);
   }
 
@@ -68,10 +57,7 @@ export class WebGLRenderer {
     this.gl = gl;
     console.log('Using WebGL 2.0');
     this.updateViewport();
-    
-    // Add mouse move listener
-    window.addEventListener('mousemove', this.handleMouseMove);
-    
+
     return true;
   }
 
@@ -491,7 +477,6 @@ export class WebGLRenderer {
       this.gl = null;
     }
 
-    window.removeEventListener('mousemove', this.handleMouseMove);
     this.canvas = null;
   }
 
@@ -532,20 +517,22 @@ export class WebGLRenderer {
       [SHADER_UNIFORMS.iFrame]: gl.getUniformLocation(program, SHADER_UNIFORMS.iFrame),
       [SHADER_UNIFORMS.iDate]: gl.getUniformLocation(program, SHADER_UNIFORMS.iDate),
       [SHADER_UNIFORMS.u_time]: gl.getUniformLocation(program, SHADER_UNIFORMS.u_time),
-      [SHADER_UNIFORMS.u_resolution]: gl.getUniformLocation(program, SHADER_UNIFORMS.u_resolution),
-      [SHADER_UNIFORMS.u_mouse]: gl.getUniformLocation(program, SHADER_UNIFORMS.u_mouse),
-      [SHADER_UNIFORMS.iMouse]: gl.getUniformLocation(program, SHADER_UNIFORMS.iMouse),
-      [SHADER_UNIFORMS.iChannelResolution]: gl.getUniformLocation(program, SHADER_UNIFORMS.iChannelResolution),
-      [SHADER_UNIFORMS.iChannelTime]: gl.getUniformLocation(program, SHADER_UNIFORMS.iChannelTime)
+      [SHADER_UNIFORMS.u_resolution]: gl.getUniformLocation(program, SHADER_UNIFORMS.u_resolution)
     };
 
-    // Bind buffer textures to iChannel uniforms (Buffer A-D → iChannel0-3)
-    const channelBuffers = ['Buffer A', 'Buffer B', 'Buffer C', 'Buffer D'];
-    for (let i = 0; i < 4; i++) {
-      const bufferPass = this.passes.get(channelBuffers[i]);
+    // Bind buffer textures to their respective uniforms (Buffer A-D → BufferA-D)
+    const bufferMappings = [
+      { passName: 'Buffer A', uniformName: 'BufferA', textureUnit: 0 },
+      { passName: 'Buffer B', uniformName: 'BufferB', textureUnit: 1 },
+      { passName: 'Buffer C', uniformName: 'BufferC', textureUnit: 2 },
+      { passName: 'Buffer D', uniformName: 'BufferD', textureUnit: 3 }
+    ];
+
+    for (const mapping of bufferMappings) {
+      const bufferPass = this.passes.get(mapping.passName);
 
       // Activate texture unit
-      gl.activeTexture(gl.TEXTURE0 + i);
+      gl.activeTexture(gl.TEXTURE0 + mapping.textureUnit);
 
       if (bufferPass && bufferPass.texture) {
         // Bind buffer's output texture
@@ -556,29 +543,10 @@ export class WebGLRenderer {
       }
 
       // Set sampler uniform to texture unit index
-      const channelUniformName = `iChannel${i}`;
-      const channelUniform = gl.getUniformLocation(program, channelUniformName);
-      if (channelUniform) {
-        gl.uniform1i(channelUniform, i);
+      const bufferUniform = gl.getUniformLocation(program, mapping.uniformName);
+      if (bufferUniform) {
+        gl.uniform1i(bufferUniform, mapping.textureUnit);
       }
-    }
-
-    // Set iChannelResolution array
-    if (uniforms[SHADER_UNIFORMS.iChannelResolution]) {
-      const resolutions = new Float32Array(12); // 4 channels * 3 components (vec3)
-      for (let i = 0; i < 4; i++) {
-        resolutions[i * 3 + 0] = this.canvas.width;
-        resolutions[i * 3 + 1] = this.canvas.height;
-        resolutions[i * 3 + 2] = this.canvas.width / this.canvas.height; // aspect ratio
-      }
-      gl.uniform3fv(uniforms[SHADER_UNIFORMS.iChannelResolution], resolutions);
-    }
-
-    // Set iChannelTime array
-    if (uniforms[SHADER_UNIFORMS.iChannelTime]) {
-      // For now, all channels use the same time as the main shader
-      const times = new Float32Array([currentTime, currentTime, currentTime, currentTime]);
-      gl.uniform1fv(uniforms[SHADER_UNIFORMS.iChannelTime], times);
     }
 
     // Calculate frame rate
@@ -618,12 +586,6 @@ export class WebGLRenderer {
     }
     if (uniforms[SHADER_UNIFORMS.u_resolution]) {
       gl.uniform2f(uniforms[SHADER_UNIFORMS.u_resolution], this.canvas.width, this.canvas.height);
-    }
-    if (uniforms[SHADER_UNIFORMS.u_mouse]) {
-      gl.uniform2f(uniforms[SHADER_UNIFORMS.u_mouse], this.mousePosition.x, this.mousePosition.y);
-    }
-    if (uniforms[SHADER_UNIFORMS.iMouse]) {
-      gl.uniform4f(uniforms[SHADER_UNIFORMS.iMouse], this.mousePosition.x, this.mousePosition.y, 0, 0);
     }
   }
 
@@ -679,16 +641,6 @@ export class WebGLRenderer {
 
     // Clear the passes map
     this.passes.clear();
-  }
-
-  private handleMouseMove(e: MouseEvent): void {
-    if (!this.canvas) return;
-
-    const rect = this.canvas.getBoundingClientRect();
-    this.mousePosition = {
-      x: e.clientX - rect.left,
-      y: rect.height - (e.clientY - rect.top) // Flip Y coordinate
-    };
   }
 
   private render(): void {

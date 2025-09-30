@@ -46,12 +46,10 @@ uniform float     iTimeDelta;            // render time (in seconds)
 uniform float     iFrameRate;            // shader frame rate
 uniform int       iFrame;                // shader playback frame
 uniform vec4      iDate;                 // (year, month, day, time in seconds)
-uniform sampler2D iChannel0;             // input channel 0
-uniform sampler2D iChannel1;             // input channel 1
-uniform sampler2D iChannel2;             // input channel 2
-uniform sampler2D iChannel3;             // input channel 3
-uniform vec3      iChannelResolution[4]; // channel resolution (in pixels)
-uniform float     iChannelTime[4];       // channel playback time (in seconds)
+uniform sampler2D BufferA;               // Buffer A texture
+uniform sampler2D BufferB;               // Buffer B texture
+uniform sampler2D BufferC;               // Buffer C texture
+uniform sampler2D BufferD;               // Buffer D texture
 
 out vec4 fragColor;                      // WebGL 2.0 output
 

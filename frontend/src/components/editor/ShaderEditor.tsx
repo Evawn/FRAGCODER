@@ -44,17 +44,17 @@ void mainImage(out vec4 fragColor, vec2 fragCoord) {
     // Select buffer based on quadrant
     vec4 color;
     if (quadrant.x < 0.5 && quadrant.y < 0.5) {
-        // Bottom-left: Buffer A (iChannel0)
-        color = texture(iChannel0, quadUV);
+        // Bottom-left: Buffer A
+        color = texture(BufferA, quadUV);
     } else if (quadrant.x >= 0.5 && quadrant.y < 0.5) {
-        // Bottom-right: Buffer B (iChannel1)
-        color = texture(iChannel1, quadUV);
+        // Bottom-right: Buffer B
+        color = texture(BufferB, quadUV);
     } else if (quadrant.x < 0.5 && quadrant.y >= 0.5) {
-        // Top-left: Buffer C (iChannel2)
-        color = texture(iChannel2, quadUV);
+        // Top-left: Buffer C
+        color = texture(BufferC, quadUV);
     } else {
-        // Top-right: Buffer D (iChannel3)
-        color = texture(iChannel3, quadUV);
+        // Top-right: Buffer D
+        color = texture(BufferD, quadUV);
     }
 
     fragColor = color;
@@ -293,15 +293,13 @@ function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess
 uniform vec3 iResolution;          // viewport resolution (in pixels)
 uniform float iTime;               // shader playback time (in seconds)
 uniform float iTimeDelta;          // render time (in seconds)
+uniform float iFrameRate;          // shader frame rate
 uniform int iFrame;                // shader playback frame
-uniform vec4 iMouse;               // mouse pixel coords. xy: current, zw: click
 uniform vec4 iDate;                // year, month, day, time in seconds
-uniform sampler2D iChannel0;       // input channel 0
-uniform sampler2D iChannel1;       // input channel 1
-uniform sampler2D iChannel2;       // input channel 2
-uniform sampler2D iChannel3;       // input channel 3
-uniform vec3 iChannelResolution[4]; // channel resolutions
-uniform float iChannelTime[4];     // channel playback times`;
+uniform sampler2D BufferA;         // Buffer A texture
+uniform sampler2D BufferB;         // Buffer B texture
+uniform sampler2D BufferC;         // Buffer C texture
+uniform sampler2D BufferD;         // Buffer D texture`;
 
   return (
     <div className="h-full flex flex-col">

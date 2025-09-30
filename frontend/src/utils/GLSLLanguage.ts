@@ -132,6 +132,18 @@ const glslCompletions = [
   { label: "gl_VertexID", type: "variable", detail: "int - vertex ID" },
   { label: "gl_InstanceID", type: "variable", detail: "int - instance ID" },
 
+  // Shader Playground uniforms
+  { label: "iResolution", type: "variable", detail: "vec3 - viewport resolution (in pixels)" },
+  { label: "iTime", type: "variable", detail: "float - shader playback time (in seconds)" },
+  { label: "iTimeDelta", type: "variable", detail: "float - render time (in seconds)" },
+  { label: "iFrameRate", type: "variable", detail: "float - shader frame rate" },
+  { label: "iFrame", type: "variable", detail: "int - shader playback frame" },
+  { label: "iDate", type: "variable", detail: "vec4 - (year, month, day, time in seconds)" },
+  { label: "BufferA", type: "variable", detail: "sampler2D - Buffer A texture" },
+  { label: "BufferB", type: "variable", detail: "sampler2D - Buffer B texture" },
+  { label: "BufferC", type: "variable", detail: "sampler2D - Buffer C texture" },
+  { label: "BufferD", type: "variable", detail: "sampler2D - Buffer D texture" },
+
   // Mathematical functions
   { label: "abs", type: "function", detail: "absolute value", info: "abs(x)" },
   { label: "sin", type: "function", detail: "sine function", info: "sin(angle)" },
