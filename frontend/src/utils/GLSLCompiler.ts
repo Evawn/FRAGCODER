@@ -86,87 +86,90 @@ export function createShader(gl: WebGLRenderingContext, type: number, source: st
 }
 
 /**
+ * Calculates the correct user-facing line number from compiler line number
+ */
+function calculateLineNumber(compilerLine: number, userCodeStartLine: number): number {
+  if (userCodeStartLine < 0) {
+    // Negative indicates uniforms inserted after precision
+    const uniformLines = 10;
+    if (compilerLine <= Math.abs(userCodeStartLine)) {
+      return compilerLine;
+    } else {
+      return compilerLine - uniformLines;
+    }
+  } else {
+    // Normal case: subtract wrapper offset
+    return compilerLine - userCodeStartLine;
+  }
+}
+
+/**
  * Parses WebGL shader compilation errors and converts them to user-friendly format
  */
 export function parseShaderError(error: string, userCodeStartLine: number = 0): CompilationError[] {
   const errors: CompilationError[] = [];
-  const lines = error.split('\n');
+  const lines = error.split('\n').filter(line => line.trim());
 
   for (const line of lines) {
-    if (!line.trim()) continue;
-
-    // Common WebGL error patterns
-    // Format: "ERROR: 0:15: 'variable' : undeclared identifier"
-    const errorMatch = line.match(/ERROR:\s*(\d+):(\d+):\s*(.+)/);
+    // WebGL error pattern: "ERROR: 0:15: 'variable' : undeclared identifier"
+    const errorMatch = line.match(/ERROR:\s*(\d+):(\d+):\s*(.+)/i);
     if (errorMatch) {
-      const errorLine = parseInt(errorMatch[2]);
-      const message = errorMatch[3].trim();
-
-      // Handle different line number calculation based on how code was prepared
-      let lineNumber: number;
-      if (userCodeStartLine < 0) {
-        // Negative means uniforms were inserted after precision
-        // We need to adjust based on the number of uniform lines added
-        const uniformLines = 10; // Number of lines added by uniform block
-        if (errorLine <= Math.abs(userCodeStartLine)) {
-          // Error is before uniform insertion, use original line
-          lineNumber = errorLine;
-        } else {
-          // Error is after uniform insertion, subtract uniform lines
-          lineNumber = errorLine - uniformLines;
-        }
-      } else {
-        // Normal case: subtract the wrapper offset
-        lineNumber = errorLine - userCodeStartLine;
-      }
+      const compilerLine = parseInt(errorMatch[2], 10);
+      const rawMessage = errorMatch[3].trim();
 
       errors.push({
-        line: Math.max(1, lineNumber),
-        message: formatErrorMessage(message),
+        line: Math.max(1, calculateLineNumber(compilerLine, userCodeStartLine)),
+        message: formatErrorMessage(rawMessage),
         type: 'error'
       });
       continue;
     }
 
-    // Warning pattern
-    const warningMatch = line.match(/WARNING:\s*(\d+):(\d+):\s*(.+)/);
+    // Warning pattern: "WARNING: 0:15: ..."
+    const warningMatch = line.match(/WARNING:\s*(\d+):(\d+):\s*(.+)/i);
     if (warningMatch) {
-      const errorLine = parseInt(warningMatch[2]);
-      const message = warningMatch[3].trim();
-
-      // Handle different line number calculation based on how code was prepared
-      let lineNumber: number;
-      if (userCodeStartLine < 0) {
-        // Negative means uniforms were inserted after precision
-        const uniformLines = 10; // Number of lines added by uniform block
-        if (errorLine <= Math.abs(userCodeStartLine)) {
-          lineNumber = errorLine;
-        } else {
-          lineNumber = errorLine - uniformLines;
-        }
-      } else {
-        lineNumber = errorLine - userCodeStartLine;
-      }
+      const compilerLine = parseInt(warningMatch[2], 10);
+      const rawMessage = warningMatch[3].trim();
 
       errors.push({
-        line: Math.max(1, lineNumber),
-        message: formatErrorMessage(message),
+        line: Math.max(1, calculateLineNumber(compilerLine, userCodeStartLine)),
+        message: formatErrorMessage(rawMessage),
         type: 'warning'
       });
       continue;
     }
 
-    // Generic error without line number
-    if (line.toLowerCase().includes('error') || line.toLowerCase().includes('failed')) {
+    // Generic error/failure messages without line numbers
+    if (/error|failed/i.test(line)) {
       errors.push({
         line: 0,
-        message: line.trim(),
+        message: formatErrorMessage(line),
         type: 'error'
       });
     }
   }
 
   return errors;
+}
+
+/**
+ * Calculates the adjusted line number for multipass shaders with Common code prepending
+ */
+function calculateMultipassLineNumber(
+  compilerLine: number,
+  userCodeStartLine: number,
+  commonLineCount: number,
+  passName: string
+): number {
+  // First, adjust for wrapper code
+  let adjustedLine = compilerLine - userCodeStartLine;
+
+  // For non-Common passes, subtract Common code lines if error is after Common section
+  if (passName !== 'Common' && commonLineCount > 0 && adjustedLine > commonLineCount) {
+    adjustedLine -= commonLineCount;
+  }
+
+  return adjustedLine;
 }
 
 /**
@@ -180,78 +183,46 @@ export function parseMultipassShaderError(
   commonLineCount: number
 ): CompilationError[] {
   const errors: CompilationError[] = [];
-  const lines = error.split('\n');
+  const lines = error.split('\n').filter(line => line.trim());
 
   for (const line of lines) {
-    if (!line.trim()) continue;
-
-    // Common WebGL error patterns
-    // Format: "ERROR: 0:15: 'variable' : undeclared identifier"
-    const errorMatch = line.match(/ERROR:\s*(\d+):(\d+):\s*(.+)/);
+    // WebGL error pattern: "ERROR: 0:15: ..."
+    const errorMatch = line.match(/ERROR:\s*(\d+):(\d+):\s*(.+)/i);
     if (errorMatch) {
-      const errorLine = parseInt(errorMatch[2]);
-      const message = errorMatch[3].trim();
-      const originalLine = errorLine;
-
-      // Calculate adjusted line number
-      let adjustedLine: number;
-
-      // Subtract wrapper lines first
-      adjustedLine = errorLine - userCodeStartLine;
-
-      // For non-Common passes, also subtract the Common code lines
-      // if the error is after the Common code section
-      if (passName !== 'Common' && commonLineCount > 0) {
-        if (adjustedLine > commonLineCount) {
-          adjustedLine -= commonLineCount;
-        }
-      }
+      const compilerLine = parseInt(errorMatch[2], 10);
+      const rawMessage = errorMatch[3].trim();
 
       errors.push({
-        line: Math.max(1, adjustedLine),
-        originalLine,
-        message: formatErrorMessage(message),
+        line: Math.max(1, calculateMultipassLineNumber(compilerLine, userCodeStartLine, commonLineCount, passName)),
+        originalLine: compilerLine,
+        message: formatErrorMessage(rawMessage),
         type: 'error',
         passName
       });
       continue;
     }
 
-    // Warning pattern
-    const warningMatch = line.match(/WARNING:\s*(\d+):(\d+):\s*(.+)/);
+    // Warning pattern: "WARNING: 0:15: ..."
+    const warningMatch = line.match(/WARNING:\s*(\d+):(\d+):\s*(.+)/i);
     if (warningMatch) {
-      const errorLine = parseInt(warningMatch[2]);
-      const message = warningMatch[3].trim();
-      const originalLine = errorLine;
-
-      // Calculate adjusted line number
-      let adjustedLine: number;
-
-      // Subtract wrapper lines first
-      adjustedLine = errorLine - userCodeStartLine;
-
-      // For non-Common passes, also subtract the Common code lines
-      if (passName !== 'Common' && commonLineCount > 0) {
-        if (adjustedLine > commonLineCount) {
-          adjustedLine -= commonLineCount;
-        }
-      }
+      const compilerLine = parseInt(warningMatch[2], 10);
+      const rawMessage = warningMatch[3].trim();
 
       errors.push({
-        line: Math.max(1, adjustedLine),
-        originalLine,
-        message: formatErrorMessage(message),
+        line: Math.max(1, calculateMultipassLineNumber(compilerLine, userCodeStartLine, commonLineCount, passName)),
+        originalLine: compilerLine,
+        message: formatErrorMessage(rawMessage),
         type: 'warning',
         passName
       });
       continue;
     }
 
-    // Generic error without line number
-    if (line.toLowerCase().includes('error') || line.toLowerCase().includes('failed')) {
+    // Generic error/failure messages without line numbers
+    if (/error|failed/i.test(line)) {
       errors.push({
         line: 0,
-        message: line.trim(),
+        message: formatErrorMessage(line),
         type: 'error',
         passName
       });
@@ -262,33 +233,107 @@ export function parseMultipassShaderError(
 }
 
 /**
- * Formats error messages to be more user-friendly
+ * Formats error messages to be more user-friendly, concise, and professional
  */
 export function formatErrorMessage(message: string): string {
-  // Remove quotes around identifiers for cleaner messages
-  message = message.replace(/['"`]([^'"`]+)['"`]/g, '$1');
+  // Normalize the message
+  let normalized = message.trim();
 
-  // Common error transformations
-  const errorMappings: { [key: string]: string } = {
-    'undeclared identifier': 'Variable not declared',
-    'no matching overloaded function found': 'Function call with wrong arguments',
-    'cannot convert from': 'Type mismatch',
-    'syntax error': 'Syntax error',
-    'incompatible types in initialization': 'Wrong type in variable initialization',
-    'vector field selection out of range': 'Invalid vector component (use xyzw or rgba)',
-    'index out of range': 'Array index out of bounds',
-    'l-value required': 'Cannot assign to this expression',
-    'cannot assign to': 'Cannot assign to constant or expression',
-  };
+  // Remove redundant quotes around identifiers
+  normalized = normalized.replace(/['"`]([^'"`]+)['"`]/g, '$1');
 
-  for (const [pattern, replacement] of Object.entries(errorMappings)) {
-    if (message.toLowerCase().includes(pattern)) {
-      // Keep the specific details but prepend with friendly message
-      return `${replacement}: ${message}`;
+  // Remove excessive colons and whitespace
+  normalized = normalized.replace(/\s*:\s*/g, ': ').replace(/\s+/g, ' ');
+
+  // Error pattern mappings - more comprehensive and professional
+  const patterns: Array<{ regex: RegExp; format: (match: RegExpMatchArray) => string }> = [
+    // Undeclared identifier
+    {
+      regex: /(.+?):\s*undeclared identifier/i,
+      format: (m) => `Undeclared identifier: ${m[1]}`
+    },
+    // Type mismatches
+    {
+      regex: /cannot convert from\s+(.+?)\s+to\s+(.+)/i,
+      format: (m) => `Type mismatch: cannot convert ${m[1]} to ${m[2]}`
+    },
+    {
+      regex: /incompatible types in (.+)/i,
+      format: (m) => `Incompatible types in ${m[1]}`
+    },
+    // Function errors
+    {
+      regex: /no matching overloaded function found/i,
+      format: () => `No matching function signature found`
+    },
+    {
+      regex: /(.+?):\s*no matching overloaded function/i,
+      format: (m) => `Function ${m[1]}: no matching signature found`
+    },
+    // Assignment errors
+    {
+      regex: /l-value required/i,
+      format: () => `Invalid assignment target (requires modifiable variable)`
+    },
+    {
+      regex: /(.+?):\s*cannot assign to/i,
+      format: (m) => `Cannot assign to ${m[1]} (read-only or constant)`
+    },
+    // Vector/array errors
+    {
+      regex: /vector field selection out of range/i,
+      format: () => `Invalid vector component (use .xyzw or .rgba)`
+    },
+    {
+      regex: /index out of range/i,
+      format: () => `Array index out of bounds`
+    },
+    // Syntax errors
+    {
+      regex: /syntax error,?\s*unexpected\s+(.+)/i,
+      format: (m) => `Syntax error: unexpected ${m[1]}`
+    },
+    {
+      regex: /syntax error/i,
+      format: () => `Syntax error`
+    },
+    // Missing semicolons
+    {
+      regex: /expected.*?[';']/i,
+      format: () => `Missing semicolon or statement terminator`
+    },
+    // Redefinition errors
+    {
+      regex: /(.+?):\s*redefinition/i,
+      format: (m) => `Redefinition of ${m[1]}`
+    },
+    // Type qualifier errors
+    {
+      regex: /illegal use of type qualifier/i,
+      format: () => `Illegal type qualifier usage`
+    }
+  ];
+
+  // Try to match and format using patterns
+  for (const { regex, format } of patterns) {
+    const match = normalized.match(regex);
+    if (match) {
+      return format(match);
     }
   }
 
-  return message;
+  // Clean up common verbose patterns if no specific match
+  normalized = normalized
+    .replace(/^ERROR:\s*/i, '')
+    .replace(/^WARNING:\s*/i, '')
+    .replace(/^0:\d+:\s*/, '');
+
+  // Capitalize first letter for consistency
+  if (normalized.length > 0) {
+    normalized = normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  }
+
+  return normalized;
 }
 
 /**
