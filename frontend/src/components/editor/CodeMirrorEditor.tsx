@@ -77,7 +77,7 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     codeFolding(),
     foldGutter(),
     indentUnit.of("    "), // 4 spaces
-    ...createErrorDecorationExtensions(),
+    //...createErrorDecorationExtensions(),
     EditorView.theme({
       '&': {
         fontSize: '14px',
@@ -116,11 +116,11 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         setIsEditorReady(true);
       }
     };
-    
+
     // Check immediately and after a short delay
     checkEditorReady();
     const timer = setTimeout(checkEditorReady, 100);
-    
+
     return () => clearTimeout(timer);
   }, []);
 
@@ -131,7 +131,7 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       if (errorUpdateTimeoutRef.current) {
         clearTimeout(errorUpdateTimeoutRef.current);
       }
-      
+
       // Debounce error updates by 100ms to reduce re-renders
       errorUpdateTimeoutRef.current = setTimeout(() => {
         if (editorRef.current?.view) {
@@ -141,7 +141,7 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         }
       }, 100);
     }
-    
+
     return () => {
       if (errorUpdateTimeoutRef.current) {
         clearTimeout(errorUpdateTimeoutRef.current);
