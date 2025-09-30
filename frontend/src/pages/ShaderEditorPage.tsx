@@ -4,13 +4,7 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import ShaderEditor, { defaultImageCode } from '../components/editor/ShaderEditor';
 import type { ShaderData } from '../components/editor/ShaderEditor';
 import ShaderPlayer from '../components/ShaderPlayer';
-import type { TabShaderData } from '../utils/GLSLCompiler';
-
-interface CompilationError {
-  line: number;
-  message: string;
-  type: 'error' | 'warning';
-}
+import type { TabShaderData, CompilationError } from '../utils/GLSLCompiler';
 
 function ShaderEditorPage() {
   const [searchParams] = useSearchParams();

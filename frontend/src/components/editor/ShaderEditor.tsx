@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import CodeMirrorEditor from './CodeMirrorEditor';
 import type { CompilationError, TabShaderData } from '../../utils/GLSLCompiler';
+import type { Transaction } from '@codemirror/state';
+import { updateErrorLines } from '../../utils/ErrorLineTracking';
 
 export interface ShaderData {
   id: string;
@@ -25,6 +27,7 @@ interface Tab {
   name: string;
   code: string;
   isDeletable: boolean;
+  errors: CompilationError[]; // Per-tab error storage
 }
 
 export const defaultImageCode = `// Image - Display all buffers in quadrants
@@ -122,7 +125,7 @@ function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess
 
   // Tab management state
   const [tabs, setTabs] = useState<Tab[]>([
-    { id: '1', name: 'Image', code: shader?.code || defaultImageCode, isDeletable: false }
+    { id: '1', name: 'Image', code: shader?.code || defaultImageCode, isDeletable: false, errors: [] }
   ]);
   const [activeTabId, setActiveTabId] = useState('1');
   const [showAddDropdown, setShowAddDropdown] = useState(false);
@@ -130,6 +133,22 @@ function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess
   const [tabToDelete, setTabToDelete] = useState<Tab | null>(null);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const isSwitchingTabsRef = useRef(false);
+
+  // Update tabs with incoming compilation errors
+  useEffect(() => {
+    setTabs(prevTabs => {
+      const newTabs = prevTabs.map(tab => {
+        // Get errors for this tab
+        const tabErrors = compilationErrors.filter(error =>
+          !error.passName || error.passName === tab.name
+        );
+        console.log(`[Compilation] Tab: ${tab.name}, Assigned Errors:`, tabErrors);
+        return { ...tab, errors: tabErrors };
+      });
+      return newTabs;
+    });
+  }, [compilationErrors]);
 
   useEffect(() => {
     if (shader?.code) {
@@ -153,27 +172,52 @@ function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Get active tab name
+  // Get active tab
   const activeTab = tabs.find(tab => tab.id === activeTabId);
-  const activeTabName = activeTab?.name || 'Image';
-
-  // Filter compilation errors for the active tab
-  const filteredErrors = compilationErrors.filter(error => {
-    // Show errors that match the active tab's pass name
-    // If no passName is set on error, show it (generic errors)
-    return !error.passName || error.passName === activeTabName;
-  });
 
   // Check if a tab has errors
-  const tabHasErrors = (tabName: string): boolean => {
-    return compilationErrors.some(error => error.passName === tabName);
+  const tabHasErrors = (tab: Tab): boolean => {
+    return tab.errors.length > 0;
+  };
+
+  // Handle document changes to update error line numbers
+  const handleDocumentChange = (tr: Transaction) => {
+    // Ignore document changes during tab switches
+    if (isSwitchingTabsRef.current) {
+      console.log('[Document Change] Ignored - tab switch in progress');
+      return;
+    }
+
+    setTabs(prevTabs => {
+      const newTabs = prevTabs.map(tab => {
+        if (tab.id === activeTabId) {
+          // Update errors for the active tab
+          const updatedErrors = updateErrorLines(tab.errors, tr);
+          console.log(`[Document Change] Tab: ${tab.name}, Errors:`, updatedErrors);
+          return { ...tab, errors: updatedErrors };
+        }
+        return tab;
+      });
+      return newTabs;
+    });
   };
 
   // Update code state when switching tabs
   useEffect(() => {
     const activeTab = tabs.find(tab => tab.id === activeTabId);
     if (activeTab) {
+      // Set flag to ignore document changes during tab switch
+      isSwitchingTabsRef.current = true;
+
       setCode(activeTab.code);
+      console.log(`[Tab Switch] Switched to: ${activeTab.name}, Errors:`, activeTab.errors);
+
+      // Clear the flag after a short delay to allow CodeMirror to settle
+      setTimeout(() => {
+        isSwitchingTabsRef.current = false;
+        console.log('[Tab Switch] Document change tracking re-enabled');
+      }, 100);
+
       // Notify parent that tab changed
       // Note: We no longer clear errors here, we filter them instead
       onTabChange?.();
@@ -225,7 +269,8 @@ function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess
       id: Date.now().toString(),
       name,
       code: defaultCode,
-      isDeletable: true
+      isDeletable: true,
+      errors: []
     };
     setTabs([...tabs, newTab]);
     setActiveTabId(newTab.id);
@@ -345,7 +390,7 @@ uniform float iChannelTime[4];     // channel playback times`;
               }}
             >
               {/* Error indicator dot */}
-              {tabHasErrors(tab.name) && (
+              {tabHasErrors(tab) && (
                 <span
                   className="w-2 h-2 rounded-full bg-red-500 mr-2 flex-shrink-0"
                   title={`${tab.name} has compilation errors`}
@@ -403,9 +448,10 @@ uniform float iChannelTime[4];     // channel playback times`;
           value={code}
           onChange={handleCodeChange}
           placeholder="// Write your GLSL fragment shader here..."
-          errors={filteredErrors}
+          errors={activeTab?.errors || []}
           compilationSuccess={compilationSuccess}
           onCompile={handleCompile}
+          onDocumentChange={handleDocumentChange}
         />
       </div>
 

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { EditorView, keymap } from '@codemirror/view';
@@ -6,6 +6,7 @@ import { indentOnInput, bracketMatching, foldGutter, codeFolding, indentUnit } f
 import { lineNumbers, highlightActiveLineGutter } from '@codemirror/view';
 import { acceptCompletion, completionStatus } from '@codemirror/autocomplete';
 import { indentMore, insertNewlineAndIndent, selectAll, cursorDocStart, cursorDocEnd, cursorLineStart, cursorLineEnd, deleteCharBackward, deleteCharForward } from '@codemirror/commands';
+import type { Transaction, Extension } from '@codemirror/state';
 import { glsl } from '../../utils/GLSLLanguage';
 import type { CompilationError } from '../../utils/GLSLCompiler';
 import { createErrorDecorationExtensions, setErrorsEffect } from './ErrorDecorations';
@@ -18,6 +19,7 @@ interface CodeMirrorEditorProps {
   errors?: CompilationError[];
   compilationSuccess?: boolean;
   onCompile?: () => void;
+  onDocumentChange?: (tr: Transaction) => void;
 }
 
 
@@ -28,10 +30,12 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   readOnly = false,
   errors = [],
   compilationSuccess,
-  onCompile
+  onCompile,
+  onDocumentChange
 }) => {
-  const extensions = useMemo(() => [
-    keymap.of([
+  const extensions = useMemo(() => {
+    const baseExtensions: Extension[] = [
+      keymap.of([
       {
         key: 'Shift-Enter',
         preventDefault: true,
@@ -103,11 +107,24 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       },
     }),
     EditorView.lineWrapping
-  ], [onCompile]);
+  ];
+
+    // Add document change listener if callback is provided
+    if (onDocumentChange) {
+      baseExtensions.push(
+        EditorView.updateListener.of((update) => {
+          if (update.docChanged && update.transactions.length > 0) {
+            onDocumentChange(update.transactions[0]);
+          }
+        })
+      );
+    }
+
+    return baseExtensions;
+  }, [onCompile, onDocumentChange]);
 
   const editorRef = React.useRef<any>(null);
   const [isEditorReady, setIsEditorReady] = useState(false);
-  const errorUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Track when editor is ready
   React.useEffect(() => {
@@ -124,30 +141,14 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     return () => clearTimeout(timer);
   }, []);
 
-  React.useEffect(() => {
-    // Only dispatch errors when editor is ready
+  // Update error decorations when errors change or when switching tabs
+  useEffect(() => {
     if (isEditorReady && editorRef.current?.view) {
-      // Clear any pending error update
-      if (errorUpdateTimeoutRef.current) {
-        clearTimeout(errorUpdateTimeoutRef.current);
-      }
-
-      // Debounce error updates by 100ms to reduce re-renders
-      errorUpdateTimeoutRef.current = setTimeout(() => {
-        if (editorRef.current?.view) {
-          editorRef.current.view.dispatch({
-            effects: setErrorsEffect.of(errors)
-          });
-        }
-      }, 100);
+      editorRef.current.view.dispatch({
+        effects: setErrorsEffect.of(errors)
+      });
     }
-
-    return () => {
-      if (errorUpdateTimeoutRef.current) {
-        clearTimeout(errorUpdateTimeoutRef.current);
-      }
-    };
-  }, [errors, isEditorReady]);
+  }, [errors, isEditorReady, value]); // Include value to ensure rebuild on tab switch
 
   const getBorderColor = () => {
     if (compilationSuccess === undefined) return 'border-gray-600';
