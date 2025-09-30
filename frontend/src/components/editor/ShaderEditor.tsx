@@ -27,25 +27,84 @@ interface Tab {
   isDeletable: boolean;
 }
 
-const defaultShaderCode = `// https://www.shadertoy.com/view/wfXfDl
+const defaultImageCode = `// https://www.shadertoy.com/view/wfXfDl
 
 void mainImage(out vec4 O, vec2 I) {
     vec3  v = iResolution,
           d = vec3( I+I, v ) - v,
-          p = iTime/v*9.-8., c = p, s;    
-    for(float i, l; l++<1e2; O = (s-c).zzzz/2e2)    
+          p = iTime/v*9.-8., c = p, s;
+    for(float i, l; l++<1e2; O = (s-c).zzzz/2e2)
       for(v = s = p += d/length(d)*s.y, i = 1e2; i>.01; i*=.4 )
         v.xz *= .1*mat2(4,-9,9,4),
         s = max( s, min( v = i*.8-abs(mod(v,i+i)-i), v.x) );
 }`;
 
+const defaultBufferACode = `// Buffer A - Red pulsing circle
+
+void mainImage(out vec4 fragColor, vec2 fragCoord) {
+    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;
+    float d = length(uv);
+    float c = smoothstep(0.5, 0.45, d + 0.1 * sin(iTime * 2.0));
+    fragColor = vec4(c * vec3(1.0, 0.1, 0.1), 1.0);
+}`;
+
+const defaultBufferBCode = `// Buffer B - Green rotating square
+
+void mainImage(out vec4 fragColor, vec2 fragCoord) {
+    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;
+    float a = iTime * 1.5;
+    mat2 rot = mat2(cos(a), -sin(a), sin(a), cos(a));
+    uv = rot * uv;
+    float d = max(abs(uv.x), abs(uv.y));
+    float c = smoothstep(0.35, 0.3, d);
+    fragColor = vec4(c * vec3(0.1, 1.0, 0.1), 1.0);
+}`;
+
+const defaultBufferCCode = `// Buffer C - Blue animated triangle
+
+void mainImage(out vec4 fragColor, vec2 fragCoord) {
+    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;
+    uv.y += 0.2;
+    float scale = 0.6 + 0.2 * sin(iTime);
+    uv /= scale;
+
+    float d = abs(uv.x) * 0.866 + uv.y * 0.5;
+    float c = smoothstep(0.45, 0.4, max(d, -uv.y - 0.5));
+    fragColor = vec4(c * vec3(0.1, 0.4, 1.0), 1.0);
+}`;
+
+const defaultBufferDCode = `// Buffer D - Yellow/orange gradient waves
+
+void mainImage(out vec4 fragColor, vec2 fragCoord) {
+    vec2 uv = fragCoord / iResolution.xy;
+    float wave = sin(uv.x * 10.0 + iTime * 2.0) * 0.5 + 0.5;
+    float wave2 = sin(uv.y * 8.0 - iTime * 1.5) * 0.5 + 0.5;
+    vec3 col = mix(vec3(1.0, 0.8, 0.2), vec3(1.0, 0.4, 0.1), wave * wave2);
+    fragColor = vec4(col, 1.0);
+}`;
+
+const defaultCommonCode = `// Common - Shared functions and definitions
+// Add your shared utilities here
+
+// Example: Distance to circle
+float sdCircle(vec2 p, float r) {
+    return length(p) - r;
+}
+
+// Example: Rotation matrix
+mat2 rotate2D(float angle) {
+    float s = sin(angle);
+    float c = cos(angle);
+    return mat2(c, -s, s, c);
+}`;
+
 function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess, onTabChange }: ShaderEditorProps) {
-  const [code, setCode] = useState(shader?.code || defaultShaderCode);
+  const [code, setCode] = useState(shader?.code || defaultImageCode);
   const [isUniformsExpanded, setIsUniformsExpanded] = useState(false);
 
   // Tab management state
   const [tabs, setTabs] = useState<Tab[]>([
-    { id: '1', name: 'Image', code: shader?.code || defaultShaderCode, isDeletable: false }
+    { id: '1', name: 'Image', code: shader?.code || defaultImageCode, isDeletable: false }
   ]);
   const [activeTabId, setActiveTabId] = useState('1');
   const [showAddDropdown, setShowAddDropdown] = useState(false);
@@ -99,10 +158,32 @@ function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess
   };
 
   const handleAddTab = (name: string) => {
+    let defaultCode = defaultImageCode;
+
+    switch (name) {
+      case 'Buffer A':
+        defaultCode = defaultBufferACode;
+        break;
+      case 'Buffer B':
+        defaultCode = defaultBufferBCode;
+        break;
+      case 'Buffer C':
+        defaultCode = defaultBufferCCode;
+        break;
+      case 'Buffer D':
+        defaultCode = defaultBufferDCode;
+        break;
+      case 'Common':
+        defaultCode = defaultCommonCode;
+        break;
+      default:
+        defaultCode = defaultImageCode;
+    }
+
     const newTab: Tab = {
       id: Date.now().toString(),
       name,
-      code: defaultShaderCode,
+      code: defaultCode,
       isDeletable: true
     };
     setTabs([...tabs, newTab]);
