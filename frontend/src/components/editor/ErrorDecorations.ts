@@ -17,15 +17,14 @@ class ErrorWidget extends WidgetType {
     wrap.style.cssText = `
       background-color: #dc2626;
       color: white;
-      padding: 2px 8px;
+      padding: 0 8px;
       margin: 0;
       border-radius: 2px;
       font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
       font-size: 14px;
-      line-height: 1.2;
-      height: 20px;
-      display: flex;
-      align-items: center;
+      line-height: 1.5;
+      white-space: normal;
+      word-wrap: break-word;
       user-select: none;
       -webkit-user-select: none;
       -moz-user-select: none;
@@ -37,7 +36,7 @@ class ErrorWidget extends WidgetType {
   }
 
   get estimatedHeight() {
-    return 20;
+    return -1;
   }
 }
 
