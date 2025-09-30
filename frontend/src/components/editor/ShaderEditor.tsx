@@ -143,7 +143,6 @@ function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess
         const tabErrors = compilationErrors.filter(error =>
           !error.passName || error.passName === tab.name
         );
-        console.log(`[Compilation] Tab: ${tab.name}, Assigned Errors:`, tabErrors);
         return { ...tab, errors: tabErrors };
       });
       return newTabs;
@@ -184,7 +183,6 @@ function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess
   const handleDocumentChange = (tr: Transaction) => {
     // Ignore document changes during tab switches
     if (isSwitchingTabsRef.current) {
-      console.log('[Document Change] Ignored - tab switch in progress');
       return;
     }
 
@@ -193,7 +191,6 @@ function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess
         if (tab.id === activeTabId) {
           // Update errors for the active tab
           const updatedErrors = updateErrorLines(tab.errors, tr);
-          console.log(`[Document Change] Tab: ${tab.name}, Errors:`, updatedErrors);
           return { ...tab, errors: updatedErrors };
         }
         return tab;
@@ -210,16 +207,13 @@ function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess
       isSwitchingTabsRef.current = true;
 
       setCode(activeTab.code);
-      console.log(`[Tab Switch] Switched to: ${activeTab.name}, Errors:`, activeTab.errors);
 
       // Clear the flag after a short delay to allow CodeMirror to settle
       setTimeout(() => {
         isSwitchingTabsRef.current = false;
-        console.log('[Tab Switch] Document change tracking re-enabled');
       }, 100);
 
       // Notify parent that tab changed
-      // Note: We no longer clear errors here, we filter them instead
       onTabChange?.();
     }
   }, [activeTabId]); // Only trigger on activeTabId change, not tab content changes
