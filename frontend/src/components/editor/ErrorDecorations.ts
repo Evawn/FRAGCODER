@@ -23,7 +23,6 @@ class ErrorWidget extends WidgetType {
       font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
       font-size: 14px;
       line-height: 1.2;
-      border-left: 3px solid #991b1b;
       height: 20px;
       display: flex;
       align-items: center;
@@ -59,20 +58,35 @@ export const errorState = StateField.define<CompilationError[]>({
     if (tr.docChanged && errors.length > 0) {
       const updatedErrors = errors.map(error => {
         if (error.line <= 0) return error; // General errors don't need line tracking
-        
+
         try {
           // Get the position at the start of the error line
           const originalLine = tr.startState.doc.line(error.line);
+          const lineLength = originalLine.to - originalLine.from;
+
+          // Check if the entire line was deleted
+          let lineWasDeleted = false;
+          tr.changes.iterChanges((fromA, toA) => {
+            // If the change spans the entire line (or more), the line was deleted
+            if (fromA <= originalLine.from && toA >= originalLine.to) {
+              lineWasDeleted = true;
+            }
+          });
+
+          if (lineWasDeleted) {
+            return null; // Hide the error
+          }
+
           const mappedPos = tr.changes.mapPos(originalLine.from);
-          
+
           // Check if the line was deleted
           if (mappedPos < 0 || mappedPos > tr.state.doc.length) {
             return null;
           }
-          
+
           // Get the new line number
           const newLine = tr.state.doc.lineAt(mappedPos).number;
-          
+
           return {
             ...error,
             line: newLine
@@ -82,7 +96,7 @@ export const errorState = StateField.define<CompilationError[]>({
           return null;
         }
       }).filter(error => error !== null);
-      
+
       return updatedErrors;
     }
     
@@ -218,8 +232,7 @@ export const errorDecorations = StateField.define<DecorationSet>({
 
 export const errorDecorationTheme = EditorView.theme({
   '.cm-error-line': {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderLeft: '3px solid #ef4444'
+    backgroundColor: 'rgba(239, 68, 68, 0.1)'
   },
   '.cm-error-annotation': {
     display: 'block',
