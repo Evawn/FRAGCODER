@@ -94,11 +94,22 @@ const glslCompletions = [
   { label: "mat4x3", type: "type", detail: "4 columns, 3 rows matrix" },
   { label: "mat4x4", type: "type", detail: "4x4 floating-point matrix" },
 
-  // Sampler types
+  // Sampler types (GLSL ES 3.00)
   { label: "sampler2D", type: "type", detail: "2D texture sampler" },
   { label: "sampler3D", type: "type", detail: "3D texture sampler" },
   { label: "samplerCube", type: "type", detail: "Cube texture sampler" },
   { label: "sampler2DShadow", type: "type", detail: "2D depth texture sampler" },
+  { label: "samplerCubeShadow", type: "type", detail: "Cube depth texture sampler" },
+  { label: "sampler2DArray", type: "type", detail: "2D array texture sampler" },
+  { label: "sampler2DArrayShadow", type: "type", detail: "2D array depth texture sampler" },
+  { label: "isampler2D", type: "type", detail: "2D integer texture sampler" },
+  { label: "isampler3D", type: "type", detail: "3D integer texture sampler" },
+  { label: "isamplerCube", type: "type", detail: "Cube integer texture sampler" },
+  { label: "isampler2DArray", type: "type", detail: "2D array integer texture sampler" },
+  { label: "usampler2D", type: "type", detail: "2D unsigned integer texture sampler" },
+  { label: "usampler3D", type: "type", detail: "3D unsigned integer texture sampler" },
+  { label: "usamplerCube", type: "type", detail: "Cube unsigned integer texture sampler" },
+  { label: "usampler2DArray", type: "type", detail: "2D array unsigned integer texture sampler" },
 
   // Keywords
   { label: "if", type: "keyword", detail: "conditional statement" },
@@ -112,25 +123,22 @@ const glslCompletions = [
   { label: "discard", type: "keyword", detail: "discard fragment" },
   { label: "const", type: "keyword", detail: "constant qualifier" },
   { label: "uniform", type: "keyword", detail: "uniform variable qualifier" },
-  { label: "varying", type: "keyword", detail: "varying variable qualifier" },
-  { label: "attribute", type: "keyword", detail: "attribute variable qualifier" },
   { label: "in", type: "keyword", detail: "input variable qualifier" },
   { label: "out", type: "keyword", detail: "output variable qualifier" },
   { label: "inout", type: "keyword", detail: "input/output parameter qualifier" },
+  { label: "centroid", type: "keyword", detail: "centroid qualifier" },
+  { label: "flat", type: "keyword", detail: "flat interpolation qualifier" },
+  { label: "smooth", type: "keyword", detail: "smooth interpolation qualifier" },
   { label: "precision", type: "keyword", detail: "precision qualifier" },
   { label: "highp", type: "keyword", detail: "high precision" },
   { label: "mediump", type: "keyword", detail: "medium precision" },
   { label: "lowp", type: "keyword", detail: "low precision" },
 
-  // Built-in variables
-  { label: "gl_FragCoord", type: "variable", detail: "vec4 - fragment position" },
-  { label: "gl_FragColor", type: "variable", detail: "vec4 - fragment color output (deprecated)" },
-  { label: "gl_FragData", type: "variable", detail: "vec4[] - fragment color outputs (deprecated)" },
-  { label: "gl_FragDepth", type: "variable", detail: "float - fragment depth value" },
-  { label: "gl_Position", type: "variable", detail: "vec4 - vertex position output" },
-  { label: "gl_PointSize", type: "variable", detail: "float - point size" },
-  { label: "gl_VertexID", type: "variable", detail: "int - vertex ID" },
-  { label: "gl_InstanceID", type: "variable", detail: "int - instance ID" },
+  // Built-in variables (Fragment Shader - GLSL ES 3.00)
+  { label: "gl_FragCoord", type: "variable", detail: "vec4 - fragment position in window coordinates" },
+  { label: "gl_FrontFacing", type: "variable", detail: "bool - true if fragment is front-facing" },
+  { label: "gl_PointCoord", type: "variable", detail: "vec2 - point sprite coordinate" },
+  { label: "gl_FragDepth", type: "variable", detail: "float - fragment depth value (output)" },
 
   // Shader Playground uniforms
   { label: "iResolution", type: "variable", detail: "vec3 - viewport resolution (in pixels)" },
@@ -144,32 +152,57 @@ const glslCompletions = [
   { label: "BufferC", type: "variable", detail: "sampler2D - Buffer C texture" },
   { label: "BufferD", type: "variable", detail: "sampler2D - Buffer D texture" },
 
-  // Mathematical functions
-  { label: "abs", type: "function", detail: "absolute value", info: "abs(x)" },
-  { label: "sin", type: "function", detail: "sine function", info: "sin(angle)" },
-  { label: "cos", type: "function", detail: "cosine function", info: "cos(angle)" },
-  { label: "tan", type: "function", detail: "tangent function", info: "tan(angle)" },
+  // Angle and Trigonometric functions
+  { label: "radians", type: "function", detail: "degrees to radians", info: "radians(degrees)" },
+  { label: "degrees", type: "function", detail: "radians to degrees", info: "degrees(radians)" },
+  { label: "sin", type: "function", detail: "sine", info: "sin(angle)" },
+  { label: "cos", type: "function", detail: "cosine", info: "cos(angle)" },
+  { label: "tan", type: "function", detail: "tangent", info: "tan(angle)" },
   { label: "asin", type: "function", detail: "arc sine", info: "asin(x)" },
   { label: "acos", type: "function", detail: "arc cosine", info: "acos(x)" },
   { label: "atan", type: "function", detail: "arc tangent", info: "atan(y, x) or atan(y_over_x)" },
-  { label: "pow", type: "function", detail: "power function", info: "pow(x, y)" },
-  { label: "exp", type: "function", detail: "exponential function", info: "exp(x)" },
+  { label: "sinh", type: "function", detail: "hyperbolic sine", info: "sinh(x)" },
+  { label: "cosh", type: "function", detail: "hyperbolic cosine", info: "cosh(x)" },
+  { label: "tanh", type: "function", detail: "hyperbolic tangent", info: "tanh(x)" },
+  { label: "asinh", type: "function", detail: "inverse hyperbolic sine", info: "asinh(x)" },
+  { label: "acosh", type: "function", detail: "inverse hyperbolic cosine", info: "acosh(x)" },
+  { label: "atanh", type: "function", detail: "inverse hyperbolic tangent", info: "atanh(x)" },
+
+  // Exponential functions
+  { label: "pow", type: "function", detail: "power", info: "pow(x, y)" },
+  { label: "exp", type: "function", detail: "natural exponentiation", info: "exp(x)" },
   { label: "log", type: "function", detail: "natural logarithm", info: "log(x)" },
-  { label: "exp2", type: "function", detail: "2^x", info: "exp2(x)" },
+  { label: "exp2", type: "function", detail: "base 2 exponentiation", info: "exp2(x)" },
   { label: "log2", type: "function", detail: "base 2 logarithm", info: "log2(x)" },
   { label: "sqrt", type: "function", detail: "square root", info: "sqrt(x)" },
   { label: "inversesqrt", type: "function", detail: "inverse square root", info: "inversesqrt(x)" },
-  { label: "sign", type: "function", detail: "extract sign", info: "sign(x)" },
-  { label: "floor", type: "function", detail: "round down", info: "floor(x)" },
-  { label: "ceil", type: "function", detail: "round up", info: "ceil(x)" },
+
+  // Common functions
+  { label: "abs", type: "function", detail: "absolute value", info: "abs(x)" },
+  { label: "sign", type: "function", detail: "sign of value", info: "sign(x)" },
+  { label: "floor", type: "function", detail: "round down to nearest integer", info: "floor(x)" },
+  { label: "trunc", type: "function", detail: "truncate to integer", info: "trunc(x)" },
+  { label: "round", type: "function", detail: "round to nearest integer", info: "round(x)" },
+  { label: "roundEven", type: "function", detail: "round to nearest even integer", info: "roundEven(x)" },
+  { label: "ceil", type: "function", detail: "round up to nearest integer", info: "ceil(x)" },
   { label: "fract", type: "function", detail: "fractional part", info: "fract(x)" },
-  { label: "mod", type: "function", detail: "modulus", info: "mod(x, y)" },
+  { label: "mod", type: "function", detail: "modulo", info: "mod(x, y)" },
+  { label: "modf", type: "function", detail: "separate integer and fractional parts", info: "modf(x, out i)" },
   { label: "min", type: "function", detail: "minimum value", info: "min(x, y)" },
   { label: "max", type: "function", detail: "maximum value", info: "max(x, y)" },
-  { label: "clamp", type: "function", detail: "constrain value", info: "clamp(x, minVal, maxVal)" },
-  { label: "mix", type: "function", detail: "linear interpolation", info: "mix(x, y, a)" },
+  { label: "clamp", type: "function", detail: "constrain value to range", info: "clamp(x, minVal, maxVal)" },
+  { label: "mix", type: "function", detail: "linear blend", info: "mix(x, y, a)" },
   { label: "step", type: "function", detail: "step function", info: "step(edge, x)" },
-  { label: "smoothstep", type: "function", detail: "smooth interpolation", info: "smoothstep(edge0, edge1, x)" },
+  { label: "smoothstep", type: "function", detail: "smooth Hermite interpolation", info: "smoothstep(edge0, edge1, x)" },
+  { label: "isnan", type: "function", detail: "check for NaN", info: "isnan(x)" },
+  { label: "isinf", type: "function", detail: "check for infinity", info: "isinf(x)" },
+  { label: "floatBitsToInt", type: "function", detail: "float to int bit representation", info: "floatBitsToInt(x)" },
+  { label: "floatBitsToUint", type: "function", detail: "float to uint bit representation", info: "floatBitsToUint(x)" },
+  { label: "intBitsToFloat", type: "function", detail: "int bits to float", info: "intBitsToFloat(x)" },
+  { label: "uintBitsToFloat", type: "function", detail: "uint bits to float", info: "uintBitsToFloat(x)" },
+  { label: "fma", type: "function", detail: "fused multiply-add", info: "fma(a, b, c)" },
+  { label: "frexp", type: "function", detail: "split into mantissa and exponent", info: "frexp(x, out exp)" },
+  { label: "ldexp", type: "function", detail: "build from mantissa and exponent", info: "ldexp(x, exp)" },
 
   // Geometric functions
   { label: "length", type: "function", detail: "vector length", info: "length(v)" },
@@ -182,20 +215,52 @@ const glslCompletions = [
   { label: "refract", type: "function", detail: "refraction vector", info: "refract(I, N, eta)" },
 
   // Matrix functions
-  { label: "matrixCompMult", type: "function", detail: "component-wise multiplication", info: "matrixCompMult(x, y)" },
+  { label: "matrixCompMult", type: "function", detail: "component-wise matrix multiplication", info: "matrixCompMult(x, y)" },
+  { label: "outerProduct", type: "function", detail: "outer product of vectors", info: "outerProduct(c, r)" },
   { label: "transpose", type: "function", detail: "transpose matrix", info: "transpose(m)" },
+  { label: "determinant", type: "function", detail: "matrix determinant", info: "determinant(m)" },
   { label: "inverse", type: "function", detail: "inverse matrix", info: "inverse(m)" },
 
-  // Texture functions
-  { label: "texture", type: "function", detail: "texture lookup", info: "texture(sampler, coord)" },
-  { label: "texture2D", type: "function", detail: "2D texture lookup (deprecated)", info: "texture2D(sampler, coord)" },
-  { label: "textureLod", type: "function", detail: "texture lookup with LOD", info: "textureLod(sampler, coord, lod)" },
-  { label: "textureSize", type: "function", detail: "texture dimensions", info: "textureSize(sampler, lod)" },
+  // Vector relational functions
+  { label: "lessThan", type: "function", detail: "component-wise less than", info: "lessThan(x, y)" },
+  { label: "lessThanEqual", type: "function", detail: "component-wise less than or equal", info: "lessThanEqual(x, y)" },
+  { label: "greaterThan", type: "function", detail: "component-wise greater than", info: "greaterThan(x, y)" },
+  { label: "greaterThanEqual", type: "function", detail: "component-wise greater than or equal", info: "greaterThanEqual(x, y)" },
+  { label: "equal", type: "function", detail: "component-wise equality", info: "equal(x, y)" },
+  { label: "notEqual", type: "function", detail: "component-wise inequality", info: "notEqual(x, y)" },
+  { label: "any", type: "function", detail: "true if any component is true", info: "any(bvec)" },
+  { label: "all", type: "function", detail: "true if all components are true", info: "all(bvec)" },
+  { label: "not", type: "function", detail: "component-wise logical NOT", info: "not(bvec)" },
 
-  // Derivative functions
+  // Texture functions (GLSL ES 3.00)
+  { label: "texture", type: "function", detail: "texture lookup", info: "texture(sampler, coord [, bias])" },
+  { label: "textureSize", type: "function", detail: "texture dimensions", info: "textureSize(sampler, lod)" },
+  { label: "textureLod", type: "function", detail: "texture lookup with LOD", info: "textureLod(sampler, coord, lod)" },
+  { label: "textureProj", type: "function", detail: "projective texture lookup", info: "textureProj(sampler, coord [, bias])" },
+  { label: "textureProjLod", type: "function", detail: "projective texture lookup with LOD", info: "textureProjLod(sampler, coord, lod)" },
+  { label: "textureGrad", type: "function", detail: "texture lookup with gradient", info: "textureGrad(sampler, coord, dPdx, dPdy)" },
+  { label: "textureOffset", type: "function", detail: "texture lookup with offset", info: "textureOffset(sampler, coord, offset [, bias])" },
+  { label: "textureLodOffset", type: "function", detail: "texture lookup with LOD and offset", info: "textureLodOffset(sampler, coord, lod, offset)" },
+  { label: "textureProjOffset", type: "function", detail: "projective texture lookup with offset", info: "textureProjOffset(sampler, coord, offset [, bias])" },
+  { label: "textureGradOffset", type: "function", detail: "texture lookup with gradient and offset", info: "textureGradOffset(sampler, coord, dPdx, dPdy, offset)" },
+  { label: "textureProjGrad", type: "function", detail: "projective texture lookup with gradient", info: "textureProjGrad(sampler, coord, dPdx, dPdy)" },
+  { label: "textureProjGradOffset", type: "function", detail: "projective texture lookup with gradient and offset", info: "textureProjGradOffset(sampler, coord, dPdx, dPdy, offset)" },
+  { label: "textureProjLodOffset", type: "function", detail: "projective texture lookup with LOD and offset", info: "textureProjLodOffset(sampler, coord, lod, offset)" },
+  { label: "texelFetch", type: "function", detail: "texel fetch", info: "texelFetch(sampler, coord, lod)" },
+  { label: "texelFetchOffset", type: "function", detail: "texel fetch with offset", info: "texelFetchOffset(sampler, coord, lod, offset)" },
+
+  // Fragment processing functions
   { label: "dFdx", type: "function", detail: "derivative in x", info: "dFdx(p)" },
   { label: "dFdy", type: "function", detail: "derivative in y", info: "dFdy(p)" },
-  { label: "fwidth", type: "function", detail: "sum of derivatives", info: "fwidth(p)" },
+  { label: "fwidth", type: "function", detail: "sum of absolute derivatives", info: "fwidth(p)" },
+
+  // Packing and unpacking functions
+  { label: "packSnorm2x16", type: "function", detail: "pack 2 floats to snorm", info: "packSnorm2x16(v)" },
+  { label: "unpackSnorm2x16", type: "function", detail: "unpack snorm to 2 floats", info: "unpackSnorm2x16(p)" },
+  { label: "packUnorm2x16", type: "function", detail: "pack 2 floats to unorm", info: "packUnorm2x16(v)" },
+  { label: "unpackUnorm2x16", type: "function", detail: "unpack unorm to 2 floats", info: "unpackUnorm2x16(p)" },
+  { label: "packHalf2x16", type: "function", detail: "pack 2 floats to half precision", info: "packHalf2x16(v)" },
+  { label: "unpackHalf2x16", type: "function", detail: "unpack half precision to 2 floats", info: "unpackHalf2x16(v)" },
 
   // Constants
   { label: "true", type: "constant", detail: "boolean true" },
@@ -206,19 +271,40 @@ const glslCompletions = [
 function extractUserDefinedSymbols(code: string): Completion[] {
   const variables = new Set<string>()
   const functions = new Map<string, string>() // Map function name to signature
+  const structs = new Map<string, string>() // Map struct name to definition
+
+  // Common GLSL type pattern (used in multiple regexes)
+  const typePattern = '(?:void|bool|int|uint|float|double|vec[234]|bvec[234]|ivec[234]|uvec[234]|dvec[234]|mat[234](?:x[234])?|sampler\\w+|isampler\\w+|usampler\\w+|image\\w+)'
+
+  // Extract struct definitions first
+  const structPattern = /struct\s+(\w+)\s*\{([^}]+)\}/gm
+  let structMatch
+  while ((structMatch = structPattern.exec(code)) !== null) {
+    const structName = structMatch[1]
+    if (structName && !glslCompletions.some(comp => comp.label === structName)) {
+      structs.set(structName, `struct ${structName}`)
+    }
+  }
+
+  // Build complete type pattern including user-defined struct types
+  const allTypes = structs.size > 0
+    ? `(?:${typePattern}|${Array.from(structs.keys()).join('|')})`
+    : typePattern
 
   // Regex patterns to match different types of variable declarations
   const variablePatterns = [
-    // Basic variable declarations: type name; or type name = value;
-    /(?:^|\s)((?:bool|int|uint|float|double|vec[234]|bvec[234]|ivec[234]|uvec[234]|mat[234]|mat[234]x[234]|sampler\w+|image\w+)\s+)(\w+)(?:\s*=|;)/gm,
+    // Basic variable declarations with optional const qualifier and array notation
+    // Matches: type name; or type name = value; or type name[size];
+    new RegExp(`(?:^|\\s)(?:const\\s+)?(${allTypes})\\s+(\\w+)(?:\\s*\\[[^\\]]*\\])?(?:\\s*=|;)`, 'gm'),
 
-    // Uniform/varying/attribute declarations
-    /(?:^|\s)((?:uniform|varying|attribute|in|out)\s+(?:bool|int|uint|float|double|vec[234]|bvec[234]|ivec[234]|uvec[234]|mat[234]|mat[234]x[234]|sampler\w+|image\w+)\s+)(\w+)/gm,
+    // Uniform/in/out declarations with optional qualifiers and arrays
+    // Matches: [qualifier] type name; or [qualifier] type name[size];
+    new RegExp(`(?:^|\\s)(?:uniform|in|out|const)\\s+(?:${allTypes})\\s+(\\w+)(?:\\s*\\[[^\\]]*\\])?`, 'gm'),
 
-    // Function parameters: extract from function signatures
-    /(?:^|\s)\w+\s+\w+\s*\([^)]*?(?:bool|int|uint|float|double|vec[234]|bvec[234]|ivec[234]|uvec[234]|mat[234]|mat[234]x[234]|sampler\w+|image\w+)\s+(\w+)/gm,
+    // Function parameters with optional qualifiers
+    new RegExp(`(?:in|out|inout|const)?\\s*(?:${allTypes})\\s+(\\w+)(?=\\s*[,)])`, 'gm'),
 
-    // For loop variables: for(int i = 0; ...)
+    // For loop variables: for(type i = 0; ...)
     /for\s*\(\s*(?:int|uint|float)\s+(\w+)/gm
   ]
 
@@ -226,8 +312,9 @@ function extractUserDefinedSymbols(code: string): Completion[] {
   variablePatterns.forEach(pattern => {
     let match
     while ((match = pattern.exec(code)) !== null) {
-      const varName = match[match.length - 1] // Last capture group is always the variable name
-      if (varName && !glslCompletions.some(comp => comp.label === varName)) {
+      // Variable name is in the last capture group or second-to-last
+      const varName = match[match.length - 1] || match[2]
+      if (varName && /^\w+$/.test(varName) && !glslCompletions.some(comp => comp.label === varName)) {
         variables.add(varName)
       }
     }
@@ -235,7 +322,10 @@ function extractUserDefinedSymbols(code: string): Completion[] {
 
   // Extract user-defined functions
   // Pattern to match function declarations: returnType functionName(parameters) {
-  const functionPattern = /(?:^|\s)((?:void|bool|int|uint|float|double|vec[234]|bvec[234]|ivec[234]|uvec[234]|mat[234]|mat[234]x[234]|sampler\w+|image\w+)\s+)(\w+)\s*\(([^)]*)\)\s*\{/gm
+  const functionPattern = new RegExp(
+    `(?:^|\\s)(${allTypes})\\s+(\\w+)\\s*\\(([^)]*)\\)\\s*\\{`,
+    'gm'
+  )
 
   let functionMatch
   while ((functionMatch = functionPattern.exec(code)) !== null) {
@@ -244,7 +334,8 @@ function extractUserDefinedSymbols(code: string): Completion[] {
     const params = functionMatch[3].trim()
 
     // Skip if it's a built-in function or already exists in static completions
-    if (funcName && !glslCompletions.some(comp => comp.label === funcName)) {
+    // Also skip 'main' function
+    if (funcName && funcName !== 'main' && funcName !== 'mainImage' && !glslCompletions.some(comp => comp.label === funcName)) {
       // Create a clean parameter list for display
       const paramList = params ? params.replace(/\s+/g, ' ') : ''
       const signature = `${funcName}(${paramList})`
@@ -267,7 +358,14 @@ function extractUserDefinedSymbols(code: string): Completion[] {
     info: signature
   }))
 
-  return [...variableCompletions, ...functionCompletions]
+  // Convert structs to completion objects
+  const structCompletions = Array.from(structs.entries()).map(([structName, definition]) => ({
+    label: structName,
+    type: "type",
+    detail: "user-defined struct"
+  }))
+
+  return [...variableCompletions, ...functionCompletions, ...structCompletions]
 }
 
 // Dynamic completion function that combines static and user-defined completions
