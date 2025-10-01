@@ -113,7 +113,8 @@ export function useWebGLRenderer({
             passError.errorMessage,
             passError.passName,
             passError.userCodeStartLine,
-            passError.commonLineCount
+            passError.commonLineCount,
+            passError.lineMapping
           );
           allErrors.push(...parsedErrors);
         }
@@ -122,13 +123,14 @@ export function useWebGLRenderer({
         const passName = (err as any).passName;
         const userCodeStartLine = (err as any).userCodeStartLine;
         const commonLineCount = (err as any).commonLineCount;
+        const lineMapping = (err as any).lineMapping;
 
         if (passName && userCodeStartLine !== undefined && commonLineCount !== undefined) {
           // Use multipass error parser with pass-specific information
-          allErrors = parseMultipassShaderError(errorMessage, passName, userCodeStartLine, commonLineCount);
+          allErrors = parseMultipassShaderError(errorMessage, passName, userCodeStartLine, commonLineCount, lineMapping);
         } else {
           // Fallback to generic error parsing
-          allErrors = parseShaderError(errorMessage, 0);
+          allErrors = parseShaderError(errorMessage, 0, lineMapping);
         }
       }
 

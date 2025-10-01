@@ -107,7 +107,7 @@ export class WebGLRenderer {
 
       try {
         // Prepare shader code with Common prepended
-        const { code: preparedCode, userCodeStartLine } = prepareMultipassShaderCode(commonCode, tab.code);
+        const { code: preparedCode, userCodeStartLine, lineMapping } = prepareMultipassShaderCode(commonCode, tab.code);
 
         // Create program for this pass
         const program = this.createProgram(preparedCode);
@@ -133,13 +133,14 @@ export class WebGLRenderer {
       } catch (error) {
         // Store error information for this pass
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        const { userCodeStartLine } = prepareMultipassShaderCode(commonCode, tab.code);
+        const { userCodeStartLine, lineMapping } = prepareMultipassShaderCode(commonCode, tab.code);
 
         failedPasses.push({
           passName,
           errorMessage,
           userCodeStartLine,
-          commonLineCount
+          commonLineCount,
+          lineMapping
         });
 
         // Continue to next pass instead of throwing immediately

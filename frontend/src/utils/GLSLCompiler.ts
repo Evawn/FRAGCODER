@@ -4,6 +4,7 @@ export interface CompilationError {
   type: 'error' | 'warning';
   passName?: string;  // Which pass this error belongs to (Image, Buffer A-D, Common)
   originalLine?: number;  // Original line number before adjustments
+  preprocessedLine?: number;  // Line number after preprocessing
 }
 
 export interface CompileResult {
@@ -24,11 +25,14 @@ export interface PassErrorInfo {
   errorMessage: string;
   userCodeStartLine: number;
   commonLineCount: number;
+  lineMapping?: Map<number, number>;
 }
 
 export interface MultipassCompilationError extends Error {
   passErrors: PassErrorInfo[];
 }
+
+import { preprocessGLSL } from './GLSLPreprocessor';
 
 // Minimal vertex shader for WebGL 2.0
 export const VERTEX_SHADER_SOURCE = `#version 300 es
@@ -85,26 +89,36 @@ export function createShader(gl: WebGLRenderingContext, type: number, source: st
 
 /**
  * Calculates the correct user-facing line number from compiler line number
+ * Now supports preprocessor line mapping
  */
-function calculateLineNumber(compilerLine: number, userCodeStartLine: number): number {
+function calculateLineNumber(compilerLine: number, userCodeStartLine: number, lineMapping?: Map<number, number>): number {
+  let adjustedLine: number;
+
   if (userCodeStartLine < 0) {
     // Negative indicates uniforms inserted after precision
     const uniformLines = 10;
     if (compilerLine <= Math.abs(userCodeStartLine)) {
-      return compilerLine;
+      adjustedLine = compilerLine;
     } else {
-      return compilerLine - uniformLines;
+      adjustedLine = compilerLine - uniformLines;
     }
   } else {
     // Normal case: subtract wrapper offset
-    return compilerLine - userCodeStartLine;
+    adjustedLine = compilerLine - userCodeStartLine;
   }
+
+  // If we have preprocessor line mapping, map back to original source line
+  if (lineMapping && lineMapping.has(adjustedLine)) {
+    return lineMapping.get(adjustedLine)!;
+  }
+
+  return adjustedLine;
 }
 
 /**
  * Parses WebGL shader compilation errors and converts them to user-friendly format
  */
-export function parseShaderError(error: string, userCodeStartLine: number = 0): CompilationError[] {
+export function parseShaderError(error: string, userCodeStartLine: number = 0, lineMapping?: Map<number, number>): CompilationError[] {
   const errors: CompilationError[] = [];
   const lines = error.split('\n').filter(line => line.trim());
 
@@ -116,7 +130,7 @@ export function parseShaderError(error: string, userCodeStartLine: number = 0): 
       const rawMessage = errorMatch[3].trim();
 
       errors.push({
-        line: Math.max(1, calculateLineNumber(compilerLine, userCodeStartLine)),
+        line: Math.max(1, calculateLineNumber(compilerLine, userCodeStartLine, lineMapping)),
         message: formatErrorMessage(rawMessage),
         type: 'error'
       });
@@ -130,7 +144,7 @@ export function parseShaderError(error: string, userCodeStartLine: number = 0): 
       const rawMessage = warningMatch[3].trim();
 
       errors.push({
-        line: Math.max(1, calculateLineNumber(compilerLine, userCodeStartLine)),
+        line: Math.max(1, calculateLineNumber(compilerLine, userCodeStartLine, lineMapping)),
         message: formatErrorMessage(rawMessage),
         type: 'warning'
       });
@@ -152,12 +166,14 @@ export function parseShaderError(error: string, userCodeStartLine: number = 0): 
 
 /**
  * Calculates the adjusted line number for multipass shaders with Common code prepending
+ * Now supports preprocessor line mapping
  */
 function calculateMultipassLineNumber(
   compilerLine: number,
   userCodeStartLine: number,
   commonLineCount: number,
-  passName: string
+  passName: string,
+  lineMapping?: Map<number, number>
 ): number {
   // First, adjust for wrapper code
   let adjustedLine = compilerLine - userCodeStartLine;
@@ -165,6 +181,11 @@ function calculateMultipassLineNumber(
   // For non-Common passes, subtract Common code lines if error is after Common section
   if (passName !== 'Common' && commonLineCount > 0 && adjustedLine > commonLineCount) {
     adjustedLine -= commonLineCount;
+  }
+
+  // If we have preprocessor line mapping, map back to original source line
+  if (lineMapping && lineMapping.has(adjustedLine)) {
+    return lineMapping.get(adjustedLine)!;
   }
 
   return adjustedLine;
@@ -178,7 +199,8 @@ export function parseMultipassShaderError(
   error: string,
   passName: string,
   userCodeStartLine: number,
-  commonLineCount: number
+  commonLineCount: number,
+  lineMapping?: Map<number, number>
 ): CompilationError[] {
   const errors: CompilationError[] = [];
   const lines = error.split('\n').filter(line => line.trim());
@@ -191,7 +213,7 @@ export function parseMultipassShaderError(
       const rawMessage = errorMatch[3].trim();
 
       errors.push({
-        line: Math.max(1, calculateMultipassLineNumber(compilerLine, userCodeStartLine, commonLineCount, passName)),
+        line: Math.max(1, calculateMultipassLineNumber(compilerLine, userCodeStartLine, commonLineCount, passName, lineMapping)),
         originalLine: compilerLine,
         message: formatErrorMessage(rawMessage),
         type: 'error',
@@ -207,7 +229,7 @@ export function parseMultipassShaderError(
       const rawMessage = warningMatch[3].trim();
 
       errors.push({
-        line: Math.max(1, calculateMultipassLineNumber(compilerLine, userCodeStartLine, commonLineCount, passName)),
+        line: Math.max(1, calculateMultipassLineNumber(compilerLine, userCodeStartLine, commonLineCount, passName, lineMapping)),
         originalLine: compilerLine,
         message: formatErrorMessage(rawMessage),
         type: 'warning',
@@ -337,12 +359,23 @@ export function formatErrorMessage(message: string): string {
 /**
  * Prepares the shader code by adding necessary uniforms and wrappers for WebGL 2.0
  */
-export function prepareShaderCode(userCode: string): { code: string; userCodeStartLine: number } {
+export function prepareShaderCode(userCode: string): { code: string; userCodeStartLine: number; lineMapping?: Map<number, number> } {
+  // Run preprocessor on user code first
+  const preprocessResult = preprocessGLSL(userCode);
+
+  // If there are preprocessor errors, throw them as compilation errors
+  if (preprocessResult.errors.length > 0) {
+    const errorMessages = preprocessResult.errors.map(err => `Line ${err.line}: ${err.message}`).join('\n');
+    throw new Error(`Preprocessor errors:\n${errorMessages}`);
+  }
+
+  const processedUserCode = preprocessResult.code;
+
   // Check if user has provided a precision declaration and extract it
   const precisionRegex = /^\s*(precision\s+(lowp|mediump|highp)\s+(float|int)\s*;)/im;
-  const precisionMatch = userCode.match(precisionRegex);
+  const precisionMatch = processedUserCode.match(precisionRegex);
 
-  let cleanedUserCode = userCode;
+  let cleanedUserCode = processedUserCode;
   let versionAndPrecision = '';
 
   // For WebGL 2.0, add version directive and precision
@@ -351,7 +384,7 @@ export function prepareShaderCode(userCode: string): { code: string; userCodeSta
     const precisionDeclaration = precisionMatch[1].trim();
     versionAndPrecision = `#version 300 es\n${precisionDeclaration}`;
     // Remove the precision declaration from user code to avoid duplication
-    cleanedUserCode = userCode.replace(precisionRegex, '').trim();
+    cleanedUserCode = processedUserCode.replace(precisionRegex, '').trim();
   } else {
     // Default precision for WebGL 2.0
     versionAndPrecision = '#version 300 es\nprecision mediump float;';
@@ -370,29 +403,70 @@ export function prepareShaderCode(userCode: string): { code: string; userCodeSta
   // Replace the user code placeholder with cleaned code
   const finalCode = wrapper.replace('{USER_CODE}', cleanedUserCode);
 
-  return { code: finalCode, userCodeStartLine };
+  return { code: finalCode, userCodeStartLine, lineMapping: preprocessResult.lineMapping };
 }
 
 /**
  * Prepares multipass shader code by prepending Common code before wrapping
  * Used for Buffer A-D and Image passes that may share Common code
  */
-export function prepareMultipassShaderCode(commonCode: string, userCode: string): { code: string; userCodeStartLine: number; commonLineCount: number } {
-  // Count lines in common code (if any)
-  const commonLineCount = commonCode.trim()
-    ? commonCode.trim().split('\n').length + 1  // +1 for the extra newline we add
-    : 0;
+export function prepareMultipassShaderCode(commonCode: string, userCode: string): { code: string; userCodeStartLine: number; commonLineCount: number; lineMapping?: Map<number, number> } {
+  // Preprocess common code separately
+  let processedCommonCode = '';
+  let commonLineCount = 0;
 
-  // Prepend common code to user code if it exists
-  const combinedCode = commonCode.trim()
-    ? `${commonCode.trim()}\n\n${userCode}`
-    : userCode;
+  if (commonCode.trim()) {
+    const commonPreprocessResult = preprocessGLSL(commonCode);
 
-  // Use existing prepareShaderCode logic for wrapping
-  const result = prepareShaderCode(combinedCode);
+    if (commonPreprocessResult.errors.length > 0) {
+      const errorMessages = commonPreprocessResult.errors.map(err => `Common line ${err.line}: ${err.message}`).join('\n');
+      throw new Error(`Preprocessor errors in Common:\n${errorMessages}`);
+    }
+
+    processedCommonCode = commonPreprocessResult.code.trim();
+    commonLineCount = processedCommonCode ? processedCommonCode.split('\n').length + 1 : 0;
+  }
+
+  // Preprocess user code
+  const userPreprocessResult = preprocessGLSL(userCode);
+
+  if (userPreprocessResult.errors.length > 0) {
+    const errorMessages = userPreprocessResult.errors.map(err => `Line ${err.line}: ${err.message}`).join('\n');
+    throw new Error(`Preprocessor errors:\n${errorMessages}`);
+  }
+
+  const processedUserCode = userPreprocessResult.code;
+
+  // Prepend processed common code to processed user code
+  const combinedCode = processedCommonCode
+    ? `${processedCommonCode}\n\n${processedUserCode}`
+    : processedUserCode;
+
+  // Now prepare with wrapper (skip preprocessing since we already did it)
+  // We need to manually do what prepareShaderCode does without re-preprocessing
+  const precisionRegex = /^\s*(precision\s+(lowp|mediump|highp)\s+(float|int)\s*;)/im;
+  const precisionMatch = combinedCode.match(precisionRegex);
+
+  let cleanedCode = combinedCode;
+  let versionAndPrecision = '';
+
+  if (precisionMatch) {
+    const precisionDeclaration = precisionMatch[1].trim();
+    versionAndPrecision = `#version 300 es\n${precisionDeclaration}`;
+    cleanedCode = combinedCode.replace(precisionRegex, '').trim();
+  } else {
+    versionAndPrecision = '#version 300 es\nprecision mediump float;';
+  }
+
+  let wrapper = FRAGMENT_SHADER_WRAPPER.replace('{VERSION_AND_PRECISION}', versionAndPrecision);
+  const wrapperLines = wrapper.split('\n');
+  const userCodeStartLine = wrapperLines.findIndex(line => line.includes('{USER_CODE}'));
+  const finalCode = wrapper.replace('{USER_CODE}', cleanedCode);
 
   return {
-    ...result,
-    commonLineCount
+    code: finalCode,
+    userCodeStartLine,
+    commonLineCount,
+    lineMapping: userPreprocessResult.lineMapping
   };
 }

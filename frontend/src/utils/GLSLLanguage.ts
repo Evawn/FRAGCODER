@@ -134,6 +134,14 @@ const glslCompletions = [
   { label: "mediump", type: "keyword", detail: "medium precision" },
   { label: "lowp", type: "keyword", detail: "low precision" },
 
+  // Preprocessor directives
+  { label: "define", type: "keyword", detail: "define macro" },
+  { label: "undef", type: "keyword", detail: "undefine macro" },
+  { label: "ifdef", type: "keyword", detail: "conditional compilation if defined" },
+  { label: "ifndef", type: "keyword", detail: "conditional compilation if not defined" },
+  { label: "else", type: "keyword", detail: "else branch for conditional" },
+  { label: "endif", type: "keyword", detail: "end conditional block" },
+
   // Built-in variables (Fragment Shader - GLSL ES 3.00)
   { label: "gl_FragCoord", type: "variable", detail: "vec4 - fragment position in window coordinates" },
   { label: "gl_FrontFacing", type: "variable", detail: "bool - true if fragment is front-facing" },
@@ -267,14 +275,29 @@ const glslCompletions = [
   { label: "false", type: "constant", detail: "boolean false" }
 ]
 
-// Function to extract user-defined variables and functions from GLSL code
+// Function to extract user-defined variables, functions, and macros from GLSL code
 function extractUserDefinedSymbols(code: string): Completion[] {
   const variables = new Set<string>()
   const functions = new Map<string, string>() // Map function name to signature
   const structs = new Map<string, string>() // Map struct name to definition
+  const macros = new Map<string, string>() // Map macro name to definition
 
   // Common GLSL type pattern (used in multiple regexes)
   const typePattern = '(?:void|bool|int|uint|float|double|vec[234]|bvec[234]|ivec[234]|uvec[234]|dvec[234]|mat[234](?:x[234])?|sampler\\w+|isampler\\w+|usampler\\w+|image\\w+)'
+
+  // Extract macro definitions from #define directives
+  const macroPattern = /^\s*#define\s+(\w+)(?:\s*\(([^)]*)\))?\s+(.*)$/gm
+  let macroMatch
+  while ((macroMatch = macroPattern.exec(code)) !== null) {
+    const macroName = macroMatch[1]
+    const params = macroMatch[2]
+    const value = macroMatch[3]
+
+    if (macroName && !glslCompletions.some(comp => comp.label === macroName)) {
+      const signature = params ? `${macroName}(${params})` : macroName
+      macros.set(macroName, signature)
+    }
+  }
 
   // Extract struct definitions first
   const structPattern = /struct\s+(\w+)\s*\{([^}]+)\}/gm
@@ -365,7 +388,15 @@ function extractUserDefinedSymbols(code: string): Completion[] {
     detail: "user-defined struct"
   }))
 
-  return [...variableCompletions, ...functionCompletions, ...structCompletions]
+  // Convert macros to completion objects
+  const macroCompletions = Array.from(macros.entries()).map(([macroName, signature]) => ({
+    label: macroName,
+    type: "constant",
+    detail: "macro",
+    info: signature
+  }))
+
+  return [...variableCompletions, ...functionCompletions, ...structCompletions, ...macroCompletions]
 }
 
 // Dynamic completion function that combines static and user-defined completions
