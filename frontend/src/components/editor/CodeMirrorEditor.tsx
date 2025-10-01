@@ -4,7 +4,7 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import { EditorView, keymap } from '@codemirror/view';
 import { indentOnInput, bracketMatching, foldGutter, codeFolding, indentUnit } from '@codemirror/language';
 import { lineNumbers, highlightActiveLineGutter } from '@codemirror/view';
-import { acceptCompletion, completionStatus } from '@codemirror/autocomplete';
+import { acceptCompletion, completionStatus, closeCompletion } from '@codemirror/autocomplete';
 import { indentMore, insertNewlineAndIndent, selectAll, cursorDocStart, cursorDocEnd, cursorLineStart, cursorLineEnd, deleteCharBackward, deleteCharForward } from '@codemirror/commands';
 import type { Transaction, Extension } from '@codemirror/state';
 import { glsl } from '../../utils/GLSLLanguage';
@@ -39,7 +39,11 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       {
         key: 'Shift-Enter',
         preventDefault: true,
-        run: () => {
+        run: (view) => {
+          // Close completion tooltip if active
+          if (completionStatus(view.state) === "active") {
+            closeCompletion(view);
+          }
           onCompile?.();
           return true;
         }
