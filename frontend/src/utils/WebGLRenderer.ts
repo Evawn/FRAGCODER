@@ -1,4 +1,4 @@
-import { createShader, VERTEX_SHADER_SOURCE, prepareMultipassShaderCode, PreprocessorCompilationError, type TabShaderData, type PassErrorInfo, type MultipassCompilationError } from './GLSLCompiler';
+import { createShader, VERTEX_SHADER_SOURCE, prepareShaderCode, PreprocessorCompilationError, type TabShaderData, type PassErrorInfo, type MultipassCompilationError } from './GLSLCompiler';
 
 const SHADER_UNIFORMS = {
   iResolution: 'iResolution',
@@ -107,7 +107,7 @@ export class WebGLRenderer {
 
       try {
         // Prepare shader code with Common prepended
-        const { code: preparedCode, userCodeStartLine, lineMapping } = prepareMultipassShaderCode(commonCode, tab.code, passName);
+        const { code: preparedCode, userCodeStartLine, lineMapping } = prepareShaderCode(commonCode, tab.code, passName);
 
         // Create program for this pass
         const program = this.createProgram(preparedCode);
@@ -145,7 +145,7 @@ export class WebGLRenderer {
         let lineMapping: Map<number, number> | undefined;
 
         try {
-          const prepResult = prepareMultipassShaderCode(commonCode, tab.code, passName);
+          const prepResult = prepareShaderCode(commonCode, tab.code, passName);
           userCodeStartLine = prepResult.userCodeStartLine;
           lineMapping = prepResult.lineMapping;
         } catch {

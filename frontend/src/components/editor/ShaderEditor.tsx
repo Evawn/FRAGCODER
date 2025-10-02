@@ -32,7 +32,7 @@ interface Tab {
 
 export const defaultImageCode = `// Image - Display all buffers in quadrants
 
-void mainImage(out vec4 fragColor, vec2 fragCoord) {
+void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec2 uv = fragCoord / iResolution.xy;
 
     // Determine which quadrant we're in
@@ -62,7 +62,7 @@ void mainImage(out vec4 fragColor, vec2 fragCoord) {
 
 const defaultBufferACode = `// Buffer A - Red pulsing circle
 
-void mainImage(out vec4 fragColor, vec2 fragCoord) {
+void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;
     float d = length(uv);
     float c = smoothstep(0.5, 0.45, d + 0.1 * sin(iTime * 2.0));
@@ -71,7 +71,7 @@ void mainImage(out vec4 fragColor, vec2 fragCoord) {
 
 const defaultBufferBCode = `// Buffer B - Green rotating square
 
-void mainImage(out vec4 fragColor, vec2 fragCoord) {
+void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;
     float a = iTime * 1.5;
     mat2 rot = mat2(cos(a), -sin(a), sin(a), cos(a));
@@ -83,7 +83,7 @@ void mainImage(out vec4 fragColor, vec2 fragCoord) {
 
 const defaultBufferCCode = `// Buffer C - Blue animated triangle
 
-void mainImage(out vec4 fragColor, vec2 fragCoord) {
+void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;
     uv.y += 0.2;
     float scale = 0.6 + 0.2 * sin(iTime);
@@ -96,7 +96,7 @@ void mainImage(out vec4 fragColor, vec2 fragCoord) {
 
 const defaultBufferDCode = `// Buffer D - Yellow/orange gradient waves
 
-void mainImage(out vec4 fragColor, vec2 fragCoord) {
+void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec2 uv = fragCoord / iResolution.xy;
     float wave = sin(uv.x * 10.0 + iTime * 2.0) * 0.5 + 0.5;
     float wave2 = sin(uv.y * 8.0 - iTime * 1.5) * 0.5 + 0.5;

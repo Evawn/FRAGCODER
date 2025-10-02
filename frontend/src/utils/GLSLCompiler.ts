@@ -368,59 +368,47 @@ export function formatErrorMessage(message: string): string {
 }
 
 /**
- * Prepares the shader code by adding necessary uniforms and wrappers for WebGL 2.0
+ * Validates that the shader code contains a properly-formed mainImage function
+ * @throws PreprocessorCompilationError if mainImage is missing or has incorrect signature
  */
-export function prepareShaderCode(userCode: string, passName: string = 'Image'): { code: string; userCodeStartLine: number; lineMapping?: Map<number, number> } {
-  // Run preprocessor on user code first
-  const preprocessResult = preprocessGLSL(userCode);
+function validateMainImageSignature(code: string, passName: string): void {
+  // Check if mainImage function exists
+  const mainImageRegex = /void\s+mainImage\s*\(/;
 
-  // If there are preprocessor errors, throw them as compilation errors
-  if (preprocessResult.errors.length > 0) {
-    throw new PreprocessorCompilationError(passName, preprocessResult.errors);
+  if (!mainImageRegex.test(code)) {
+    throw new PreprocessorCompilationError(passName, [{
+      line: 0,
+      message: 'Missing mainImage function. Each shader pass must define: void mainImage(out vec4 fragColor, in vec2 fragCoord)'
+    }]);
   }
 
-  const processedUserCode = preprocessResult.code;
+  // Check for correct signature: void mainImage(out vec4 ..., in vec2 ...)
+  // Allow flexible whitespace and parameter names
+  const correctSignatureRegex = /void\s+mainImage\s*\(\s*out\s+vec4\s+\w+\s*,\s*in\s+vec2\s+\w+\s*\)/;
 
-  // Check if user has provided a precision declaration and extract it
-  const precisionRegex = /^\s*(precision\s+(lowp|mediump|highp)\s+(float|int)\s*;)/im;
-  const precisionMatch = processedUserCode.match(precisionRegex);
+  if (!correctSignatureRegex.test(code)) {
+    // Find the line number where mainImage is defined for better error reporting
+    const lines = code.split('\n');
+    let errorLine = 0;
+    for (let i = 0; i < lines.length; i++) {
+      if (mainImageRegex.test(lines[i])) {
+        errorLine = i + 1;
+        break;
+      }
+    }
 
-  let cleanedUserCode = processedUserCode;
-  let versionAndPrecision = '';
-
-  // For WebGL 2.0, add version directive and precision
-  if (precisionMatch) {
-    // Use user's precision declaration
-    const precisionDeclaration = precisionMatch[1].trim();
-    versionAndPrecision = `#version 300 es\n${precisionDeclaration}`;
-    // Remove the precision declaration from user code to avoid duplication
-    cleanedUserCode = processedUserCode.replace(precisionRegex, '').trim();
-  } else {
-    // Default precision for WebGL 2.0
-    versionAndPrecision = '#version 300 es\nprecision mediump float;';
+    throw new PreprocessorCompilationError(passName, [{
+      line: errorLine,
+      message: 'Incorrect mainImage signature. Expected: void mainImage(out vec4 fragColor, in vec2 fragCoord)'
+    }]);
   }
-
-  // Replace version and precision placeholder in wrapper
-  let wrapper = FRAGMENT_SHADER_WRAPPER.replace('{VERSION_AND_PRECISION}', versionAndPrecision);
-
-  // // Replace gl_FragColor with fragColor in user code (WebGL 2.0 uses output variables)
-  // cleanedUserCode = cleanedUserCode.replace(/gl_FragColor/g, 'fragColor');
-
-  // Count lines in the wrapper before user code
-  const wrapperLines = wrapper.split('\n');
-  const userCodeStartLine = wrapperLines.findIndex(line => line.includes('{USER_CODE}'));
-
-  // Replace the user code placeholder with cleaned code
-  const finalCode = wrapper.replace('{USER_CODE}', cleanedUserCode);
-
-  return { code: finalCode, userCodeStartLine, lineMapping: preprocessResult.lineMapping };
 }
 
 /**
- * Prepares multipass shader code by prepending Common code before wrapping
- * Used for Buffer A-D and Image passes that may share Common code
+ * Prepares shader code by preprocessing, validating, prepending Common code (if any), and wrapping for WebGL 2.0
+ * Used for all shader passes (Image, Buffer A-D) with optional Common code sharing
  */
-export function prepareMultipassShaderCode(commonCode: string, userCode: string, passName: string): { code: string; userCodeStartLine: number; commonLineCount: number; lineMapping?: Map<number, number> } {
+export function prepareShaderCode(commonCode: string, userCode: string, passName: string): { code: string; userCodeStartLine: number; commonLineCount: number; lineMapping?: Map<number, number> } {
   // Preprocess common code separately
   let processedCommonCode = '';
   let commonLineCount = 0;
@@ -445,13 +433,15 @@ export function prepareMultipassShaderCode(commonCode: string, userCode: string,
 
   const processedUserCode = userPreprocessResult.code;
 
+  // Validate mainImage signature (after preprocessing so macros are expanded)
+  validateMainImageSignature(processedUserCode, passName);
+
   // Prepend processed common code to processed user code
   const combinedCode = processedCommonCode
     ? `${processedCommonCode}\n\n${processedUserCode}`
     : processedUserCode;
 
-  // Now prepare with wrapper (skip preprocessing since we already did it)
-  // We need to manually do what prepareShaderCode does without re-preprocessing
+  // Extract and handle precision declaration
   const precisionRegex = /^\s*(precision\s+(lowp|mediump|highp)\s+(float|int)\s*;)/im;
   const precisionMatch = combinedCode.match(precisionRegex);
 
