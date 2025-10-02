@@ -178,6 +178,7 @@ export function parseShaderError(error: string, userCodeStartLine: number = 0, l
 /**
  * Calculates the adjusted line number for multipass shaders with Common code prepending
  * Now supports preprocessor line mapping
+ * Returns: { line: adjusted line number, isInCommon: whether error is in Common code }
  */
 function calculateMultipassLineNumber(
   compilerLine: number,
@@ -185,26 +186,32 @@ function calculateMultipassLineNumber(
   commonLineCount: number,
   passName: string,
   lineMapping?: Map<number, number>
-): number {
+): { line: number; isInCommon: boolean } {
   // First, adjust for wrapper code
   let adjustedLine = compilerLine - userCodeStartLine;
 
-  // For non-Common passes, subtract Common code lines if error is after Common section
-  if (passName !== 'Common' && commonLineCount > 0 && adjustedLine > commonLineCount) {
+  // Determine if error is in Common code section
+  // If adjustedLine <= commonLineCount, the error is in the prepended Common code
+  const isInCommon = passName !== 'Common' && commonLineCount > 0 && adjustedLine <= commonLineCount;
+
+  // If error is NOT in Common (it's in the user pass code), subtract Common lines
+  if (!isInCommon && passName !== 'Common' && commonLineCount > 0) {
+    // Account for Common code + blank line separator
     adjustedLine -= commonLineCount;
   }
 
   // If we have preprocessor line mapping, map back to original source line
   if (lineMapping && lineMapping.has(adjustedLine)) {
-    return lineMapping.get(adjustedLine)!;
+    return { line: lineMapping.get(adjustedLine)!, isInCommon };
   }
 
-  return adjustedLine;
+  return { line: adjustedLine, isInCommon };
 }
 
 /**
  * Parses WebGL shader compilation errors for multipass shaders
  * Adjusts line numbers based on Common code prepending and tags errors with pass name
+ * Automatically detects and corrects passName when error is in Common code
  */
 export function parseMultipassShaderError(
   error: string,
@@ -223,12 +230,20 @@ export function parseMultipassShaderError(
       const compilerLine = parseInt(errorMatch[2], 10);
       const rawMessage = errorMatch[3].trim();
 
+      const { line: adjustedLine, isInCommon } = calculateMultipassLineNumber(
+        compilerLine,
+        userCodeStartLine,
+        commonLineCount,
+        passName,
+        lineMapping
+      );
+
       errors.push({
-        line: Math.max(1, calculateMultipassLineNumber(compilerLine, userCodeStartLine, commonLineCount, passName, lineMapping)),
+        line: Math.max(1, adjustedLine),
         originalLine: compilerLine,
         message: formatErrorMessage(rawMessage),
         type: 'error',
-        passName
+        passName: isInCommon ? 'Common' : passName  // Override passName if error is in Common
       });
       continue;
     }
@@ -239,12 +254,20 @@ export function parseMultipassShaderError(
       const compilerLine = parseInt(warningMatch[2], 10);
       const rawMessage = warningMatch[3].trim();
 
+      const { line: adjustedLine, isInCommon } = calculateMultipassLineNumber(
+        compilerLine,
+        userCodeStartLine,
+        commonLineCount,
+        passName,
+        lineMapping
+      );
+
       errors.push({
-        line: Math.max(1, calculateMultipassLineNumber(compilerLine, userCodeStartLine, commonLineCount, passName, lineMapping)),
+        line: Math.max(1, adjustedLine),
         originalLine: compilerLine,
         message: formatErrorMessage(rawMessage),
         type: 'warning',
-        passName
+        passName: isInCommon ? 'Common' : passName  // Override passName if error is in Common
       });
       continue;
     }
