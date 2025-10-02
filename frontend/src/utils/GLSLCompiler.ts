@@ -407,39 +407,67 @@ function validateMainImageSignature(code: string, passName: string): void {
 /**
  * Prepares shader code by preprocessing, validating, prepending Common code (if any), and wrapping for WebGL 2.0
  * Used for all shader passes (Image, Buffer A-D) with optional Common code sharing
+ *
+ * IMPORTANT: Common code is prepended BEFORE preprocessing so that macros and definitions
+ * from Common are available when preprocessing the user code.
  */
 export function prepareShaderCode(commonCode: string, userCode: string, passName: string): { code: string; userCodeStartLine: number; commonLineCount: number; lineMapping?: Map<number, number> } {
-  // Preprocess common code separately
-  let processedCommonCode = '';
-  let commonLineCount = 0;
+  // Calculate raw Common line count (before preprocessing) for error attribution
+  const rawCommonLineCount = commonCode.trim() ? commonCode.trim().split('\n').length : 0;
 
-  if (commonCode.trim()) {
-    const commonPreprocessResult = preprocessGLSL(commonCode);
+  // Combine Common and user code BEFORE preprocessing
+  // This ensures macros/defines from Common are available during user code preprocessing
+  const combinedRawCode = commonCode.trim()
+    ? `${commonCode.trim()}\n\n${userCode}`
+    : userCode;
 
-    if (commonPreprocessResult.errors.length > 0) {
-      throw new PreprocessorCompilationError('Common', commonPreprocessResult.errors);
+  // Preprocess the combined code as a single unit
+  const preprocessResult = preprocessGLSL(combinedRawCode);
+
+  // Handle preprocessor errors - attribute to correct tab based on line number
+  if (preprocessResult.errors.length > 0) {
+    const commonErrors: Array<{ line: number; message: string }> = [];
+    const userErrors: Array<{ line: number; message: string }> = [];
+
+    for (const error of preprocessResult.errors) {
+      if (commonCode.trim() && error.line <= rawCommonLineCount) {
+        // Error is in Common code
+        commonErrors.push(error);
+      } else {
+        // Error is in user code - adjust line number to be relative to user code start
+        const adjustedLine = commonCode.trim()
+          ? Math.max(1, error.line - rawCommonLineCount - 2) // -2 for the blank lines between Common and user
+          : error.line;
+        userErrors.push({ line: adjustedLine, message: error.message });
+      }
     }
 
-    processedCommonCode = commonPreprocessResult.code.trim();
-    commonLineCount = processedCommonCode ? processedCommonCode.split('\n').length + 1 : 0;
+    // Throw error for the first tab that has errors (Common takes precedence)
+    if (commonErrors.length > 0) {
+      throw new PreprocessorCompilationError('Common', commonErrors);
+    }
+    if (userErrors.length > 0) {
+      throw new PreprocessorCompilationError(passName, userErrors);
+    }
   }
 
-  // Preprocess user code
-  const userPreprocessResult = preprocessGLSL(userCode);
-
-  if (userPreprocessResult.errors.length > 0) {
-    throw new PreprocessorCompilationError(passName, userPreprocessResult.errors);
-  }
-
-  const processedUserCode = userPreprocessResult.code;
+  const processedCombinedCode = preprocessResult.code;
 
   // Validate mainImage signature (after preprocessing so macros are expanded)
-  validateMainImageSignature(processedUserCode, passName);
+  // Note: We validate the entire processed code. If Common mistakenly has mainImage, it will be caught.
+  validateMainImageSignature(processedCombinedCode, passName);
 
-  // Prepend processed common code to processed user code
-  const combinedCode = processedCommonCode
-    ? `${processedCommonCode}\n\n${processedUserCode}`
-    : processedUserCode;
+  // Calculate processed Common line count for error reporting during GLSL compilation
+  let processedCommonLineCount = 0;
+  if (commonCode.trim()) {
+    // Count how many lines the Common code became after preprocessing
+    const commonPreprocessResult = preprocessGLSL(commonCode.trim());
+    processedCommonLineCount = commonPreprocessResult.code.trim()
+      ? commonPreprocessResult.code.trim().split('\n').length + 1
+      : 0;
+  }
+
+  const combinedCode = processedCombinedCode;
 
   // Extract and handle precision declaration
   const precisionRegex = /^\s*(precision\s+(lowp|mediump|highp)\s+(float|int)\s*;)/im;
@@ -464,7 +492,7 @@ export function prepareShaderCode(commonCode: string, userCode: string, passName
   return {
     code: finalCode,
     userCodeStartLine,
-    commonLineCount,
-    lineMapping: userPreprocessResult.lineMapping
+    commonLineCount: processedCommonLineCount,
+    lineMapping: preprocessResult.lineMapping
   };
 }
