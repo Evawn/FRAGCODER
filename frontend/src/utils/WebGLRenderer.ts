@@ -21,6 +21,9 @@ interface RenderPass {
   program: WebGLProgram;
   framebuffer: WebGLFramebuffer | null;  // null for Image pass (renders to screen)
   texture: WebGLTexture | null;          // Output texture (null for Image)
+  // Ping-pong buffers for avoiding circular references
+  framebufferPong: WebGLFramebuffer | null;
+  texturePong: WebGLTexture | null;
 }
 
 export class WebGLRenderer {
@@ -36,6 +39,8 @@ export class WebGLRenderer {
   private lastFrameTime: number = 0;
   private frameRate: number = 60;
   private frameRateHistory: number[] = [];
+  // Ping-pong state: tracks which buffer is "read" (false = main, true = pong)
+  private usePongBuffer: Map<string, boolean> = new Map();
 
   // Mouse tracking
   private mouseX: number = 0;
@@ -177,11 +182,25 @@ export class WebGLRenderer {
         // Create framebuffer and texture for buffer passes (not Image)
         let framebuffer: WebGLFramebuffer | null = null;
         let texture: WebGLTexture | null = null;
+        let framebufferPong: WebGLFramebuffer | null = null;
+        let texturePong: WebGLTexture | null = null;
 
         if (passName !== 'Image') {
           const fb = this.createFramebuffer();
           framebuffer = fb.framebuffer;
           texture = fb.texture;
+
+          // Create ping-pong buffer for this pass to avoid circular references
+          const fbPong = this.createFramebuffer();
+          framebufferPong = fbPong.framebuffer;
+          texturePong = fbPong.texture;
+
+          // Initialize ping-pong state (start with main buffer)
+          this.usePongBuffer.set(passName, false);
+
+          console.log(`[${passName}] Created ping-pong framebuffers at ${this.canvas!.width}x${this.canvas!.height}`);
+        } else {
+          console.log(`[Image] Renders directly to screen at ${this.canvas!.width}x${this.canvas!.height}`);
         }
 
         // Store successful pass
@@ -189,7 +208,9 @@ export class WebGLRenderer {
           name: passName,
           program,
           framebuffer,
-          texture
+          texture,
+          framebufferPong,
+          texturePong
         });
 
       } catch (error) {
@@ -232,6 +253,8 @@ export class WebGLRenderer {
       for (const pass of successfulPasses.values()) {
         if (pass.framebuffer) gl.deleteFramebuffer(pass.framebuffer);
         if (pass.texture) gl.deleteTexture(pass.texture);
+        if (pass.framebufferPong) gl.deleteFramebuffer(pass.framebufferPong);
+        if (pass.texturePong) gl.deleteTexture(pass.texturePong);
         if (pass.program) {
           const shaders = gl.getAttachedShaders(pass.program);
           if (shaders) {
@@ -480,7 +503,7 @@ export class WebGLRenderer {
     // Resize all framebuffer textures to match new canvas size
     for (const pass of this.passes.values()) {
       if (pass.texture && pass.framebuffer) {
-        // Recreate texture at new size
+        // Recreate main texture at new size
         gl.bindTexture(gl.TEXTURE_2D, pass.texture);
         gl.texImage2D(
           gl.TEXTURE_2D,
@@ -493,6 +516,26 @@ export class WebGLRenderer {
           gl.UNSIGNED_BYTE,
           null
         );
+
+        console.log(`[${pass.name}] Resized main buffer to ${this.canvas.width}x${this.canvas.height}`);
+      }
+
+      // Resize ping-pong buffer as well
+      if (pass.texturePong && pass.framebufferPong) {
+        gl.bindTexture(gl.TEXTURE_2D, pass.texturePong);
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0,
+          gl.RGBA,
+          this.canvas.width,
+          this.canvas.height,
+          0,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          null
+        );
+
+        console.log(`[${pass.name}] Resized pong buffer to ${this.canvas.width}x${this.canvas.height}`);
       }
     }
 
@@ -526,8 +569,17 @@ export class WebGLRenderer {
       const pass = this.passes.get(passName);
       if (!pass) continue; // Skip disabled passes
 
+      // For buffer passes, write to the opposite buffer to avoid circular references
+      let targetFramebuffer: WebGLFramebuffer | null = pass.framebuffer;
+
+      if (passName !== 'Image' && pass.framebufferPong) {
+        // Determine which buffer to write to (opposite of what we're reading from)
+        const usePong = this.usePongBuffer.get(passName) || false;
+        targetFramebuffer = usePong ? pass.framebuffer : pass.framebufferPong;
+      }
+
       // Bind framebuffer (null for Image pass = render to screen)
-      gl.bindFramebuffer(gl.FRAMEBUFFER, pass.framebuffer);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, targetFramebuffer);
 
       // Use this pass's program
       gl.useProgram(pass.program);
@@ -623,8 +675,13 @@ export class WebGLRenderer {
       gl.activeTexture(gl.TEXTURE0 + mapping.textureUnit);
 
       if (bufferPass && bufferPass.texture) {
-        // Bind buffer's output texture
-        gl.bindTexture(gl.TEXTURE_2D, bufferPass.texture);
+        // Use ping-pong: read from the buffer that was written to in the previous frame
+        // This avoids circular references where a buffer tries to read and write to itself
+        const usePong = this.usePongBuffer.get(mapping.passName) || false;
+        const readTexture = usePong ? bufferPass.texturePong : bufferPass.texture;
+
+        // Bind buffer's output texture for reading
+        gl.bindTexture(gl.TEXTURE_2D, readTexture);
       } else {
         // Unbind texture (will sample black/zero)
         gl.bindTexture(gl.TEXTURE_2D, null);
@@ -711,14 +768,24 @@ export class WebGLRenderer {
 
     // Clean up each pass
     for (const pass of this.passes.values()) {
-      // Delete framebuffer if exists
+      // Delete main framebuffer if exists
       if (pass.framebuffer) {
         gl.deleteFramebuffer(pass.framebuffer);
       }
 
-      // Delete texture if exists
+      // Delete main texture if exists
       if (pass.texture) {
         gl.deleteTexture(pass.texture);
+      }
+
+      // Delete pong framebuffer if exists
+      if (pass.framebufferPong) {
+        gl.deleteFramebuffer(pass.framebufferPong);
+      }
+
+      // Delete pong texture if exists
+      if (pass.texturePong) {
+        gl.deleteTexture(pass.texturePong);
       }
 
       // Delete program
@@ -733,8 +800,9 @@ export class WebGLRenderer {
       gl.deleteProgram(pass.program);
     }
 
-    // Clear the passes map
+    // Clear the passes map and ping-pong state
     this.passes.clear();
+    this.usePongBuffer.clear();
   }
 
   private render(): void {
@@ -755,8 +823,17 @@ export class WebGLRenderer {
       const pass = this.passes.get(passName);
       if (!pass) continue; // Skip disabled passes
 
+      // For buffer passes, write to the opposite buffer to avoid circular references
+      let targetFramebuffer: WebGLFramebuffer | null = pass.framebuffer;
+
+      if (passName !== 'Image' && pass.framebufferPong) {
+        // Determine which buffer to write to (opposite of what we're reading from)
+        const usePong = this.usePongBuffer.get(passName) || false;
+        targetFramebuffer = usePong ? pass.framebuffer : pass.framebufferPong;
+      }
+
       // Bind framebuffer (null for Image pass = render to screen)
-      gl.bindFramebuffer(gl.FRAMEBUFFER, pass.framebuffer);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, targetFramebuffer);
 
       // Use this pass's program
       gl.useProgram(pass.program);
@@ -768,6 +845,14 @@ export class WebGLRenderer {
       gl.clearColor(0, 0, 0, 1);
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
+
+    // After rendering all passes, flip the ping-pong state for buffer passes
+    for (const passName of this.passOrder) {
+      if (passName !== 'Image' && this.passes.has(passName)) {
+        const currentState = this.usePongBuffer.get(passName) || false;
+        this.usePongBuffer.set(passName, !currentState);
+      }
     }
 
     // Ensure we end up unbound
