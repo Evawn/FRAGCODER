@@ -47,7 +47,11 @@ export class WebGLRenderer {
     this.canvas = canvas;
     
     // Only use WebGL 2.0
-    const gl = canvas.getContext('webgl2') as WebGL2RenderingContext;
+    // Configure context to match Shadertoy: disable alpha blending with canvas background
+    const gl = canvas.getContext('webgl2', {
+      alpha: false,
+      premultipliedAlpha: false
+    }) as WebGL2RenderingContext;
     
     if (!gl) {
       console.error('WebGL 2.0 is not supported in your browser');
@@ -517,6 +521,13 @@ export class WebGLRenderer {
    */
   getCurrentTime(): number {
     return (Date.now() - this.startTime - this.pausedTime) / 1000.0;
+  }
+
+  /**
+   * Get current frame rate
+   */
+  getFrameRate(): number {
+    return this.frameRate;
   }
 
   /**

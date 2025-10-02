@@ -405,9 +405,9 @@ function validateMainImageSignature(code: string, passName: string): void {
     }]);
   }
 
-  // Check for correct signature: void mainImage(out vec4 ..., in vec2 ...)
-  // Allow flexible whitespace and parameter names
-  const correctSignatureRegex = /void\s+mainImage\s*\(\s*out\s+vec4\s+\w+\s*,\s*in\s+vec2\s+\w+\s*\)/;
+  // Check for correct signature: void mainImage(out vec4 ..., vec2 ...)
+  // Allow flexible whitespace, ignore parameter names, and make "in" keyword optional
+  const correctSignatureRegex = /void\s+mainImage\s*\(\s*out\s+vec4\s+\w+\s*,\s*(?:in\s+)?vec2\s+\w+\s*\)/;
 
   if (!correctSignatureRegex.test(code)) {
     // Find the line number where mainImage is defined for better error reporting
@@ -422,7 +422,7 @@ function validateMainImageSignature(code: string, passName: string): void {
 
     throw new PreprocessorCompilationError(passName, [{
       line: errorLine,
-      message: 'Incorrect mainImage signature. Expected: void mainImage(out vec4 fragColor, in vec2 fragCoord)'
+      message: 'Incorrect mainImage signature. Expected: void mainImage(out vec4 fragColor, vec2 fragCoord)'
     }]);
   }
 }

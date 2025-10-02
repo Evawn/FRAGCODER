@@ -36,7 +36,6 @@ export function useWebGLRenderer({
   const [uTime, setUTime] = useState(0);
   const [fps, setFps] = useState(0);
   const [resolution, setResolution] = useState({ width: 0, height: 0 });
-  const fpsCounterRef = useRef({ frames: 0, lastTime: Date.now() });
 
   // Initialize renderer
   useEffect(() => {
@@ -174,10 +173,7 @@ export function useWebGLRenderer({
     const renderer = rendererRef.current;
     if (renderer) {
       renderer.resetTime();
-      // Only reset FPS display to 0 on manual reset (not on play/pause)
       setFps(0);
-      fpsCounterRef.current.frames = 0;
-      fpsCounterRef.current.lastTime = Date.now();
     }
   }, []);
 
@@ -191,7 +187,7 @@ export function useWebGLRenderer({
     const updateData = () => {
       const renderer = rendererRef.current;
       const canvas = canvasRef.current;
-      
+
       if (renderer && canvas) {
         // Update uTime only when playing
         const currentTime = renderer.getCurrentTime();
@@ -200,16 +196,9 @@ export function useWebGLRenderer({
         // Update resolution
         setResolution({ width: canvas.width, height: canvas.height });
 
-        // Update FPS
-        const now = Date.now();
-        fpsCounterRef.current.frames++;
-        
-        if (now - fpsCounterRef.current.lastTime >= 500) { // 0.5 seconds
-          const newFps = (fpsCounterRef.current.frames * 1000) / (now - fpsCounterRef.current.lastTime);
-          setFps(newFps);
-          fpsCounterRef.current.frames = 0;
-          fpsCounterRef.current.lastTime = now;
-        }
+        // Update FPS from renderer's actual frame rate calculation
+        const frameRate = renderer.getFrameRate();
+        setFps(frameRate);
       }
     };
 
@@ -220,18 +209,6 @@ export function useWebGLRenderer({
     return () => clearInterval(intervalId);
   }, [isPlaying, compilationSuccess, isRendererReady]);
 
-  // Handle FPS counter when play state changes
-  useEffect(() => {
-    if (isPlaying) {
-      // When starting to play, reset counter for fresh accumulation but keep displayed FPS
-      fpsCounterRef.current.frames = 0;
-      fpsCounterRef.current.lastTime = Date.now();
-    } else {
-      // When stopping, reset the counter but keep the displayed FPS value
-      fpsCounterRef.current.frames = 0;
-      fpsCounterRef.current.lastTime = Date.now();
-    }
-  }, [isPlaying]);
 
   // Update resolution whenever canvas dimensions change
   useEffect(() => {
