@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { WebGLRenderer } from '../utils/WebGLRenderer';
-import { parseShaderError, parseMultipassShaderError } from '../utils/GLSLCompiler';
+import { parseShaderError, parseMultipassShaderError, PreprocessorCompilationError } from '../utils/GLSLCompiler';
 import type { CompilationError, TabShaderData, MultipassCompilationError } from '../utils/GLSLCompiler';
 
 interface UseWebGLRendererProps {
@@ -103,8 +103,18 @@ export function useWebGLRenderer({
       const errorMessage = err instanceof Error ? err.message : 'Shader compilation failed';
       let allErrors: CompilationError[] = [];
 
+      // Check if this is a PreprocessorCompilationError
+      if (err instanceof PreprocessorCompilationError) {
+        // Convert preprocessor errors to CompilationError format with proper passName
+        allErrors = err.preprocessorErrors.map(preprocessorError => ({
+          line: preprocessorError.line,
+          message: preprocessorError.message,
+          type: 'error' as const,
+          passName: err.passName
+        }));
+      }
       // Check if this is a MultipassCompilationError with multiple pass errors
-      if ((err as MultipassCompilationError).passErrors) {
+      else if ((err as MultipassCompilationError).passErrors) {
         const multipassError = err as MultipassCompilationError;
 
         // Parse errors from each failed pass

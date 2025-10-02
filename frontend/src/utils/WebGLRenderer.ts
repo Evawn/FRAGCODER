@@ -1,4 +1,4 @@
-import { createShader, VERTEX_SHADER_SOURCE, prepareMultipassShaderCode, type TabShaderData, type PassErrorInfo, type MultipassCompilationError } from './GLSLCompiler';
+import { createShader, VERTEX_SHADER_SOURCE, prepareMultipassShaderCode, PreprocessorCompilationError, type TabShaderData, type PassErrorInfo, type MultipassCompilationError } from './GLSLCompiler';
 
 const SHADER_UNIFORMS = {
   iResolution: 'iResolution',
@@ -107,7 +107,7 @@ export class WebGLRenderer {
 
       try {
         // Prepare shader code with Common prepended
-        const { code: preparedCode, userCodeStartLine, lineMapping } = prepareMultipassShaderCode(commonCode, tab.code);
+        const { code: preparedCode, userCodeStartLine, lineMapping } = prepareMultipassShaderCode(commonCode, tab.code, passName);
 
         // Create program for this pass
         const program = this.createProgram(preparedCode);
@@ -131,9 +131,26 @@ export class WebGLRenderer {
         });
 
       } catch (error) {
+        // If this is a preprocessor error, throw it immediately with proper pass info
+        // This allows the error handler to properly attribute it to the correct tab
+        if (error instanceof PreprocessorCompilationError) {
+          throw error;
+        }
+
         // Store error information for this pass
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        const { userCodeStartLine, lineMapping } = prepareMultipassShaderCode(commonCode, tab.code);
+
+        // Try to get line mapping info for error reporting
+        let userCodeStartLine = 0;
+        let lineMapping: Map<number, number> | undefined;
+
+        try {
+          const prepResult = prepareMultipassShaderCode(commonCode, tab.code, passName);
+          userCodeStartLine = prepResult.userCodeStartLine;
+          lineMapping = prepResult.lineMapping;
+        } catch {
+          // If preprocessing fails again, we'll use the error from the first attempt
+        }
 
         failedPasses.push({
           passName,

@@ -32,6 +32,17 @@ export interface MultipassCompilationError extends Error {
   passErrors: PassErrorInfo[];
 }
 
+export class PreprocessorCompilationError extends Error {
+  constructor(
+    public passName: string,
+    public preprocessorErrors: Array<{ line: number; message: string }>,
+    message?: string
+  ) {
+    super(message || `Preprocessor errors in ${passName}`);
+    this.name = 'PreprocessorCompilationError';
+  }
+}
+
 import { preprocessGLSL } from './GLSLPreprocessor';
 
 // Minimal vertex shader for WebGL 2.0
@@ -359,14 +370,13 @@ export function formatErrorMessage(message: string): string {
 /**
  * Prepares the shader code by adding necessary uniforms and wrappers for WebGL 2.0
  */
-export function prepareShaderCode(userCode: string): { code: string; userCodeStartLine: number; lineMapping?: Map<number, number> } {
+export function prepareShaderCode(userCode: string, passName: string = 'Image'): { code: string; userCodeStartLine: number; lineMapping?: Map<number, number> } {
   // Run preprocessor on user code first
   const preprocessResult = preprocessGLSL(userCode);
 
   // If there are preprocessor errors, throw them as compilation errors
   if (preprocessResult.errors.length > 0) {
-    const errorMessages = preprocessResult.errors.map(err => `Line ${err.line}: ${err.message}`).join('\n');
-    throw new Error(`Preprocessor errors:\n${errorMessages}`);
+    throw new PreprocessorCompilationError(passName, preprocessResult.errors);
   }
 
   const processedUserCode = preprocessResult.code;
@@ -410,7 +420,7 @@ export function prepareShaderCode(userCode: string): { code: string; userCodeSta
  * Prepares multipass shader code by prepending Common code before wrapping
  * Used for Buffer A-D and Image passes that may share Common code
  */
-export function prepareMultipassShaderCode(commonCode: string, userCode: string): { code: string; userCodeStartLine: number; commonLineCount: number; lineMapping?: Map<number, number> } {
+export function prepareMultipassShaderCode(commonCode: string, userCode: string, passName: string): { code: string; userCodeStartLine: number; commonLineCount: number; lineMapping?: Map<number, number> } {
   // Preprocess common code separately
   let processedCommonCode = '';
   let commonLineCount = 0;
@@ -419,8 +429,7 @@ export function prepareMultipassShaderCode(commonCode: string, userCode: string)
     const commonPreprocessResult = preprocessGLSL(commonCode);
 
     if (commonPreprocessResult.errors.length > 0) {
-      const errorMessages = commonPreprocessResult.errors.map(err => `Common line ${err.line}: ${err.message}`).join('\n');
-      throw new Error(`Preprocessor errors in Common:\n${errorMessages}`);
+      throw new PreprocessorCompilationError('Common', commonPreprocessResult.errors);
     }
 
     processedCommonCode = commonPreprocessResult.code.trim();
@@ -431,8 +440,7 @@ export function prepareMultipassShaderCode(commonCode: string, userCode: string)
   const userPreprocessResult = preprocessGLSL(userCode);
 
   if (userPreprocessResult.errors.length > 0) {
-    const errorMessages = userPreprocessResult.errors.map(err => `Line ${err.line}: ${err.message}`).join('\n');
-    throw new Error(`Preprocessor errors:\n${errorMessages}`);
+    throw new PreprocessorCompilationError(passName, userPreprocessResult.errors);
   }
 
   const processedUserCode = userPreprocessResult.code;
