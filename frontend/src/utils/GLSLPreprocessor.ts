@@ -118,12 +118,52 @@ export function preprocessGLSL(source: string): PreprocessorResult {
         continue;
       }
 
+      // #if directive
+      if (directive.startsWith('if ')) {
+        const condition = directive.substring(3).trim();
+        const conditionResult = evaluateExpression(condition, macros, originalLineNum, errors);
+        conditionalStack.push({
+          isActive: shouldInclude() && conditionResult,
+          hasMatched: conditionResult,
+          line: originalLineNum
+        });
+        output.push('');
+        lineMapping.set(outputLineNum, originalLineNum);
+        continue;
+      }
+
+      // #elif directive
+      if (directive.startsWith('elif ')) {
+        if (conditionalStack.length === 0) {
+          errors.push({
+            line: originalLineNum,
+            message: '#elif without matching #if, #ifdef, or #ifndef'
+          });
+        } else {
+          const current = conditionalStack[conditionalStack.length - 1];
+          // Only evaluate if no previous branch has matched
+          if (!current.hasMatched) {
+            const condition = directive.substring(5).trim();
+            const conditionResult = evaluateExpression(condition, macros, originalLineNum, errors);
+            const parentActive = conditionalStack.slice(0, -1).every(state => state.isActive);
+            current.isActive = parentActive && conditionResult;
+            current.hasMatched = conditionResult;
+          } else {
+            // Previous branch matched, skip this branch
+            current.isActive = false;
+          }
+        }
+        output.push('');
+        lineMapping.set(outputLineNum, originalLineNum);
+        continue;
+      }
+
       // #else directive
       if (directive === 'else') {
         if (conditionalStack.length === 0) {
           errors.push({
             line: originalLineNum,
-            message: '#else without matching #ifdef or #ifndef'
+            message: '#else without matching #if, #ifdef, or #ifndef'
           });
         } else {
           const current = conditionalStack[conditionalStack.length - 1];
@@ -142,7 +182,7 @@ export function preprocessGLSL(source: string): PreprocessorResult {
         if (conditionalStack.length === 0) {
           errors.push({
             line: originalLineNum,
-            message: '#endif without matching #ifdef or #ifndef'
+            message: '#endif without matching #if, #ifdef, or #ifndef'
           });
         } else {
           conditionalStack.pop();
@@ -375,6 +415,251 @@ function extractFunctionArgs(
  */
 function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Evaluate a preprocessor conditional expression
+ * Supports:
+ * - defined(MACRO) and !defined(MACRO)
+ * - Numeric literals and macro values
+ * - Comparison operators: ==, !=, <, >, <=, >=
+ * - Logical operators: &&, ||, !
+ * - Parentheses for grouping
+ */
+function evaluateExpression(
+  expr: string,
+  macros: Map<string, Macro>,
+  lineNum: number,
+  errors: PreprocessorError[]
+): boolean {
+  // First, expand macros in the expression (except inside defined())
+  let expandedExpr = expr;
+
+  // Protect defined() calls from macro expansion
+  const definedCalls: string[] = [];
+  expandedExpr = expandedExpr.replace(/defined\s*\(\s*(\w+)\s*\)/g, (match) => {
+    const placeholder = `__DEFINED_${definedCalls.length}__`;
+    definedCalls.push(match);
+    return placeholder;
+  });
+
+  // Expand macros (simple constant macros only for conditional expressions)
+  expandedExpr = expandMacros(expandedExpr, macros, lineNum, errors);
+
+  // Restore defined() calls
+  definedCalls.forEach((call, index) => {
+    expandedExpr = expandedExpr.replace(`__DEFINED_${index}__`, call);
+  });
+
+  // Now evaluate the expression
+  try {
+    return evaluateBooleanExpression(expandedExpr.trim(), macros);
+  } catch (error) {
+    errors.push({
+      line: lineNum,
+      message: `Invalid expression in #if: ${expr} (${error instanceof Error ? error.message : 'unknown error'})`
+    });
+    return false;
+  }
+}
+
+/**
+ * Evaluate a boolean expression with operators
+ */
+function evaluateBooleanExpression(expr: string, macros: Map<string, Macro>): boolean {
+  // Handle defined() function
+  expr = expr.replace(/defined\s*\(\s*(\w+)\s*\)/g, (_, macroName) => {
+    return macros.has(macroName) ? '1' : '0';
+  });
+
+  // Remove whitespace for easier parsing
+  const tokens = tokenizeExpression(expr);
+  const result = parseLogicalOr(tokens, 0);
+
+  return result.value !== 0;
+}
+
+interface ParseResult {
+  value: number;
+  nextIndex: number;
+}
+
+/**
+ * Tokenize expression into meaningful parts
+ */
+function tokenizeExpression(expr: string): string[] {
+  const tokens: string[] = [];
+  let current = '';
+
+  for (let i = 0; i < expr.length; i++) {
+    const char = expr[i];
+    const nextChar = expr[i + 1];
+
+    // Skip whitespace
+    if (/\s/.test(char)) {
+      if (current) {
+        tokens.push(current);
+        current = '';
+      }
+      continue;
+    }
+
+    // Two-character operators
+    if (
+      (char === '=' && nextChar === '=') ||
+      (char === '!' && nextChar === '=') ||
+      (char === '<' && nextChar === '=') ||
+      (char === '>' && nextChar === '=') ||
+      (char === '&' && nextChar === '&') ||
+      (char === '|' && nextChar === '|')
+    ) {
+      if (current) tokens.push(current);
+      tokens.push(char + nextChar);
+      current = '';
+      i++; // Skip next char
+      continue;
+    }
+
+    // Single-character operators and parentheses
+    if ('()!<>=&|'.includes(char)) {
+      if (current) tokens.push(current);
+      tokens.push(char);
+      current = '';
+      continue;
+    }
+
+    current += char;
+  }
+
+  if (current) tokens.push(current);
+  return tokens;
+}
+
+/**
+ * Parse logical OR (lowest precedence)
+ */
+function parseLogicalOr(tokens: string[], index: number): ParseResult {
+  let left = parseLogicalAnd(tokens, index);
+
+  while (left.nextIndex < tokens.length && tokens[left.nextIndex] === '||') {
+    const right = parseLogicalAnd(tokens, left.nextIndex + 1);
+    left = { value: (left.value || right.value) ? 1 : 0, nextIndex: right.nextIndex };
+  }
+
+  return left;
+}
+
+/**
+ * Parse logical AND
+ */
+function parseLogicalAnd(tokens: string[], index: number): ParseResult {
+  let left = parseEquality(tokens, index);
+
+  while (left.nextIndex < tokens.length && tokens[left.nextIndex] === '&&') {
+    const right = parseEquality(tokens, left.nextIndex + 1);
+    left = { value: (left.value && right.value) ? 1 : 0, nextIndex: right.nextIndex };
+  }
+
+  return left;
+}
+
+/**
+ * Parse equality operators (==, !=)
+ */
+function parseEquality(tokens: string[], index: number): ParseResult {
+  let left = parseComparison(tokens, index);
+
+  while (left.nextIndex < tokens.length) {
+    const op = tokens[left.nextIndex];
+    if (op === '==' || op === '!=') {
+      const right = parseComparison(tokens, left.nextIndex + 1);
+      if (op === '==') {
+        left = { value: left.value === right.value ? 1 : 0, nextIndex: right.nextIndex };
+      } else {
+        left = { value: left.value !== right.value ? 1 : 0, nextIndex: right.nextIndex };
+      }
+    } else {
+      break;
+    }
+  }
+
+  return left;
+}
+
+/**
+ * Parse comparison operators (<, >, <=, >=)
+ */
+function parseComparison(tokens: string[], index: number): ParseResult {
+  let left = parseUnary(tokens, index);
+
+  while (left.nextIndex < tokens.length) {
+    const op = tokens[left.nextIndex];
+    if (op === '<' || op === '>' || op === '<=' || op === '>=') {
+      const right = parseUnary(tokens, left.nextIndex + 1);
+      let result = 0;
+      if (op === '<') result = left.value < right.value ? 1 : 0;
+      else if (op === '>') result = left.value > right.value ? 1 : 0;
+      else if (op === '<=') result = left.value <= right.value ? 1 : 0;
+      else if (op === '>=') result = left.value >= right.value ? 1 : 0;
+      left = { value: result, nextIndex: right.nextIndex };
+    } else {
+      break;
+    }
+  }
+
+  return left;
+}
+
+/**
+ * Parse unary operators (!, -)
+ */
+function parseUnary(tokens: string[], index: number): ParseResult {
+  if (index >= tokens.length) {
+    throw new Error('Unexpected end of expression');
+  }
+
+  const token = tokens[index];
+
+  if (token === '!') {
+    const operand = parseUnary(tokens, index + 1);
+    return { value: operand.value ? 0 : 1, nextIndex: operand.nextIndex };
+  }
+
+  if (token === '-') {
+    const operand = parseUnary(tokens, index + 1);
+    return { value: -operand.value, nextIndex: operand.nextIndex };
+  }
+
+  return parsePrimary(tokens, index);
+}
+
+/**
+ * Parse primary expressions (numbers, parentheses)
+ */
+function parsePrimary(tokens: string[], index: number): ParseResult {
+  if (index >= tokens.length) {
+    throw new Error('Unexpected end of expression');
+  }
+
+  const token = tokens[index];
+
+  // Parenthesized expression
+  if (token === '(') {
+    const inner = parseLogicalOr(tokens, index + 1);
+    if (inner.nextIndex >= tokens.length || tokens[inner.nextIndex] !== ')') {
+      throw new Error('Missing closing parenthesis');
+    }
+    return { value: inner.value, nextIndex: inner.nextIndex + 1 };
+  }
+
+  // Number literal
+  const num = parseFloat(token);
+  if (!isNaN(num)) {
+    return { value: num, nextIndex: index + 1 };
+  }
+
+  // Undefined identifier evaluates to 0
+  return { value: 0, nextIndex: index + 1 };
 }
 
 /**
