@@ -28,10 +28,50 @@ interface ConditionalState {
 }
 
 /**
+ * Phase 1: Line splicing (backslash-newline continuation)
+ * Joins lines ending with \ before any other preprocessing
+ * This is done at the character level to preserve line structure for mapping
+ */
+function performLineSplicing(source: string): { code: string; lineMapping: Map<number, number> } {
+  const lines = source.split('\n');
+  const resultLines: string[] = [];
+  const lineMapping = new Map<number, number>(); // output line -> original line
+
+  let i = 0;
+  while (i < lines.length) {
+    let currentLine = lines[i];
+    const originalLineNum = i + 1;
+
+    // Check if line ends with backslash (line continuation)
+    while (currentLine.trimEnd().endsWith('\\') && i + 1 < lines.length) {
+      // Remove trailing backslash and whitespace
+      currentLine = currentLine.trimEnd().slice(0, -1);
+      i++;
+      // Append next line (preserving leading whitespace for proper tokenization)
+      currentLine = currentLine + lines[i];
+    }
+
+    resultLines.push(currentLine);
+    lineMapping.set(resultLines.length, originalLineNum);
+    i++;
+  }
+
+  return {
+    code: resultLines.join('\n'),
+    lineMapping
+  };
+}
+
+/**
  * Main preprocessor function
  */
 export function preprocessGLSL(source: string): PreprocessorResult {
-  const lines = source.split('\n');
+  // Phase 1: Line splicing (handle backslash-newline continuation)
+  const splicingResult = performLineSplicing(source);
+  const splicedCode = splicingResult.code;
+  const splicedLineMapping = splicingResult.lineMapping;
+
+  const lines = splicedCode.split('\n');
   const output: string[] = [];
   const lineMapping = new Map<number, number>();
   const errors: PreprocessorError[] = [];
@@ -48,7 +88,9 @@ export function preprocessGLSL(source: string): PreprocessorResult {
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    const originalLineNum = i + 1;
+    const splicedLineNum = i + 1;
+    // Map spliced line number to original source line number
+    const originalLineNum = splicedLineMapping.get(splicedLineNum) || splicedLineNum;
     const trimmed = line.trim();
 
     // Track output line number for error mapping
@@ -203,10 +245,9 @@ export function preprocessGLSL(source: string): PreprocessorResult {
       continue;
     }
 
-    // Regular line - process macro expansion if in active conditional
+    // Regular line - store as-is if in active conditional
     if (shouldInclude()) {
-      const expandedLine = expandMacros(line, macros, originalLineNum, errors);
-      output.push(expandedLine);
+      output.push(line);
       lineMapping.set(outputLineNum, originalLineNum);
     } else {
       // Not in active conditional - replace with blank line
@@ -225,11 +266,108 @@ export function preprocessGLSL(source: string): PreprocessorResult {
     });
   }
 
+  // Phase 3: Macro expansion on the entire output (after directive processing)
+  // This allows macro invocations to span multiple lines
+  const codeBeforeExpansion = output.join('\n');
+  const expandedCode = expandMacrosInText(codeBeforeExpansion, macros, lineMapping, errors);
+
   return {
-    code: output.join('\n'),
+    code: expandedCode,
     lineMapping,
     errors
   };
+}
+
+/**
+ * Expand macros in entire text (handles multi-line macro invocations)
+ */
+function expandMacrosInText(
+  text: string,
+  macros: Map<string, Macro>,
+  lineMapping: Map<number, number>,
+  errors: PreprocessorError[]
+): string {
+  let result = text;
+  let maxIterations = 100;
+  let iteration = 0;
+  let changed = true;
+
+  while (changed && iteration < maxIterations) {
+    changed = false;
+    iteration++;
+
+    // Sort macros by name length (longest first) to avoid partial replacements
+    const sortedMacros = Array.from(macros.values()).sort((a, b) => b.name.length - a.name.length);
+
+    for (const macro of sortedMacros) {
+      if (macro.params === undefined) {
+        // Constant macro - simple text replacement with word boundaries
+        const regex = new RegExp(`\\b${escapeRegex(macro.name)}\\b`, 'g');
+        const newResult = result.replace(regex, macro.value);
+        if (newResult !== result) {
+          result = newResult;
+          changed = true;
+        }
+      } else {
+        // Function-like macro - find invocations and replace with expanded value
+        const regex = new RegExp(`\\b${escapeRegex(macro.name)}\\s*\\(`, 'g');
+        let match;
+
+        while ((match = regex.exec(result)) !== null) {
+          const startIdx = match.index;
+          const argsStartIdx = match.index + match[0].length;
+
+          // Find matching closing parenthesis (can span multiple lines in text)
+          const args = extractFunctionArgs(result, argsStartIdx);
+          if (args === null) {
+            // Calculate which line this error is on
+            const errorLine = result.substring(0, startIdx).split('\n').length;
+            const originalLine = lineMapping.get(errorLine) || errorLine;
+            errors.push({
+              line: originalLine,
+              message: `Unmatched parentheses in macro invocation: ${macro.name}`
+            });
+            break;
+          }
+
+          // Check argument count
+          if (args.length !== macro.params.length) {
+            const errorLine = result.substring(0, startIdx).split('\n').length;
+            const originalLine = lineMapping.get(errorLine) || errorLine;
+            errors.push({
+              line: originalLine,
+              message: `Macro ${macro.name} expects ${macro.params.length} arguments, got ${args.length}`
+            });
+            break;
+          }
+
+          // Replace parameters with arguments in macro value
+          let expanded = macro.value;
+          for (let i = 0; i < macro.params.length; i++) {
+            const paramRegex = new RegExp(`\\b${escapeRegex(macro.params[i])}\\b`, 'g');
+            expanded = expanded.replace(paramRegex, args[i]);
+          }
+
+          // Replace macro invocation with expanded value
+          const invocationEnd = argsStartIdx + args.totalLength;
+          result = result.substring(0, startIdx) + expanded + result.substring(invocationEnd);
+          changed = true;
+
+          // Reset regex since string changed
+          break;
+        }
+      }
+    }
+  }
+
+  if (iteration >= maxIterations) {
+    errors.push({
+      line: 0,
+      message: 'Macro expansion exceeded maximum recursion depth (possible circular definition)'
+    });
+  }
+
+  return result;
 }
 
 /**
