@@ -7,6 +7,7 @@ const SHADER_UNIFORMS = {
   iFrameRate: 'iFrameRate',
   iFrame: 'iFrame',
   iDate: 'iDate',
+  iMouse: 'iMouse',
   BufferA: 'BufferA',
   BufferB: 'BufferB',
   BufferC: 'BufferC',
@@ -35,7 +36,14 @@ export class WebGLRenderer {
   private lastFrameTime: number = 0;
   private frameRate: number = 60;
   private frameRateHistory: number[] = [];
-  
+
+  // Mouse tracking
+  private mouseX: number = 0;
+  private mouseY: number = 0;
+  private mouseClickX: number = 0;
+  private mouseClickY: number = 0;
+  private isMouseDown: boolean = false;
+
   constructor() {
     this.render = this.render.bind(this);
   }
@@ -45,24 +53,74 @@ export class WebGLRenderer {
    */
   initialize(canvas: HTMLCanvasElement): boolean {
     this.canvas = canvas;
-    
+
     // Only use WebGL 2.0
     // Configure context to match Shadertoy: disable alpha blending with canvas background
     const gl = canvas.getContext('webgl2', {
       alpha: false,
       premultipliedAlpha: false
     }) as WebGL2RenderingContext;
-    
+
     if (!gl) {
       console.error('WebGL 2.0 is not supported in your browser');
       return false;
     }
-    
+
     this.gl = gl;
     console.log('Using WebGL 2.0');
     this.updateViewport();
 
+    // Set up mouse event listeners
+    this.setupMouseListeners();
+
     return true;
+  }
+
+  /**
+   * Set up mouse event listeners for iMouse uniform
+   */
+  private setupMouseListeners(): void {
+    if (!this.canvas) return;
+
+    const canvas = this.canvas;
+
+    // Mouse move event
+    const handleMouseMove = (e: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      // Convert to canvas pixel coordinates (accounting for device pixel ratio)
+      this.mouseX = (e.clientX - rect.left) * window.devicePixelRatio;
+      this.mouseY = (rect.height - (e.clientY - rect.top)) * window.devicePixelRatio; // Flip Y to match shader coordinates
+    };
+
+    // Mouse down event
+    const handleMouseDown = (e: MouseEvent) => {
+      if (e.button === 0) { // Left mouse button
+        this.isMouseDown = true;
+        const rect = canvas.getBoundingClientRect();
+        this.mouseClickX = (e.clientX - rect.left) * window.devicePixelRatio;
+        this.mouseClickY = (rect.height - (e.clientY - rect.top)) * window.devicePixelRatio;
+        // Update current position as well
+        this.mouseX = this.mouseClickX;
+        this.mouseY = this.mouseClickY;
+      }
+    };
+
+    // Mouse up event
+    const handleMouseUp = (e: MouseEvent) => {
+      if (e.button === 0) { // Left mouse button
+        this.isMouseDown = false;
+      }
+    };
+
+    // Attach event listeners
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('mousedown', handleMouseDown);
+    canvas.addEventListener('mouseup', handleMouseUp);
+
+    // Also handle mouse leaving the canvas
+    canvas.addEventListener('mouseleave', () => {
+      this.isMouseDown = false;
+    });
   }
 
   /**
@@ -545,6 +603,7 @@ export class WebGLRenderer {
       [SHADER_UNIFORMS.iFrameRate]: gl.getUniformLocation(program, SHADER_UNIFORMS.iFrameRate),
       [SHADER_UNIFORMS.iFrame]: gl.getUniformLocation(program, SHADER_UNIFORMS.iFrame),
       [SHADER_UNIFORMS.iDate]: gl.getUniformLocation(program, SHADER_UNIFORMS.iDate),
+      [SHADER_UNIFORMS.iMouse]: gl.getUniformLocation(program, SHADER_UNIFORMS.iMouse),
       [SHADER_UNIFORMS.u_time]: gl.getUniformLocation(program, SHADER_UNIFORMS.u_time),
       [SHADER_UNIFORMS.u_resolution]: gl.getUniformLocation(program, SHADER_UNIFORMS.u_resolution)
     };
@@ -607,6 +666,12 @@ export class WebGLRenderer {
     }
     if (uniforms[SHADER_UNIFORMS.iDate]) {
       gl.uniform4f(uniforms[SHADER_UNIFORMS.iDate], year, month, day, timeInSeconds);
+    }
+    if (uniforms[SHADER_UNIFORMS.iMouse]) {
+      // xy: current mouse position (if mouse button is down), zw: click position
+      const currentX = this.isMouseDown ? this.mouseX : 0;
+      const currentY = this.isMouseDown ? this.mouseY : 0;
+      gl.uniform4f(uniforms[SHADER_UNIFORMS.iMouse], currentX, currentY, this.mouseClickX, this.mouseClickY);
     }
 
     // Set legacy uniforms for backward compatibility

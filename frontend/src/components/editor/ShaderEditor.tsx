@@ -296,6 +296,7 @@ uniform float iTimeDelta;          // render time (in seconds)
 uniform float iFrameRate;          // shader frame rate
 uniform int iFrame;                // shader playback frame
 uniform vec4 iDate;                // year, month, day, time in seconds
+uniform vec4 iMouse;               // mouse pixel coords. xy: current (if MLB down), zw: click
 uniform sampler2D BufferA;         // Buffer A texture
 uniform sampler2D BufferB;         // Buffer B texture
 uniform sampler2D BufferC;         // Buffer C texture
