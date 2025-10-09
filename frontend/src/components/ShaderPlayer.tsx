@@ -207,7 +207,16 @@ export default function ShaderPlayer({
 
             {/* Future controls placeholder */}
             <div className="flex items-center gap-2">
-              {/* Volume and fullscreen controls will go here */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="bg-transparent h-6 w-6 text-gray-400 focus:outline-none hover:text-white hover:bg-transparent"
+                title="Fullscreen"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                </svg>
+              </Button>
             </div>
           </div>
         </div>
