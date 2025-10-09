@@ -63,7 +63,7 @@ function NewShaderEditorPage() {
         <ResizablePanel defaultSize={50} minSize={30}>
           <div className="h-full flex flex-col gap-0 p-0">
             {/* Header */}
-            <div className="w-full flex items-center px-4 bg-gray-800 border-b border-gray-700" style={{ height: '30px' }}>
+            <div className="w-full flex items-center px-1 bg-gray-800 border-b border-gray-700" style={{ height: '30px' }}>
               <button
                 onClick={() => navigate('/')}
                 className="text-lg font-bold bg-transparent"
@@ -72,19 +72,21 @@ function NewShaderEditorPage() {
                 FRAGCODER
               </button>
             </div>
-            <div className="w-full" style={{ aspectRatio: '4/3' }}>
-              <ShaderPlayer
-                tabs={allTabs}
-                isPlaying={isPlaying}
-                onPlayPause={() => setIsPlaying(!isPlaying)}
-                onReset={() => {
-                  console.log('Reset shader');
-                  setIsPlaying(true);
-                }}
-                onCompilationResult={handleCompilationResult}
-                panelResizeCounter={panelResizeCounter}
-                compileTrigger={compileTrigger}
-              />
+            <div className="w-full p-2" style={{ aspectRatio: '4/3' }}>
+              <div className="h-full border border-gray-600 rounded-md overflow-hidden">
+                <ShaderPlayer
+                  tabs={allTabs}
+                  isPlaying={isPlaying}
+                  onPlayPause={() => setIsPlaying(!isPlaying)}
+                  onReset={() => {
+                    console.log('Reset shader');
+                    setIsPlaying(true);
+                  }}
+                  onCompilationResult={handleCompilationResult}
+                  panelResizeCounter={panelResizeCounter}
+                  compileTrigger={compileTrigger}
+                />
+              </div>
             </div>
             <div className="flex-1"></div>
           </div>

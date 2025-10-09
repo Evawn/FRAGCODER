@@ -1,5 +1,7 @@
 import { useWebGLRenderer } from '../hooks/useWebGLRenderer';
 import type { CompilationError, TabShaderData } from '../utils/GLSLCompiler';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 interface ShaderPlayerProps {
   tabs: TabShaderData[];
@@ -67,24 +69,28 @@ export default function ShaderPlayer({
       </div>
 
       {/* Footer Control Bar */}
-      <div className="bg-gray-900 border-t border-gray-700 px-4 py-2 flex items-center justify-between">
+      <div className="bg-gray-900 border-t border-gray-700 px-1 gap-x-1 py-2 flex items-center justify-between" style={{ height: '30px' }}>
         <div className="flex items-center gap-4">
           {/* Control Buttons */}
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={handleReset}
-              className="text-gray-400 hover:text-white transition-colors p-1"
+              className="bg-transparent h-6 w-6 text-gray-400 hover:text-white hover:bg-transparent"
               title="Reset"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polygon points="11 19 2 12 11 5 11 19"></polygon>
                 <polygon points="22 19 13 12 22 5 22 19"></polygon>
               </svg>
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onPlayPause}
-              className="text-gray-400 hover:text-white transition-colors p-1"
               disabled={!compilationSuccess}
+              className="bg-transparent h-6 w-6 text-gray-400 hover:text-white hover:bg-transparent disabled:opacity-50"
               title={isPlaying ? 'Pause' : 'Play'}
             >
               {isPlaying ? (
@@ -97,14 +103,20 @@ export default function ShaderPlayer({
                   <polygon points="5 3 19 12 5 21 5 3"></polygon>
                 </svg>
               )}
-            </button>
+            </Button>
           </div>
 
           {/* Real-time Information */}
-          <div className="flex items-center gap-4 text-sm text-gray-400">
-            <span>{uTime.toFixed(2)}</span>
-            <span>{fps.toFixed(1)} fps</span>
-            <span>{resolution.width} x {resolution.height}</span>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="bg-transparent border-transparent text-gray-400 font-mono text-xs px-2 py-0">
+              {uTime.toFixed(2)}s
+            </Badge>
+            <Badge variant="outline" className="bg-transparent border-transparent text-gray-400 font-mono text-xs px-2 py-0">
+              {fps.toFixed(1)} fps
+            </Badge>
+            <Badge variant="outline" className="bg-transparent border-transparent text-gray-400 font-mono text-xs px-2 py-0">
+              {resolution.width} × {resolution.height}
+            </Badge>
           </div>
         </div>
 
