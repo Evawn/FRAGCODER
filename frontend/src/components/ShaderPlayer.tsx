@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useWebGLRenderer } from '../hooks/useWebGLRenderer';
 import type { CompilationError, TabShaderData } from '../utils/GLSLCompiler';
 import { Button } from '@/components/ui/button';
@@ -38,34 +39,44 @@ export default function ShaderPlayer({
     compileTrigger
   });
 
+  // Resolution lock state
+  const [isResolutionLocked, setIsResolutionLocked] = useState(false);
+
   // Handle reset
   const handleReset = () => {
     reset();
     onReset();
   };
 
+  // Toggle resolution lock
+  const toggleResolutionLock = () => {
+    setIsResolutionLocked(prev => !prev);
+  };
+
   return (
     <div className="h-full flex flex-col">
-      {/* WebGL Canvas */}
-      <div className="flex-1 bg-black relative">
-        <canvas
-          ref={canvasRef}
-          className="w-full h-full"
-          style={{ imageRendering: 'pixelated' }}
-        />
-        {!compilationSuccess && !error && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <p className="text-gray-400">No shader compiled yet</p>
-          </div>
-        )}
-        {error && (
-          <div className="absolute inset-0 flex items-center justify-center p-4">
-            <div className="bg-red-900/80 text-red-200 p-4 rounded-lg max-w-md">
-              <p className="font-semibold mb-2">WebGL Error</p>
-              <p className="text-sm">{error}</p>
+      {/* WebGL Canvas Container - maintains 4:3 aspect ratio */}
+      <div className="flex-1 bg-black relative flex items-center justify-center">
+        <div className="relative w-full" style={{ aspectRatio: '4/3', maxHeight: '100%' }}>
+          <canvas
+            ref={canvasRef}
+            className="w-full h-full"
+            style={{ imageRendering: 'pixelated' }}
+          />
+          {!compilationSuccess && !error && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <p className="text-gray-400">No shader compiled yet</p>
             </div>
-          </div>
-        )}
+          )}
+          {error && (
+            <div className="absolute inset-0 flex items-center justify-center p-4">
+              <div className="bg-red-900/80 text-red-200 p-4 rounded-lg max-w-md">
+                <p className="font-semibold mb-2">WebGL Error</p>
+                <p className="text-sm">{error}</p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Footer Control Bar */}
@@ -114,8 +125,29 @@ export default function ShaderPlayer({
             <Badge variant="outline" className="bg-transparent border-transparent text-gray-400 font-mono text-xs px-2 py-0">
               {fps.toFixed(1)} fps
             </Badge>
-            <Badge variant="outline" className="bg-transparent border-transparent text-gray-400 font-mono text-xs px-2 py-0">
-              {resolution.width} × {resolution.height}
+            <Badge
+              variant="outline"
+              className={`bg-transparent font-mono text-xs px-2 py-0 cursor-pointer hover:text-gray-300 transition-colors flex items-center gap-1.5 ${
+                isResolutionLocked
+                  ? 'border-gray-400 text-gray-400'
+                  : 'border-transparent text-gray-400'
+              }`}
+              onClick={toggleResolutionLock}
+            >
+              <span>{resolution.width} × {resolution.height}</span>
+              {isResolutionLocked ? (
+                // Locked icon
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+              ) : (
+                // Unlocked icon
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+                </svg>
+              )}
             </Badge>
           </div>
         </div>

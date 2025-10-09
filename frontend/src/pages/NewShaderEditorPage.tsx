@@ -72,8 +72,8 @@ function NewShaderEditorPage() {
                 FRAGCODER
               </button>
             </div>
-            <div className="w-full p-2" style={{ aspectRatio: '4/3' }}>
-              <div className="h-full border border-gray-600 rounded-md overflow-hidden">
+            <div className="flex-1 w-full p-2">
+              <div className="h-min border border-gray-600 rounded-md overflow-hidden">
                 <ShaderPlayer
                   tabs={allTabs}
                   isPlaying={isPlaying}
@@ -88,7 +88,6 @@ function NewShaderEditorPage() {
                 />
               </div>
             </div>
-            <div className="flex-1"></div>
           </div>
         </ResizablePanel>
 
