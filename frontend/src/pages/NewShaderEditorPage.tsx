@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '../components/ui/resizable';
 import ShaderEditor, { defaultImageCode } from '../components/editor/ShaderEditor';
 import type { ShaderData } from '../components/editor/ShaderEditor';
 import ShaderPlayer from '../components/ShaderPlayer';
@@ -57,10 +57,10 @@ function NewShaderEditorPage() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <PanelGroup direction="horizontal" className="h-screen" onLayout={handlePanelResize}>
+      <ResizablePanelGroup direction="horizontal" className="h-screen" onLayout={handlePanelResize}>
         {/* Shader Viewer - Left Panel */}
-        <Panel defaultSize={50} minSize={30}>
-          <div className="h-full flex flex-col">
+        <ResizablePanel defaultSize={50} minSize={30}>
+          <div className="h-full flex flex-col gap-0 p-0">
             <div className="w-full" style={{ aspectRatio: '4/3' }}>
               <ShaderPlayer
                 tabs={allTabs}
@@ -77,16 +77,13 @@ function NewShaderEditorPage() {
             </div>
             <div className="flex-1"></div>
           </div>
-        </Panel>
+        </ResizablePanel>
 
         {/* Resize Handle */}
-        <PanelResizeHandle className="w-2 bg-gray-700 hover:bg-gray-600 active:bg-blue-600 transition-colors relative group">
-          <div className="absolute inset-y-0 left-1/2 transform -translate-x-1/2 w-6 cursor-col-resize" />
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1 h-8 bg-gray-500 group-hover:bg-gray-400 group-active:bg-blue-400 rounded-full transition-colors" />
-        </PanelResizeHandle>
+        <ResizableHandle className="w-px bg-gray-600" />
 
         {/* Shader Editor - Right Panel */}
-        <Panel defaultSize={50} minSize={30}>
+        <ResizablePanel defaultSize={50} minSize={30}>
           <div className="h-full flex flex-col">
             <ShaderEditor
               shader={shader}
@@ -105,8 +102,8 @@ function NewShaderEditorPage() {
               }}
             />
           </div>
-        </Panel>
-      </PanelGroup>
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </div>
   );
 }
