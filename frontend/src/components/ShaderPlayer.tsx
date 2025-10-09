@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useWebGLRenderer } from '../hooks/useWebGLRenderer';
 import type { CompilationError, TabShaderData } from '../utils/GLSLCompiler';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,14 @@ export default function ShaderPlayer({
   // Resolution lock state
   const [isResolutionLocked, setIsResolutionLocked] = useState(false);
   const [lockedResolution, setLockedResolution] = useState<{ width: number; height: number } | null>(null);
+
+  // Fullscreen state
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [preFullscreenLockedState, setPreFullscreenLockedState] = useState<{
+    isLocked: boolean;
+    resolution: { width: number; height: number } | null;
+  } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const {
     canvasRef,
@@ -78,38 +86,101 @@ export default function ShaderPlayer({
     });
   };
 
+  // Handle fullscreen toggle
+  const handleFullscreenToggle = async () => {
+    if (!containerRef.current) return;
+
+    if (!isFullscreen) {
+      // Entering fullscreen
+      try {
+        // Save current lock state
+        setPreFullscreenLockedState({
+          isLocked: isResolutionLocked,
+          resolution: lockedResolution
+        });
+
+        // Unlock resolution so canvas fills screen
+        setIsResolutionLocked(false);
+        setLockedResolution(null);
+        onResolutionLockChange?.(false);
+
+        // Request fullscreen
+        await containerRef.current.requestFullscreen();
+      } catch (err) {
+        console.error('Failed to enter fullscreen:', err);
+      }
+    } else {
+      // Exiting fullscreen
+      try {
+        await document.exitFullscreen();
+      } catch (err) {
+        console.error('Failed to exit fullscreen:', err);
+      }
+    }
+  };
+
+  // Listen for fullscreen changes (including ESC key, F11, etc.)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isNowFullscreen = !!document.fullscreenElement;
+      setIsFullscreen(isNowFullscreen);
+
+      // If exiting fullscreen, restore previous lock state
+      if (!isNowFullscreen && preFullscreenLockedState) {
+        setIsResolutionLocked(preFullscreenLockedState.isLocked);
+        setLockedResolution(preFullscreenLockedState.resolution);
+
+        if (preFullscreenLockedState.isLocked && preFullscreenLockedState.resolution) {
+          const minWidth = (preFullscreenLockedState.resolution.width / window.devicePixelRatio) + 20;
+          onResolutionLockChange?.(true, minWidth);
+        } else {
+          onResolutionLockChange?.(false);
+        }
+
+        // Clear saved state
+        setPreFullscreenLockedState(null);
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, [preFullscreenLockedState, onResolutionLockChange]);
+
   return (
-    <div className="h-full flex items-stretch justify-center p-0">
+    <div className="h-full w-full flex items-start justify-center p-0">
       <div
+        ref={containerRef}
         className="flex flex-col"
         style={
           isResolutionLocked && lockedResolution
             ? {
-              // Locked: fixed width to match canvas
-              width: `${lockedResolution.width / window.devicePixelRatio}px`
+              // Locked: fixed size to match canvas
+              width: `${lockedResolution.width / window.devicePixelRatio}px`,
+              maxHeight: '100%'
             }
             : {
-              // Unlocked: fill container width
-              width: '100%'
+              // Unlocked: expand to fill, constrained by aspect ratio
+              width: '100%',
+              maxHeight: '100%',
+              aspectRatio: '4/3',
+              maxWidth: 'min(100%, calc(100vh * 4 / 3))'
             }
         }
       >
-        <div className="h-min border border-gray-600 rounded-md overflow-hidden">
+        <div className="border border-gray-600 rounded-md overflow-hidden flex flex-col h-full">
           {/* WebGL Canvas Container */}
-          <div className="flex-1 bg-black relative flex items-center justify-center">
+          <div className="flex-1 bg-black relative flex items-center justify-center min-h-0">
             <div
-              className="relative w-full"
+              className="relative w-full h-full"
               style={
                 isResolutionLocked && lockedResolution
                   ? {
-                    // Locked: fixed height, width fills the fixed-width container
+                    width: `${lockedResolution.width / window.devicePixelRatio}px`,
                     height: `${lockedResolution.height / window.devicePixelRatio}px`
                   }
-                  : {
-                    // Unlocked: fill container with aspect ratio
-                    aspectRatio: '4/3',
-                    maxHeight: '100%'
-                  }
+                  : undefined
               }
             >
               <canvas
@@ -181,14 +252,16 @@ export default function ShaderPlayer({
                 </Badge>
                 <Badge
                   variant="outline"
-                  className={`bg-transparent font-mono text-xs px-2 py-0 cursor-pointer hover:text-gray-300 transition-colors flex items-center gap-1.5 ${isResolutionLocked
+                  className={`bg-transparent font-mono text-xs px-2 py-0 flex items-center gap-1.5 ${isFullscreen
                     ? 'border-gray-400 text-gray-400'
-                    : 'border-transparent text-gray-400'
+                    : isResolutionLocked
+                      ? 'border-gray-400 text-gray-400 cursor-pointer hover:text-gray-300 transition-colors'
+                      : 'border-transparent text-gray-400 cursor-pointer hover:text-gray-300 transition-colors'
                     }`}
-                  onClick={toggleResolutionLock}
+                  onClick={isFullscreen ? undefined : toggleResolutionLock}
                 >
                   <span>{resolution.width} × {resolution.height}</span>
-                  {isResolutionLocked ? (
+                  {(isResolutionLocked || isFullscreen) ? (
                     // Locked icon
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
@@ -205,17 +278,26 @@ export default function ShaderPlayer({
               </div>
             </div>
 
-            {/* Future controls placeholder */}
+            {/* Fullscreen control */}
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
                 size="icon"
+                onClick={handleFullscreenToggle}
                 className="bg-transparent h-6 w-6 text-gray-400 focus:outline-none hover:text-white hover:bg-transparent"
-                title="Fullscreen"
+                title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
-                </svg>
+                {isFullscreen ? (
+                  // Exit fullscreen icon (compress arrows)
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path>
+                  </svg>
+                ) : (
+                  // Enter fullscreen icon (expand arrows)
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                  </svg>
+                )}
               </Button>
             </div>
           </div>

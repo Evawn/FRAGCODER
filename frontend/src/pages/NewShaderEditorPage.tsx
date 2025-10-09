@@ -71,8 +71,8 @@ function NewShaderEditorPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <ResizablePanelGroup direction="horizontal" className="h-screen" onLayout={handlePanelResize}>
+    <div className="h-screen bg-gray-900 text-white flex flex-col">
+      <ResizablePanelGroup direction="horizontal" className="flex-1" onLayout={handlePanelResize}>
         {/* Shader Viewer - Left Panel */}
         <ResizablePanel defaultSize={50} minSize={leftPanelMinSize}>
           <div className="h-full flex flex-col gap-0 p-0">
