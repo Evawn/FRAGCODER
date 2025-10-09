@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '../components/ui/resizable';
 import ShaderEditor, { defaultImageCode } from '../components/editor/ShaderEditor';
 import type { ShaderData } from '../components/editor/ShaderEditor';
@@ -8,6 +8,7 @@ import type { TabShaderData, CompilationError } from '../utils/GLSLCompiler';
 
 function NewShaderEditorPage() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const shaderId = searchParams.get('id');
 
   const [shader, setShader] = useState<ShaderData | null>(null);
@@ -61,6 +62,16 @@ function NewShaderEditorPage() {
         {/* Shader Viewer - Left Panel */}
         <ResizablePanel defaultSize={50} minSize={30}>
           <div className="h-full flex flex-col gap-0 p-0">
+            {/* Header */}
+            <div className="w-full flex items-center px-4 bg-gray-800 border-b border-gray-700" style={{ height: '30px' }}>
+              <button
+                onClick={() => navigate('/')}
+                className="text-lg font-bold bg-transparent"
+                style={{ outline: 'none', border: 'none' }}
+              >
+                FRAGCODER
+              </button>
+            </div>
             <div className="w-full" style={{ aspectRatio: '4/3' }}>
               <ShaderPlayer
                 tabs={allTabs}
