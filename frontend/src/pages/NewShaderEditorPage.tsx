@@ -80,7 +80,7 @@ function NewShaderEditorPage() {
                   onPlayPause={() => setIsPlaying(!isPlaying)}
                   onReset={() => {
                     console.log('Reset shader');
-                    setIsPlaying(true);
+                    setIsPlaying(false);
                   }}
                   onCompilationResult={handleCompilationResult}
                   panelResizeCounter={panelResizeCounter}

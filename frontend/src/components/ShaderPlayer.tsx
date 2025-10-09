@@ -77,7 +77,7 @@ export default function ShaderPlayer({
               variant="ghost"
               size="icon"
               onClick={handleReset}
-              className="bg-transparent h-6 w-6 text-gray-400 hover:text-white hover:bg-transparent"
+              className="bg-transparent h-6 w-6 text-gray-400 focus:outline-none hover:text-white hover:bg-transparent"
               title="Reset"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -90,7 +90,7 @@ export default function ShaderPlayer({
               size="icon"
               onClick={onPlayPause}
               disabled={!compilationSuccess}
-              className="bg-transparent h-6 w-6 text-gray-400 hover:text-white hover:bg-transparent disabled:opacity-50"
+              className="bg-transparent h-6 w-6 text-gray-400 focus:outline-none hover:text-white hover:bg-transparent disabled:opacity-50"
               title={isPlaying ? 'Pause' : 'Play'}
             >
               {isPlaying ? (

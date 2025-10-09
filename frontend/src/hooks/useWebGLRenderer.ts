@@ -173,6 +173,7 @@ export function useWebGLRenderer({
     const renderer = rendererRef.current;
     if (renderer) {
       renderer.resetTime();
+      setUTime(0);
       setFps(0);
     }
   }, []);
