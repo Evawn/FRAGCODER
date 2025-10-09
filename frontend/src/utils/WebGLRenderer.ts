@@ -489,6 +489,53 @@ export class WebGLRenderer {
   }
 
   /**
+   * Set a specific locked resolution (used when resolution is locked)
+   */
+  setLockedResolution(width: number, height: number): void {
+    if (!this.gl || !this.canvas) return;
+
+    const gl = this.gl;
+    this.canvas.width = width;
+    this.canvas.height = height;
+    gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+
+    // Resize all framebuffer textures to match locked resolution
+    for (const pass of this.passes.values()) {
+      if (pass.texture && pass.framebuffer) {
+        // Recreate main texture at locked size
+        gl.bindTexture(gl.TEXTURE_2D, pass.texture);
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0,
+          gl.RGBA,
+          this.canvas.width,
+          this.canvas.height,
+          0,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          null
+        );
+      }
+
+      // Resize ping-pong buffer as well
+      if (pass.texturePong && pass.framebufferPong) {
+        gl.bindTexture(gl.TEXTURE_2D, pass.texturePong);
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0,
+          gl.RGBA,
+          this.canvas.width,
+          this.canvas.height,
+          0,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          null
+        );
+      }
+    }
+  }
+
+  /**
    * Update viewport dimensions
    */
   updateViewport(): void {

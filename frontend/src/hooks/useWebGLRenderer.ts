@@ -9,6 +9,8 @@ interface UseWebGLRendererProps {
   onCompilationResult: (success: boolean, errors: CompilationError[]) => void;
   panelResizeCounter: number;
   compileTrigger: number;
+  isResolutionLocked: boolean;
+  lockedResolution: { width: number; height: number } | null;
 }
 
 interface UseWebGLRendererReturn {
@@ -26,7 +28,9 @@ export function useWebGLRenderer({
   isPlaying,
   onCompilationResult,
   panelResizeCounter,
-  compileTrigger
+  compileTrigger,
+  isResolutionLocked,
+  lockedResolution
 }: UseWebGLRendererProps): UseWebGLRendererReturn {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<WebGLRenderer | null>(null);
@@ -234,14 +238,28 @@ export function useWebGLRenderer({
     };
   }, [isRendererReady]);
 
+  // Handle resolution locking/unlocking
+  useEffect(() => {
+    const renderer = rendererRef.current;
+    if (!renderer) return;
+
+    if (isResolutionLocked && lockedResolution) {
+      // Lock to specific resolution
+      renderer.setLockedResolution(lockedResolution.width, lockedResolution.height);
+    } else {
+      // Unlock: update viewport to match current container size
+      renderer.updateViewport();
+    }
+  }, [isResolutionLocked, lockedResolution]);
+
   // Handle panel resize to trigger WebGL viewport updates
   useEffect(() => {
     const renderer = rendererRef.current;
-    if (renderer) {
-      // Trigger viewport update when panels are resized
+    if (renderer && !isResolutionLocked) {
+      // Only trigger viewport update when panels are resized if resolution is not locked
       renderer.updateViewport();
     }
-  }, [panelResizeCounter]);
+  }, [panelResizeCounter, isResolutionLocked]);
 
   return {
     canvasRef,

@@ -21,6 +21,7 @@ function NewShaderEditorPage() {
   ]);
   const [panelResizeCounter, setPanelResizeCounter] = useState(0);
   const [compileTrigger, setCompileTrigger] = useState(0);
+  const [leftPanelMinSize, setLeftPanelMinSize] = useState(30);
 
   useEffect(() => {
     if (shaderId) {
@@ -56,11 +57,24 @@ function NewShaderEditorPage() {
     setPanelResizeCounter(prev => prev + 1);
   }, []);
 
+  const handleResolutionLockChange = useCallback((locked: boolean, minWidth?: number) => {
+    if (locked && minWidth) {
+      // Calculate minimum size as a percentage of the viewport
+      // We need to account for the width of the entire viewport
+      const viewportWidth = window.innerWidth;
+      const minPercentage = Math.max(30, Math.min(70, (minWidth / viewportWidth) * 100));
+      setLeftPanelMinSize(minPercentage);
+    } else {
+      // Reset to default minimum size
+      setLeftPanelMinSize(30);
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <ResizablePanelGroup direction="horizontal" className="h-screen" onLayout={handlePanelResize}>
         {/* Shader Viewer - Left Panel */}
-        <ResizablePanel defaultSize={50} minSize={30}>
+        <ResizablePanel defaultSize={50} minSize={leftPanelMinSize}>
           <div className="h-full flex flex-col gap-0 p-0">
             {/* Header */}
             <div className="w-full flex items-center px-1 bg-gray-800 border-b border-gray-700" style={{ height: '30px' }}>
@@ -73,22 +87,23 @@ function NewShaderEditorPage() {
               </button>
             </div>
             <div className="flex-1 w-full p-2">
-              <div className="h-min border border-gray-600 rounded-md overflow-hidden">
-                <ShaderPlayer
-                  tabs={allTabs}
-                  isPlaying={isPlaying}
-                  onPlayPause={() => setIsPlaying(!isPlaying)}
-                  onReset={() => {
-                    console.log('Reset shader');
-                    setIsPlaying(false);
-                  }}
-                  onCompilationResult={handleCompilationResult}
-                  panelResizeCounter={panelResizeCounter}
-                  compileTrigger={compileTrigger}
-                />
-              </div>
+
+              <ShaderPlayer
+                tabs={allTabs}
+                isPlaying={isPlaying}
+                onPlayPause={() => setIsPlaying(!isPlaying)}
+                onReset={() => {
+                  console.log('Reset shader');
+                  setIsPlaying(false);
+                }}
+                onCompilationResult={handleCompilationResult}
+                panelResizeCounter={panelResizeCounter}
+                compileTrigger={compileTrigger}
+                onResolutionLockChange={handleResolutionLockChange}
+              />
             </div>
           </div>
+
         </ResizablePanel>
 
         {/* Resize Handle */}
