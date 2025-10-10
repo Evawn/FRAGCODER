@@ -458,7 +458,7 @@ uniform sampler2D BufferD;         // Buffer D texture`;
       </div>
 
       {/* Footer */}
-      <div className="bg-gray-800 border-t border-gray-700 flex items-center px-2 gap-2" style={{ height: '30px' }}>
+      <div className="relative bg-gray-800 border-t border-gray-700 flex items-center px-2 gap-2" style={{ height: '30px' }}>
         <Button
           variant="outline"
           size="icon"
@@ -502,6 +502,16 @@ uniform sampler2D BufferD;         // Buffer D texture`;
             </svg>
           )}
         </Button>
+
+        {/* Centered character count badge */}
+        <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+          <Badge
+            variant="outline"
+            className="bg-transparent border-transparent font-mono text-xs px-2 py-0 text-gray-400"
+          >
+            {code.length} chars
+          </Badge>
+        </div>
       </div>
 
       {/* Delete Confirmation Modal */}
