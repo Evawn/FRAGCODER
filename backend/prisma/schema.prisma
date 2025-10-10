@@ -19,19 +19,31 @@ model User {
   @@index([email])
 }
 
+enum CompilationStatus {
+  SUCCESS
+  ERROR
+  WARNING
+  PENDING
+}
+
 model Shader {
-  id          String   @id @default(uuid())
-  title       String
-  code        String // @db.Text
-  description String?
-  isPublic    Boolean  @default(true)
-  thumbnail   String? // Base64 or URL
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  forkedFrom  String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                String            @id @default(uuid())
+  title             String
+  slug              String            @unique
+  tabs              String // JSON string: [{ id, name, code }]
+  description       String?
+  isPublic          Boolean           @default(true)
+  compilationStatus CompilationStatus @default(PENDING)
+  compilationErrors String? // JSON string: compilation error details
+  thumbnail         String? // Base64 or URL
+  userId            String
+  user              User              @relation(fields: [userId], references: [id])
+  forkedFrom        String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  lastSavedAt       DateTime          @default(now())
 
   @@index([userId])
   @@index([isPublic])
+  @@index([slug])
 }

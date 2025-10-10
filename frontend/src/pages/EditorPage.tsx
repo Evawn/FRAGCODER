@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '../components/ui/resizable';
 import ShaderEditor, { defaultImageCode } from '../components/editor/ShaderEditor';
 import type { ShaderData } from '../components/editor/ShaderEditor';
@@ -9,7 +9,8 @@ import type { TabShaderData, CompilationError } from '../utils/GLSLCompiler';
 function EditorPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const shaderId = searchParams.get('id');
+  const { slug } = useParams<{ slug: string }>();
+  const shaderId = searchParams.get('id') || slug;
 
   const [shader, setShader] = useState<ShaderData | null>(null);
   const [isPlaying, setIsPlaying] = useState(true);

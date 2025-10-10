@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import authRoutes from './routes/auth';
+import shaderRoutes from './routes/shaders';
 
 dotenv.config();
 
@@ -15,6 +16,9 @@ app.use(express.json());
 
 // Mount auth routes
 app.use('/api/auth', authRoutes);
+
+// Mount shader routes
+app.use('/api/shaders', shaderRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

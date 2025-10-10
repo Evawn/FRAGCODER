@@ -13,6 +13,7 @@ function App() {
         <Route path="/" element={<Gallery />} />
         {/* <Route path="/editor" element={<ShaderEditor />} /> */}
         <Route path="/new" element={<EditorPage />} />
+        <Route path="/shader/:slug" element={<EditorPage />} />
         <Route path="/auth" element={<Auth />} />
       </Routes>
     </div>

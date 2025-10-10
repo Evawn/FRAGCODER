@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import CodeMirrorEditor from './CodeMirrorEditor';
 import type { CompilationError, TabShaderData } from '../../utils/GLSLCompiler';
 import type { Transaction } from '@codemirror/state';
@@ -79,7 +80,8 @@ mat2 rotate2D(float angle) {
 }`;
 
 function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess, compilationTime, onTabChange }: ShaderEditorProps) {
-  const { user, signOut } = useAuth();
+  const { user, token, signOut } = useAuth();
+  const navigate = useNavigate();
   const [code, setCode] = useState(shader?.code || defaultImageCode);
   const [isUniformsExpanded, setIsUniformsExpanded] = useState(false);
   const [showErrorDecorations, setShowErrorDecorations] = useState(true);
@@ -111,24 +113,67 @@ function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess
 
   // Handle shader save
   const handleSaveShader = async (shaderName: string) => {
-    console.log('Saving shader:', shaderName);
+    try {
+      console.log('Saving shader:', shaderName);
 
-    // Prepare shader data structure
-    const shaderData = {
-      name: shaderName,
-      tabs: tabs.map(tab => ({
-        id: tab.id,
-        name: tab.name,
-        code: tab.code
-      })),
-      isPublic: true, // Default to public
-      userId: user?.id
-    };
+      // Trigger compilation if not already compiled or if code has changed
+      // This ensures we have accurate compilation status before saving
+      if (compilationSuccess === undefined) {
+        handleCompile();
+        // Wait a moment for compilation to complete
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
 
-    console.log('Shader data to save:', shaderData);
+      // Determine compilation status
+      let status: 'SUCCESS' | 'ERROR' | 'WARNING' | 'PENDING' = 'PENDING';
+      if (compilationSuccess === true) {
+        status = compilationErrors.length > 0 ? 'WARNING' : 'SUCCESS';
+      } else if (compilationSuccess === false) {
+        status = 'ERROR';
+      }
 
-    // TODO: POST to backend API
-    // await saveShaderToAPI(shaderData);
+      // Prepare shader data structure
+      const shaderData = {
+        name: shaderName,
+        tabs: tabs.map(tab => ({
+          id: tab.id,
+          name: tab.name,
+          code: tab.code
+        })),
+        isPublic: true, // Default to public
+        compilationStatus: status,
+        compilationErrors: compilationErrors.length > 0 ? compilationErrors : undefined
+      };
+
+      console.log('Shader data to save:', shaderData);
+
+      // Import saveShader dynamically to avoid circular dependencies
+      const { saveShader } = await import('../../api/shaders');
+
+      // Check if user is authenticated
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      // Save shader to backend
+      const response = await saveShader(shaderData, token);
+
+      console.log('Shader saved successfully!', response);
+
+      // Navigate to the saved shader's URL
+      const slug = response.shader.slug;
+      navigate(`/shader/${slug}`);
+
+    } catch (error) {
+      console.error('Failed to save shader:', error);
+
+      // Show user-friendly error message
+      if (error instanceof Error) {
+        alert(`Failed to save shader: ${error.message}`);
+      } else {
+        alert('Failed to save shader. Please try again.');
+      }
+    }
   };
 
   // Title dropdown options
