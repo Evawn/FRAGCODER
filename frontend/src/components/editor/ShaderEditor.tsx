@@ -7,6 +7,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Dropdown } from '../ui/Dropdown';
 import { SignInDialog } from '../auth/SignInDialog';
+import { useAuth } from '../../context/AuthContext';
 
 export interface ShaderData {
   id: string;
@@ -125,6 +126,7 @@ mat2 rotate2D(float angle) {
 }`;
 
 function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess, compilationTime, onTabChange }: ShaderEditorProps) {
+  const { user, signOut } = useAuth();
   const [code, setCode] = useState(shader?.code || defaultImageCode);
   const [isUniformsExpanded, setIsUniformsExpanded] = useState(false);
   const [showErrorDecorations, setShowErrorDecorations] = useState(true);
@@ -346,25 +348,59 @@ uniform sampler2D BufferD;         // Buffer D texture`;
           >
             <span className="text-lg">New+</span>
           </Button>
-          <SignInDialog
-            onSignInSuccess={(credential: string) => {
-              console.log('User signed in successfully:', credential);
-              // TODO: Handle sign-in success (Phase 2)
-            }}
-            onError={(error: string) => {
-              console.error('Sign-in error:', error);
-              // TODO: Handle sign-in error (Phase 2)
-            }}
-          >
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-auto px-2 py-1 text-gray-400 bg-transparent hover:text-gray-200 hover:bg-transparent focus:outline-none"
-              style={{ outline: 'none', border: 'none' }}
+
+          {user ? (
+            // Show user menu when signed in
+            <Dropdown
+              options={[
+                {
+                  text: `@${user.username}`,
+                  callback: () => {},
+                },
+                {
+                  text: 'My Shaders',
+                  callback: () => console.log('Navigate to my shaders'),
+                },
+                {
+                  text: 'Sign Out',
+                  callback: () => {
+                    signOut();
+                    console.log('User signed out');
+                  },
+                },
+              ]}
             >
-              <span className="text-lg">Sign In</span>
-            </Button>
-          </SignInDialog>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-auto px-2 py-1 text-gray-400 bg-transparent hover:text-gray-200 hover:bg-transparent focus:outline-none"
+                style={{ outline: 'none', border: 'none' }}
+              >
+                <div className="flex items-center gap-2">
+                  {user.picture && (
+                    <img
+                      src={user.picture}
+                      alt={user.username}
+                      className="w-6 h-6 rounded-full"
+                    />
+                  )}
+                  <span className="text-lg">{user.username}</span>
+                </div>
+              </Button>
+            </Dropdown>
+          ) : (
+            // Show Sign In dialog when not signed in
+            <SignInDialog>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-auto px-2 py-1 text-gray-400 bg-transparent hover:text-gray-200 hover:bg-transparent focus:outline-none"
+                style={{ outline: 'none', border: 'none' }}
+              >
+                <span className="text-lg">Sign In</span>
+              </Button>
+            </SignInDialog>
+          )}
         </div>
       </div>
 

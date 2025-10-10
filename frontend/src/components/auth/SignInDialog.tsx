@@ -10,14 +10,15 @@ import {
   DialogTrigger,
 } from '../ui/dialog';
 import { Button } from '../ui/button';
+import { useAuth } from '../../context/AuthContext';
+import { checkGoogleAuth, registerUser } from '../../api/auth';
 
 interface SignInDialogProps {
   children: React.ReactNode;
-  onSignInSuccess?: (credential: string) => void;
-  onError?: (error: string) => void;
 }
 
-export function SignInDialog({ children, onSignInSuccess, onError }: SignInDialogProps) {
+export function SignInDialog({ children }: SignInDialogProps) {
+  const { signIn } = useAuth();
   const [open, setOpen] = useState(false);
   const [showUsernameInput, setShowUsernameInput] = useState(false);
   const [username, setUsername] = useState('');
@@ -37,24 +38,30 @@ export function SignInDialog({ children, onSignInSuccess, onError }: SignInDialo
     setError(null);
 
     try {
-      const credential = response.credential || null;
+      const credential = response.credential;
+      if (!credential) {
+        setError('Failed to get credential from Google. Please try again.');
+        setLoading(false);
+        return;
+      }
+
       setGoogleCredential(credential);
 
-      // TODO: In Phase 2, check if user exists via backend API
-      const userExists = false;
+      // Check if user exists via backend API
+      const result = await checkGoogleAuth(credential);
 
-      if (userExists) {
-        if (credential) {
-          onSignInSuccess?.(credential);
-        }
+      if (result.exists && result.user && result.token) {
+        // User exists - sign them in
+        signIn(result.user, result.token);
         handleClose();
       } else {
+        // New user - show username input
         setShowUsernameInput(true);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error during sign-in:', err);
-      setError('Failed to sign in. Please try again.');
-      onError?.('Sign-in failed');
+      const message = err.response?.data?.error || 'Failed to sign in. Please try again.';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -63,7 +70,6 @@ export function SignInDialog({ children, onSignInSuccess, onError }: SignInDialo
   const handleGoogleError = () => {
     console.error('Google Sign-In failed');
     setError('Failed to sign in with Google. Please try again.');
-    onError?.('Google Sign-In failed');
   };
 
   const handleCreateAccount = async () => {
@@ -77,23 +83,25 @@ export function SignInDialog({ children, onSignInSuccess, onError }: SignInDialo
       return;
     }
 
+    if (!googleCredential) {
+      setError('Authentication error. Please try again.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      console.log('Creating account with username:', username);
-      console.log('Google credential:', googleCredential);
+      // Register new user via backend API
+      const result = await registerUser(googleCredential, username.trim());
 
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      if (googleCredential) {
-        onSignInSuccess?.(googleCredential);
-      }
+      // Success - sign in the user
+      signIn(result.user, result.token);
       handleClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error creating account:', err);
-      setError('Failed to create account. Please try again.');
-      onError?.('Account creation failed');
+      const message = err.response?.data?.error || 'Failed to create account. Please try again.';
+      setError(message);
     } finally {
       setLoading(false);
     }
