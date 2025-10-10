@@ -1,8 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '../ui/dialog';
 import { Button } from '../ui/button';
 
-interface SignInPopoverProps {
+interface SignInDialogProps {
   children: React.ReactNode;
   onSignInSuccess?: (credential: string) => void;
   onError?: (error: string) => void;
@@ -41,7 +48,7 @@ declare global {
   }
 }
 
-export function SignInPopover({ children, onSignInSuccess, onError }: SignInPopoverProps) {
+export function SignInDialog({ children, onSignInSuccess, onError }: SignInDialogProps) {
   const [open, setOpen] = useState(false);
   const [showUsernameInput, setShowUsernameInput] = useState(false);
   const [username, setUsername] = useState('');
@@ -52,20 +59,23 @@ export function SignInPopover({ children, onSignInSuccess, onError }: SignInPopo
   const googleButtonRef = useRef<HTMLDivElement>(null);
   const isGoogleInitialized = useRef(false);
 
-  // Initialize Google Sign-In when popover opens
+  // Get dynamic title and description based on state
+  const title = showUsernameInput ? 'Create Your Account' : 'Sign In';
+  const description = showUsernameInput
+    ? 'Choose a username to complete your registration'
+    : 'Sign in with your Google account to save and share your shaders';
+
+  // Initialize Google Sign-In when dialog opens
   useEffect(() => {
     if (!open || isGoogleInitialized.current) return;
 
-    // Function to attempt initialization
     const attemptInitialization = () => {
-      // Check if Google Identity Services is loaded
       if (!window.google?.accounts?.id) {
         console.error('Google Identity Services not loaded');
         setError('Google Sign-In is not available. Please refresh the page.');
         return false;
       }
 
-      // Get and validate Client ID
       const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID';
 
       if (GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID') {
@@ -74,20 +84,17 @@ export function SignInPopover({ children, onSignInSuccess, onError }: SignInPopo
         return false;
       }
 
-      // Check if button ref is available
       if (!googleButtonRef.current) {
         return false;
       }
 
       try {
-        // Initialize Google Sign-In
         window.google.accounts.id.initialize({
           client_id: GOOGLE_CLIENT_ID,
           callback: handleGoogleSignIn,
           auto_select: false,
         });
 
-        // Render the Google Sign-In button
         window.google.accounts.id.renderButton(googleButtonRef.current, {
           theme: 'filled_blue',
           size: 'large',
@@ -105,10 +112,8 @@ export function SignInPopover({ children, onSignInSuccess, onError }: SignInPopo
       }
     };
 
-    // Try immediate initialization
     const success = attemptInitialization();
 
-    // If failed due to timing, retry after a short delay
     if (!success && window.google?.accounts?.id) {
       const retryTimeout = setTimeout(() => {
         attemptInitialization();
@@ -124,20 +129,13 @@ export function SignInPopover({ children, onSignInSuccess, onError }: SignInPopo
     setError(null);
 
     try {
-      // Store the credential for later use
       setGoogleCredential(response.credential);
-
-      // TODO: In Phase 2, check if user exists via backend API
-      // For now, simulate checking if user exists
-      const userExists = false; // This will be replaced with actual API call
+      const userExists = false;
 
       if (userExists) {
-        // User exists, sign them in directly
         onSignInSuccess?.(response.credential);
-        setOpen(false);
-        resetState();
+        handleClose();
       } else {
-        // New user, show username input
         setShowUsernameInput(true);
       }
     } catch (err) {
@@ -164,19 +162,15 @@ export function SignInPopover({ children, onSignInSuccess, onError }: SignInPopo
     setError(null);
 
     try {
-      // TODO: In Phase 2, create user account via backend API
       console.log('Creating account with username:', username);
       console.log('Google credential:', googleCredential);
 
-      // Simulate account creation
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Success - sign in the user
       if (googleCredential) {
         onSignInSuccess?.(googleCredential);
       }
-      setOpen(false);
-      resetState();
+      handleClose();
     } catch (err) {
       console.error('Error creating account:', err);
       setError('Failed to create account. Please try again.');
@@ -195,6 +189,11 @@ export function SignInPopover({ children, onSignInSuccess, onError }: SignInPopo
     isGoogleInitialized.current = false;
   };
 
+  const handleClose = () => {
+    setOpen(false);
+    resetState();
+  };
+
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
     if (!newOpen) {
@@ -203,29 +202,21 @@ export function SignInPopover({ children, onSignInSuccess, onError }: SignInPopo
   };
 
   return (
-    <Popover open={open} onOpenChange={handleOpenChange}>
-      <PopoverTrigger asChild>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger asChild>
         {children}
-      </PopoverTrigger>
-      <PopoverContent
-        className="w-80 bg-gray-800 border-gray-700 text-white p-6"
-        align="end"
-        sideOffset={8}
-      >
-        <div className="space-y-4">
-          {/* Header */}
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold text-white">
-              {showUsernameInput ? 'Create Your Account' : 'Sign In'}
-            </h3>
-            <p className="text-sm text-gray-400">
-              {showUsernameInput
-                ? 'Choose a username to complete your registration'
-                : 'Sign in with your Google account to save and share your shaders'
-              }
-            </p>
-          </div>
+      </DialogTrigger>
+      <DialogContent className="w-80 bg-gray-800 border-gray-700 text-white p-6">
+        <DialogHeader>
+          <DialogTitle className="text-lg font-semibold text-white">
+            {title}
+          </DialogTitle>
+          <DialogDescription className="text-sm text-gray-400">
+            {description}
+          </DialogDescription>
+        </DialogHeader>
 
+        <div className="space-y-4">
           {/* Error Message */}
           {error && (
             <div className="bg-red-500/10 border border-red-500/50 rounded-md p-3">
@@ -235,7 +226,6 @@ export function SignInPopover({ children, onSignInSuccess, onError }: SignInPopo
 
           {/* Content */}
           {!showUsernameInput ? (
-            // Google Sign-In Button
             <div className="flex flex-col items-center space-y-4">
               <div
                 ref={googleButtonRef}
@@ -249,7 +239,6 @@ export function SignInPopover({ children, onSignInSuccess, onError }: SignInPopo
               )}
             </div>
           ) : (
-            // Username Input Form
             <div className="space-y-4">
               <div className="space-y-2">
                 <label htmlFor="username" className="text-sm font-medium text-gray-300">
@@ -313,7 +302,7 @@ export function SignInPopover({ children, onSignInSuccess, onError }: SignInPopo
             </p>
           </div>
         </div>
-      </PopoverContent>
-    </Popover>
+      </DialogContent>
+    </Dialog>
   );
 }

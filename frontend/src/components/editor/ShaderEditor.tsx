@@ -6,7 +6,7 @@ import { updateErrorLines } from '../../utils/ErrorLineTracking';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Dropdown } from '../ui/Dropdown';
-import { SignInPopover } from '../auth/SignInPopover';
+import { SignInDialog } from '../auth/SignInDialog';
 
 export interface ShaderData {
   id: string;
@@ -346,12 +346,12 @@ uniform sampler2D BufferD;         // Buffer D texture`;
           >
             <span className="text-lg">New+</span>
           </Button>
-          <SignInPopover
-            onSignInSuccess={(credential) => {
+          <SignInDialog
+            onSignInSuccess={(credential: string) => {
               console.log('User signed in successfully:', credential);
               // TODO: Handle sign-in success (Phase 2)
             }}
-            onError={(error) => {
+            onError={(error: string) => {
               console.error('Sign-in error:', error);
               // TODO: Handle sign-in error (Phase 2)
             }}
@@ -364,7 +364,7 @@ uniform sampler2D BufferD;         // Buffer D texture`;
             >
               <span className="text-lg">Sign In</span>
             </Button>
-          </SignInPopover>
+          </SignInDialog>
         </div>
       </div>
 
