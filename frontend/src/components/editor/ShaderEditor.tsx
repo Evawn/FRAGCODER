@@ -130,11 +130,9 @@ function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess
     { id: '1', name: 'Image', code: shader?.code || defaultImageCode, isDeletable: false, errors: [] }
   ]);
   const [activeTabId, setActiveTabId] = useState('1');
-  const [showAddDropdown, setShowAddDropdown] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [tabToDelete, setTabToDelete] = useState<Tab | null>(null);
 
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const isSwitchingTabsRef = useRef(false);
 
   // Title dropdown options
@@ -145,6 +143,15 @@ function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess
         // TODO: Implement save functionality
       }
     }
+  ];
+
+  // Add tab dropdown options
+  const addTabDropdownOptions = [
+    { text: 'Buffer A', callback: () => handleAddTab('Buffer A') },
+    { text: 'Buffer B', callback: () => handleAddTab('Buffer B') },
+    { text: 'Buffer C', callback: () => handleAddTab('Buffer C') },
+    { text: 'Buffer D', callback: () => handleAddTab('Buffer D') },
+    { text: 'Common', callback: () => handleAddTab('Common') }
   ];
 
   // Update tabs with incoming compilation errors
@@ -170,18 +177,6 @@ function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess
       ));
     }
   }, [shader]);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowAddDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   // Get active tab
   const activeTab = tabs.find(tab => tab.id === activeTabId);
@@ -280,7 +275,6 @@ function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess
     };
     setTabs([...tabs, newTab]);
     setActiveTabId(newTab.id);
-    setShowAddDropdown(false);
   };
 
   const handleDeleteTab = (tab: Tab) => {
@@ -362,70 +356,36 @@ uniform sampler2D BufferD;         // Buffer D texture`;
 
       {/* Tabs Bar */}
       <div className="bg-gray-800 border-b border-gray-700 flex items-center px-1" style={{ height: '30px' }}>
-        {/* Add Tab Button */}
-        <div className="relative mr-1" ref={dropdownRef}>
-          <button
-            onClick={() => setShowAddDropdown(!showAddDropdown)}
-            className="p-1 rounded hover:bg-gray-700 transition-colors group"
-            title="Add new tab"
-            style={{ width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <svg className="w-5 h-5 text-gray-400 group-hover:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-          </button>
-
-          {/* Dropdown Menu */}
-          {showAddDropdown && (
-            <div className="absolute left-0 top-full mt-1 bg-gray-700 border border-gray-600 rounded-md shadow-lg z-10 py-1 min-w-[120px]">
-              <button
-                onClick={() => handleAddTab('Buffer A')}
-                className="w-full px-3 py-1.5 text-left text-sm text-gray-200 hover:bg-gray-600 transition-colors"
-              >
-                Buffer A
-              </button>
-              <button
-                onClick={() => handleAddTab('Buffer B')}
-                className="w-full px-3 py-1.5 text-left text-sm text-gray-200 hover:bg-gray-600 transition-colors"
-              >
-                Buffer B
-              </button>
-              <button
-                onClick={() => handleAddTab('Buffer C')}
-                className="w-full px-3 py-1.5 text-left text-sm text-gray-200 hover:bg-gray-600 transition-colors"
-              >
-                Buffer C
-              </button>
-              <button
-                onClick={() => handleAddTab('Buffer D')}
-                className="w-full px-3 py-1.5 text-left text-sm text-gray-200 hover:bg-gray-600 transition-colors"
-              >
-                Buffer D
-              </button>
-              <div className="border-t border-gray-600 my-1"></div>
-              <button
-                onClick={() => handleAddTab('Common')}
-                className="w-full px-3 py-1.5 text-left text-sm text-gray-200 hover:bg-gray-600 transition-colors"
-              >
-                Common
-              </button>
-            </div>
-          )}
+        {/* Add Tab Button with Dropdown */}
+        <div className="mr-1">
+          <Dropdown options={addTabDropdownOptions} align="start" sideOffset={4}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-auto p-1 text-gray-400 bg-transparent hover:text-gray-200 hover:bg-gray-700 focus:outline-none"
+              style={{ width: '18px', height: '18px' }}
+              title="Add new tab"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            </Button>
+          </Dropdown>
         </div>
 
         {/* Tabs */}
         <div className="flex-1 flex items-center overflow-x-auto" style={{ gap: '2px' }}>
           {tabs.map(tab => (
-            <div
+            <Button
               key={tab.id}
-              className={`flex items-center px-2 rounded-t cursor-pointer transition-colors group ${activeTabId === tab.id
-                ? 'bg-gray-900 text-white'
+              variant="ghost"
+              size="sm"
+              className={`h-auto px-2 rounded-t transition-colors group relative ${activeTabId === tab.id
+                ? 'bg-gray-900 text-white hover:bg-gray-900'
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-gray-100'
                 }`}
-              style={{ height: '30px' }}
-              onClick={() => {
-                setActiveTabId(tab.id);
-              }}
+              style={{ height: '30px', minWidth: 'fit-content' }}
+              onClick={() => setActiveTabId(tab.id)}
             >
               {/* Error indicator dot */}
               {tabHasErrors(tab) && (
@@ -450,7 +410,7 @@ uniform sampler2D BufferD;         // Buffer D texture`;
                   </svg>
                 </button>
               )}
-            </div>
+            </Button>
           ))}
         </div>
       </div>
