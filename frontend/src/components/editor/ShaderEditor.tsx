@@ -4,7 +4,7 @@ import type { CompilationError, TabShaderData } from '../../utils/GLSLCompiler';
 import type { Transaction } from '@codemirror/state';
 import { updateErrorLines } from '../../utils/ErrorLineTracking';
 import { Button } from '../ui/button';
-import { TitleOptions } from './TitleOptions';
+import { Dropdown } from '../ui/Dropdown';
 
 export interface ShaderData {
   id: string;
@@ -137,16 +137,15 @@ function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess
   const dropdownRef = useRef<HTMLDivElement>(null);
   const isSwitchingTabsRef = useRef(false);
 
-  // Title options handlers (placeholder for future implementation)
-  const handleRename = () => {
-    console.log('Rename clicked');
-    // TODO: Implement rename functionality
-  };
-
-  const handleSave = () => {
-    console.log('Save clicked');
-    // TODO: Implement save functionality
-  };
+  // Title dropdown options
+  const titleDropdownOptions = [
+    {
+      text: 'Save as...',
+      callback: () => {
+        // TODO: Implement save functionality
+      }
+    }
+  ];
 
   // Update tabs with incoming compilation errors
   useEffect(() => {
@@ -320,7 +319,7 @@ uniform sampler2D BufferD;         // Buffer D texture`;
       {/* Header */}
       <div className="bg-gray-800 border-b border-gray-700 flex items-center justify-between px-2" style={{ height: '30px' }}>
         {/* Title Button with Options Dropdown */}
-        <TitleOptions onRename={handleRename} onSave={handleSave}>
+        <Dropdown options={titleDropdownOptions}>
           <Button
             variant="ghost"
             size="sm"
@@ -336,7 +335,7 @@ uniform sampler2D BufferD;         // Buffer D texture`;
               <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>
           </Button>
-        </TitleOptions>
+        </Dropdown>
 
         {/* Right-side buttons */}
         <div className="flex items-center gap-2">

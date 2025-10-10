@@ -1,24 +1,25 @@
 import { useState } from 'react';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from './popover';
 import { cn } from '../../lib/utils';
 
-interface TitleOptionsProps {
-  children: React.ReactNode;
-  onRename?: () => void;
-  onSave?: () => void;
+export interface DropdownOption {
+  text: string;
+  callback: () => void;
 }
 
-export function TitleOptions({ children, onRename, onSave }: TitleOptionsProps) {
+interface DropdownProps {
+  children: React.ReactNode;
+  options: DropdownOption[];
+  align?: 'start' | 'center' | 'end';
+  sideOffset?: number;
+}
+
+export function Dropdown({ children, options, align = 'start', sideOffset = 8 }: DropdownProps) {
   const [open, setOpen] = useState(false);
 
-  const handleRename = () => {
+  const handleOptionClick = (callback: () => void) => {
     setOpen(false);
-    onRename?.();
-  };
-
-  const handleSave = () => {
-    setOpen(false);
-    onSave?.();
+    callback();
   };
 
   return (
@@ -27,12 +28,11 @@ export function TitleOptions({ children, onRename, onSave }: TitleOptionsProps) 
         {children}
       </PopoverTrigger>
       <PopoverContent
-        align="start"
-        sideOffset={8}
+        align={align}
+        sideOffset={sideOffset}
         className={cn(
           "w-auto p-0 bg-gray-700 border-gray-600",
           "rounded-md shadow-lg",
-          // Remove default width and padding
           "min-w-[160px]"
         )}
       >
@@ -42,18 +42,15 @@ export function TitleOptions({ children, onRename, onSave }: TitleOptionsProps) 
 
         {/* Menu options */}
         <div className="py-1">
-          <button
-            onClick={handleRename}
-            className="w-full px-4 py-2 text-left text-sm text-gray-200 hover:bg-gray-600 transition-colors duration-150"
-          >
-            Rename...
-          </button>
-          <button
-            onClick={handleSave}
-            className="w-full px-4 py-2 text-left text-sm text-gray-200 hover:bg-gray-600 transition-colors duration-150"
-          >
-            Save...
-          </button>
+          {options.map((option, index) => (
+            <button
+              key={index}
+              onClick={() => handleOptionClick(option.callback)}
+              className="w-full px-4 py-2 text-left text-sm text-gray-200 hover:bg-gray-600 transition-colors duration-150"
+            >
+              {option.text}
+            </button>
+          ))}
         </div>
       </PopoverContent>
     </Popover>
