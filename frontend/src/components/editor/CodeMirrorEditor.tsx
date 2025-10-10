@@ -90,8 +90,8 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         '&': {
           fontSize: '14px',
           fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
-          height: '60vh',
-          maxHeight: '60vh'
+          height: '100%',
+          maxHeight: '100%'
         },
         '.cm-content': {
           padding: '16px',
