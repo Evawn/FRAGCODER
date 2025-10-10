@@ -36,82 +36,82 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   const extensions = useMemo(() => {
     const baseExtensions: Extension[] = [
       keymap.of([
-      {
-        key: 'Shift-Enter',
-        preventDefault: true,
-        run: (view) => {
-          // Close completion tooltip if active
-          if (completionStatus(view.state) === "active") {
-            closeCompletion(view);
+        {
+          key: 'Shift-Enter',
+          preventDefault: true,
+          run: (view) => {
+            // Close completion tooltip if active
+            if (completionStatus(view.state) === "active") {
+              closeCompletion(view);
+            }
+            onCompile?.();
+            return true;
           }
-          onCompile?.();
-          return true;
-        }
-      },
-      {
-        key: 'Ctrl-s',
-        preventDefault: true,
-        run: () => {
-          onCompile?.();
-          return true;
-        }
-      },
-      {
-        key: 'Tab',
-        preventDefault: true,
-        run: (view) => {
-          if (completionStatus(view.state) === "active") {
-            return acceptCompletion(view);
-          } else {
-            return indentMore(view);
+        },
+        {
+          key: 'Ctrl-s',
+          preventDefault: true,
+          run: () => {
+            onCompile?.();
+            return true;
           }
-        }
-      },
-      // Essential editor commands since we disabled defaultKeymap
-      { key: 'Enter', run: insertNewlineAndIndent },
-      { key: 'Ctrl-a', run: selectAll },
-      { key: 'Ctrl-Home', run: cursorDocStart },
-      { key: 'Ctrl-End', run: cursorDocEnd },
-      { key: 'Home', run: cursorLineStart },
-      { key: 'End', run: cursorLineEnd },
-      { key: 'Backspace', run: deleteCharBackward },
-      { key: 'Delete', run: deleteCharForward }
-    ]),
-    glsl(),
-    lineNumbers(),
-    highlightActiveLineGutter(),
-    indentOnInput(),
-    bracketMatching(),
-    codeFolding(),
-    foldGutter(),
-    indentUnit.of("    "), // 4 spaces
-    ...createErrorDecorationExtensions(),
-    EditorView.theme({
-      '&': {
-        fontSize: '14px',
-        fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
-        height: '60vh',
-        maxHeight: '60vh'
-      },
-      '.cm-content': {
-        padding: '16px',
-        minHeight: 'auto'
-      },
-      '.cm-focused': {
-        outline: 'none'
-      },
-      '.cm-editor': {
-        height: '100%',
-        maxHeight: '100%'
-      },
-      '.cm-scroller': {
-        height: '100%',
-        maxHeight: '100%',
-        overflow: 'auto'
-      },
-    }),
-    EditorView.lineWrapping
-  ];
+        },
+        {
+          key: 'Tab',
+          preventDefault: true,
+          run: (view) => {
+            if (completionStatus(view.state) === "active") {
+              return acceptCompletion(view);
+            } else {
+              return indentMore(view);
+            }
+          }
+        },
+        // Essential editor commands since we disabled defaultKeymap
+        { key: 'Enter', run: insertNewlineAndIndent },
+        { key: 'Ctrl-a', run: selectAll },
+        { key: 'Ctrl-Home', run: cursorDocStart },
+        { key: 'Ctrl-End', run: cursorDocEnd },
+        { key: 'Home', run: cursorLineStart },
+        { key: 'End', run: cursorLineEnd },
+        { key: 'Backspace', run: deleteCharBackward },
+        { key: 'Delete', run: deleteCharForward }
+      ]),
+      glsl(),
+      lineNumbers(),
+      highlightActiveLineGutter(),
+      indentOnInput(),
+      bracketMatching(),
+      codeFolding(),
+      foldGutter(),
+      indentUnit.of("    "), // 4 spaces
+      ...createErrorDecorationExtensions(),
+      EditorView.theme({
+        '&': {
+          fontSize: '14px',
+          fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
+          height: '60vh',
+          maxHeight: '60vh'
+        },
+        '.cm-content': {
+          padding: '16px',
+          minHeight: 'auto'
+        },
+        '.cm-focused': {
+          outline: 'none'
+        },
+        '.cm-editor': {
+          height: '100%',
+          maxHeight: '100%'
+        },
+        '.cm-scroller': {
+          height: '100%',
+          maxHeight: '100%',
+          overflow: 'auto'
+        },
+      }),
+      EditorView.lineWrapping
+    ];
 
     // Add document change listener if callback is provided
     if (onDocumentChange) {
@@ -160,7 +160,7 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   };
 
   return (
-    <div className={`border-2 rounded transition-colors duration-200 ${getBorderColor()}`} style={{ height: '60vh', maxHeight: '60vh' }}>
+    <div className={`border-1 rounded transition-colors duration-200 ${getBorderColor()}`} style={{ height: '60vh', maxHeight: '60vh' }}>
       <CodeMirror
         ref={editorRef}
         value={value}
@@ -185,7 +185,8 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         }}
         style={{
           height: '100%',
-          maxHeight: '100%'
+          maxHeight: '100%',
+          padding: '0'
         }}
       />
     </div>

@@ -304,27 +304,19 @@ uniform sampler2D BufferD;         // Buffer D texture`;
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header with compile button */}
-      <div className="bg-gray-800 p-4 border-b border-gray-700">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">GLSL Editor</h2>
-          <button
-            onClick={handleCompile}
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
-          >
-            Compile
-          </button>
-        </div>
+      {/* Header */}
+      <div className="bg-gray-800 border-b border-gray-700" style={{ height: '30px' }}>
       </div>
 
       {/* Tabs Bar */}
-      <div className="bg-gray-800 border-b border-gray-700 flex items-center px-2 py-1">
+      <div className="bg-gray-800 border-b border-gray-700 flex items-center px-1" style={{ height: '30px' }}>
         {/* Add Tab Button */}
-        <div className="relative mr-2" ref={dropdownRef}>
+        <div className="relative mr-1" ref={dropdownRef}>
           <button
             onClick={() => setShowAddDropdown(!showAddDropdown)}
             className="p-1 rounded hover:bg-gray-700 transition-colors group"
             title="Add new tab"
+            style={{ width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             <svg className="w-5 h-5 text-gray-400 group-hover:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -370,14 +362,15 @@ uniform sampler2D BufferD;         // Buffer D texture`;
         </div>
 
         {/* Tabs */}
-        <div className="flex-1 flex items-center space-x-1 overflow-x-auto">
+        <div className="flex-1 flex items-center overflow-x-auto" style={{ gap: '2px' }}>
           {tabs.map(tab => (
             <div
               key={tab.id}
-              className={`flex items-center px-3 py-1.5 rounded-t cursor-pointer transition-colors group ${activeTabId === tab.id
-                  ? 'bg-gray-900 text-white'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-gray-100'
+              className={`flex items-center px-2 rounded-t cursor-pointer transition-colors group ${activeTabId === tab.id
+                ? 'bg-gray-900 text-white'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-gray-100'
                 }`}
+              style={{ height: '30px' }}
               onClick={() => {
                 setActiveTabId(tab.id);
               }}
@@ -385,20 +378,22 @@ uniform sampler2D BufferD;         // Buffer D texture`;
               {/* Error indicator dot */}
               {tabHasErrors(tab) && (
                 <span
-                  className="w-2 h-2 rounded-full bg-red-500 mr-2 flex-shrink-0"
+                  className="rounded-full bg-red-500 mr-1 flex-shrink-0"
+                  style={{ width: '4px', height: '4px' }}
                   title={`${tab.name} has compilation errors`}
                 />
               )}
-              <span className="text-sm font-medium whitespace-nowrap">{tab.name}</span>
+              <span className="whitespace-nowrap" style={{ fontSize: '14px', lineHeight: '20px' }}>{tab.name}</span>
               {tab.isDeletable && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handleDeleteTab(tab);
                   }}
-                  className="ml-2 p-0.5 rounded hover:bg-gray-500 transition-colors"
+                  className="ml-1 rounded hover:bg-gray-500 transition-colors"
+                  style={{ padding: '1px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 >
-                  <svg className="w-3 h-3 text-gray-400 group-hover:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="text-gray-400 group-hover:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: '10px', height: '10px' }}>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
@@ -412,7 +407,7 @@ uniform sampler2D BufferD;         // Buffer D texture`;
       <div className="bg-gray-800 border-b border-gray-700">
         <button
           onClick={() => setIsUniformsExpanded(!isUniformsExpanded)}
-          className="w-full flex items-center justify-between p-3 text-left hover:bg-gray-700 transition-colors duration-150"
+          className="w-full flex items-center justify-between py-0 px-3 text-left hover:bg-gray-700 transition-colors duration-150"
         >
           <span className="text-sm font-medium text-gray-300">Shader Uniforms</span>
           <svg
@@ -436,7 +431,7 @@ uniform sampler2D BufferD;         // Buffer D texture`;
       </div>
 
       {/* Code Editor Area */}
-      <div className="flex-1 bg-gray-900 flex flex-col p-4">
+      <div className="flex-1 bg-gray-900 flex flex-col p-0">
         <CodeMirrorEditor
           value={code}
           onChange={handleCodeChange}
