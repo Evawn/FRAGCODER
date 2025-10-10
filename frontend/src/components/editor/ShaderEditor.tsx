@@ -3,6 +3,7 @@ import CodeMirrorEditor from './CodeMirrorEditor';
 import type { CompilationError, TabShaderData } from '../../utils/GLSLCompiler';
 import type { Transaction } from '@codemirror/state';
 import { updateErrorLines } from '../../utils/ErrorLineTracking';
+import { Button } from '../ui/button';
 
 export interface ShaderData {
   id: string;
@@ -305,7 +306,23 @@ uniform sampler2D BufferD;         // Buffer D texture`;
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="bg-gray-800 border-b border-gray-700" style={{ height: '30px' }}>
+      <div className="bg-gray-800 border-b border-gray-700 flex items-center px-2" style={{ height: '30px' }}>
+        {/* Title Button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-auto px-2 py-1 text-gray-400 bg-transparent hover:text-gray-200 hover:bg-transparent focus:outline-none"
+          style={{ outline: 'none', border: 'none' }}
+        >
+          <span className="text-sm">Untitled...</span>
+          <svg
+            className="w-3 h-3"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+          </svg>
+        </Button>
       </div>
 
       {/* Tabs Bar */}
