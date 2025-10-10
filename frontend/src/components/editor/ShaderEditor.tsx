@@ -7,6 +7,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Dropdown } from '../ui/Dropdown';
 import { SignInDialog } from '../auth/SignInDialog';
+import { SaveAsDialog } from './SaveAsDialog';
 import { useAuth } from '../../context/AuthContext';
 
 export interface ShaderData {
@@ -91,15 +92,50 @@ function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [tabToDelete, setTabToDelete] = useState<Tab | null>(null);
 
+  // Save As Dialog state
+  const [showSignInDialog, setShowSignInDialog] = useState(false);
+  const [showSaveAsDialog, setShowSaveAsDialog] = useState(false);
+
   const isSwitchingTabsRef = useRef(false);
+
+  // Handle Save As button click
+  const handleSaveAsClick = () => {
+    if (!user) {
+      // Not signed in - show sign in dialog first
+      setShowSignInDialog(true);
+    } else {
+      // Already signed in - show save as dialog directly
+      setShowSaveAsDialog(true);
+    }
+  };
+
+  // Handle shader save
+  const handleSaveShader = async (shaderName: string) => {
+    console.log('Saving shader:', shaderName);
+
+    // Prepare shader data structure
+    const shaderData = {
+      name: shaderName,
+      tabs: tabs.map(tab => ({
+        id: tab.id,
+        name: tab.name,
+        code: tab.code
+      })),
+      isPublic: true, // Default to public
+      userId: user?.id
+    };
+
+    console.log('Shader data to save:', shaderData);
+
+    // TODO: POST to backend API
+    // await saveShaderToAPI(shaderData);
+  };
 
   // Title dropdown options
   const titleDropdownOptions = [
     {
       text: 'Save as...',
-      callback: () => {
-        // TODO: Implement save functionality
-      }
+      callback: handleSaveAsClick
     }
   ];
 
@@ -341,17 +377,16 @@ uniform sampler2D BufferD;         // Buffer D texture`;
               </Button>
             </Dropdown>
           ) : (
-            // Show Sign In dialog when not signed in
-            <SignInDialog>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-auto px-2 py-1 text-gray-400 bg-transparent hover:text-gray-200 hover:bg-transparent focus:outline-none"
-                style={{ outline: 'none', border: 'none' }}
-              >
-                <span className="text-lg">Sign In</span>
-              </Button>
-            </SignInDialog>
+            // Show Sign In button when not signed in
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-auto px-2 py-1 text-gray-400 bg-transparent hover:text-gray-200 hover:bg-transparent focus:outline-none"
+              style={{ outline: 'none', border: 'none' }}
+              onClick={() => setShowSignInDialog(true)}
+            >
+              <span className="text-lg">Sign In</span>
+            </Button>
           )}
         </div>
       </div>
@@ -541,6 +576,25 @@ uniform sampler2D BufferD;         // Buffer D texture`;
           </div>
         </div>
       )}
+
+      {/* Sign In Dialog - Triggered when not signed in */}
+      <SignInDialog
+        open={showSignInDialog}
+        onOpenChange={(open) => {
+          setShowSignInDialog(open);
+          // When sign in dialog closes and user is now signed in, open save as dialog
+          if (!open && user) {
+            setShowSaveAsDialog(true);
+          }
+        }}
+      />
+
+      {/* Save As Dialog */}
+      <SaveAsDialog
+        open={showSaveAsDialog}
+        onOpenChange={setShowSaveAsDialog}
+        onSave={handleSaveShader}
+      />
 
     </div>
   );

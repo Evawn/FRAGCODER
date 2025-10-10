@@ -7,19 +7,18 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { useAuth } from '../../context/AuthContext';
 import { checkGoogleAuth, registerUser } from '../../api/auth';
 
 interface SignInDialogProps {
-  children: React.ReactNode;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export function SignInDialog({ children }: SignInDialogProps) {
+export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
   const { signIn } = useAuth();
-  const [open, setOpen] = useState(false);
   const [showUsernameInput, setShowUsernameInput] = useState(false);
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
@@ -116,12 +115,12 @@ export function SignInDialog({ children }: SignInDialogProps) {
   };
 
   const handleClose = () => {
-    setOpen(false);
+    onOpenChange(false);
     resetState();
   };
 
   const handleOpenChange = (newOpen: boolean) => {
-    setOpen(newOpen);
+    onOpenChange(newOpen);
     if (!newOpen) {
       resetState();
     }
@@ -129,9 +128,6 @@ export function SignInDialog({ children }: SignInDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
       <DialogContent className="w-80 bg-gray-800 border-gray-700 text-white p-6">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold text-white">
