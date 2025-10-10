@@ -9,11 +9,14 @@ datasource db {
 
 model User {
   id        String   @id @default(uuid())
+  googleId  String   @unique
   email     String   @unique
   username  String   @unique
-  password  String
   createdAt DateTime @default(now())
   shaders   Shader[]
+
+  @@index([googleId])
+  @@index([email])
 }
 
 model Shader {
