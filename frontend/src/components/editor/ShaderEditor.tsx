@@ -4,6 +4,7 @@ import type { CompilationError, TabShaderData } from '../../utils/GLSLCompiler';
 import type { Transaction } from '@codemirror/state';
 import { updateErrorLines } from '../../utils/ErrorLineTracking';
 import { Button } from '../ui/button';
+import { TitleOptions } from './TitleOptions';
 
 export interface ShaderData {
   id: string;
@@ -135,6 +136,17 @@ function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const isSwitchingTabsRef = useRef(false);
+
+  // Title options handlers (placeholder for future implementation)
+  const handleRename = () => {
+    console.log('Rename clicked');
+    // TODO: Implement rename functionality
+  };
+
+  const handleSave = () => {
+    console.log('Save clicked');
+    // TODO: Implement save functionality
+  };
 
   // Update tabs with incoming compilation errors
   useEffect(() => {
@@ -307,22 +319,24 @@ uniform sampler2D BufferD;         // Buffer D texture`;
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="bg-gray-800 border-b border-gray-700 flex items-center px-2" style={{ height: '30px' }}>
-        {/* Title Button */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-auto px-2 py-1 text-gray-400 bg-transparent hover:text-gray-200 hover:bg-transparent focus:outline-none"
-          style={{ outline: 'none', border: 'none' }}
-        >
-          <span className="text-sm">Untitled...</span>
-          <svg
-            className="w-3 h-3"
-            fill="currentColor"
-            viewBox="0 0 20 20"
+        {/* Title Button with Options Dropdown */}
+        <TitleOptions onRename={handleRename} onSave={handleSave}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-auto px-2 py-1 text-gray-400 bg-transparent hover:text-gray-200 hover:bg-transparent focus:outline-none"
+            style={{ outline: 'none', border: 'none' }}
           >
-            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-          </svg>
-        </Button>
+            <span className="text-lg">Untitled...</span>
+            <svg
+              className="w-3 h-3"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </Button>
+        </TitleOptions>
       </div>
 
       {/* Tabs Bar */}
