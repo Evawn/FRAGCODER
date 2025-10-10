@@ -1,14 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '../components/ui/resizable';
 import ShaderEditor, { defaultImageCode } from '../components/editor/ShaderEditor';
 import type { ShaderData } from '../components/editor/ShaderEditor';
 import ShaderPlayer from '../components/ShaderPlayer';
 import type { TabShaderData, CompilationError } from '../utils/GLSLCompiler';
+import { useAuth } from '../context/AuthContext';
 
 function EditorPage() {
   const navigate = useNavigate();
   const { slug } = useParams<{ slug: string }>();
+  const { user } = useAuth();
   const [shaderUrl, setShaderUrl] = useState<string | null>(slug || null);
 
   const [shader, setShader] = useState<ShaderData | null>(null);
@@ -23,6 +25,11 @@ function EditorPage() {
   const [panelResizeCounter, setPanelResizeCounter] = useState(0);
   const [compileTrigger, setCompileTrigger] = useState(0);
   const [leftPanelMinSize, setLeftPanelMinSize] = useState(30);
+
+  // Calculate whether current user owns the shader
+  const isOwner = useMemo(() => {
+    return !!(user && shader && user.id === shader.userId);
+  }, [user, shader]);
 
   useEffect(() => {
     if (slug) {
@@ -165,6 +172,8 @@ function EditorPage() {
             <ShaderEditor
               shader={shader}
               loadedTabs={shaderUrl ? allTabs : undefined}
+              isSavedShader={!!shaderUrl}
+              isOwner={isOwner}
               onCompile={(tabs) => {
                 console.log('Triggering shader compilation with tabs:', tabs);
 

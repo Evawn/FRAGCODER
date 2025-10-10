@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CodeMirrorEditor from './CodeMirrorEditor';
 import type { CompilationError, TabShaderData } from '../../utils/GLSLCompiler';
@@ -24,6 +24,8 @@ export interface ShaderData {
 interface ShaderEditorProps {
   shader: ShaderData | null;
   loadedTabs?: TabShaderData[];
+  isSavedShader?: boolean;
+  isOwner?: boolean;
   onCompile: (tabs: TabShaderData[]) => void;
   compilationErrors: CompilationError[];
   compilationSuccess?: boolean;
@@ -80,7 +82,7 @@ mat2 rotate2D(float angle) {
     return mat2(c, -s, s, c);
 }`;
 
-function ShaderEditor({ shader, loadedTabs, onCompile, compilationErrors, compilationSuccess, compilationTime, onTabChange }: ShaderEditorProps) {
+function ShaderEditor({ shader, loadedTabs, isSavedShader = false, isOwner = false, onCompile, compilationErrors, compilationSuccess, compilationTime, onTabChange }: ShaderEditorProps) {
   const { user, token, signOut } = useAuth();
   const navigate = useNavigate();
   const [code, setCode] = useState(shader?.code || defaultImageCode);
@@ -128,6 +130,23 @@ function ShaderEditor({ shader, loadedTabs, onCompile, compilationErrors, compil
       // Already signed in - show save as dialog directly
       setShowSaveAsDialog(true);
     }
+  };
+
+  // Placeholder handler functions (to be implemented later)
+  const handleSave = () => {
+    console.log('Save clicked - to be implemented');
+  };
+
+  const handleRename = () => {
+    console.log('Rename clicked - to be implemented');
+  };
+
+  const handleClone = () => {
+    console.log('Clone clicked - to be implemented');
+  };
+
+  const handleDelete = () => {
+    console.log('Delete clicked - to be implemented');
   };
 
   // Handle shader save
@@ -195,13 +214,48 @@ function ShaderEditor({ shader, loadedTabs, onCompile, compilationErrors, compil
     }
   };
 
-  // Title dropdown options
-  const titleDropdownOptions = [
-    {
-      text: 'Save as...',
-      callback: handleSaveAsClick
+  // Dynamic title dropdown options based on shader state and ownership
+  const titleDropdownOptions = useMemo(() => {
+    // New shader - show "Save as..."
+    if (!isSavedShader) {
+      return [
+        {
+          text: 'Save as...',
+          callback: handleSaveAsClick
+        }
+      ];
     }
-  ];
+
+    // Saved shader owned by user - show all options
+    if (isOwner) {
+      return [
+        {
+          text: 'Save',
+          callback: handleSave
+        },
+        {
+          text: 'Rename',
+          callback: handleRename
+        },
+        {
+          text: 'Clone',
+          callback: handleClone
+        },
+        {
+          text: 'Delete',
+          callback: handleDelete
+        }
+      ];
+    }
+
+    // Saved shader NOT owned by user - show clone only
+    return [
+      {
+        text: 'Clone',
+        callback: handleClone
+      }
+    ];
+  }, [isSavedShader, isOwner]);
 
   // Add tab dropdown options
   const addTabDropdownOptions = [
