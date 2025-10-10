@@ -160,7 +160,7 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   };
 
   return (
-    <div className={`border-1 rounded transition-colors duration-200 ${getBorderColor()}`} style={{ height: '60vh', maxHeight: '60vh' }}>
+    <div className={`border-1 h-full rounded transition-colors duration-200 ${getBorderColor()}`}>
       <CodeMirror
         ref={editorRef}
         value={value}
@@ -186,7 +186,7 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         style={{
           height: '100%',
           maxHeight: '100%',
-          padding: '0'
+          padding: '0px'
         }}
       />
     </div>

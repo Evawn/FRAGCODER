@@ -443,6 +443,10 @@ uniform sampler2D BufferD;         // Buffer D texture`;
         />
       </div>
 
+      {/* Footer */}
+      <div className="bg-gray-800 border-t border-gray-700" style={{ height: '30px' }}>
+      </div>
+
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
