@@ -6,6 +6,7 @@ import { updateErrorLines } from '../../utils/ErrorLineTracking';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Dropdown } from '../ui/Dropdown';
+import { SignInPopover } from '../auth/SignInPopover';
 
 export interface ShaderData {
   id: string;
@@ -345,15 +346,25 @@ uniform sampler2D BufferD;         // Buffer D texture`;
           >
             <span className="text-lg">New+</span>
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-auto px-2 py-1 text-gray-400 bg-transparent hover:text-gray-200 hover:bg-transparent focus:outline-none"
-            style={{ outline: 'none', border: 'none' }}
-            onClick={() => console.log('Sign In clicked')}
+          <SignInPopover
+            onSignInSuccess={(credential) => {
+              console.log('User signed in successfully:', credential);
+              // TODO: Handle sign-in success (Phase 2)
+            }}
+            onError={(error) => {
+              console.error('Sign-in error:', error);
+              // TODO: Handle sign-in error (Phase 2)
+            }}
           >
-            <span className="text-lg">Sign In</span>
-          </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-auto px-2 py-1 text-gray-400 bg-transparent hover:text-gray-200 hover:bg-transparent focus:outline-none"
+              style={{ outline: 'none', border: 'none' }}
+            >
+              <span className="text-lg">Sign In</span>
+            </Button>
+          </SignInPopover>
         </div>
       </div>
 
