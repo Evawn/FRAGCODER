@@ -457,7 +457,18 @@ uniform sampler2D BufferD;         // Buffer D texture`;
       </div>
 
       {/* Footer */}
-      <div className="bg-gray-800 border-t border-gray-700" style={{ height: '30px' }}>
+      <div className="bg-gray-800 border-t border-gray-700 flex items-center px-2" style={{ height: '30px' }}>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleCompile}
+          className="h-6 w-6 bg-transparent focus:outline-none border-green-500 text-green-500 hover:bg-green-500/10 hover:text-green-400"
+          title="Compile Shader"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3l14 9-14 9V3z" />
+          </svg>
+        </Button>
       </div>
 
       {/* Delete Confirmation Modal */}
