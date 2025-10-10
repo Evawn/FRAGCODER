@@ -378,11 +378,9 @@ uniform sampler2D BufferD;         // Buffer D texture`;
         {/* Tabs */}
         <div className="flex-1 flex items-center overflow-x-auto" style={{ gap: '2px' }}>
           {tabs.map(tab => (
-            <Button
+            <div
               key={tab.id}
-              variant="ghost"
-              size="sm"
-              className={`h-auto px-2 rounded-t transition-colors group relative ${activeTabId === tab.id
+              className={`h-auto px-2 rounded-t transition-colors group relative cursor-pointer inline-flex items-center ${activeTabId === tab.id
                 ? 'bg-gray-900 text-white hover:bg-gray-900'
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-gray-100'
                 }`}
@@ -412,7 +410,7 @@ uniform sampler2D BufferD;         // Buffer D texture`;
                   </svg>
                 </button>
               )}
-            </Button>
+            </div>
           ))}
         </div>
       </div>
