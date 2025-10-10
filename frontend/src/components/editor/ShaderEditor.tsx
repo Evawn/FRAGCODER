@@ -445,7 +445,7 @@ uniform sampler2D BufferD;         // Buffer D texture`;
       </div>
 
       {/* Code Editor Area */}
-      <div className="flex-1 h-full bg-gray-900 flex flex-col p-0">
+      <div className="flex-1 bg-gray-900 flex flex-col p-0 overflow-hidden min-h-0">
         <CodeMirrorEditor
           value={code}
           onChange={handleCodeChange}
