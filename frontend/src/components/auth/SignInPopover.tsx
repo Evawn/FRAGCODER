@@ -56,32 +56,38 @@ export function SignInPopover({ children, onSignInSuccess, onError }: SignInPopo
   useEffect(() => {
     if (!open || isGoogleInitialized.current) return;
 
-    // Check if Google Identity Services is loaded
-    if (!window.google?.accounts?.id) {
-      console.error('Google Identity Services not loaded');
-      setError('Google Sign-In is not available. Please refresh the page.');
-      return;
-    }
+    // Function to attempt initialization
+    const attemptInitialization = () => {
+      // Check if Google Identity Services is loaded
+      if (!window.google?.accounts?.id) {
+        console.error('Google Identity Services not loaded');
+        setError('Google Sign-In is not available. Please refresh the page.');
+        return false;
+      }
 
-    // TODO: Replace with your actual Google OAuth Client ID
-    const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID';
+      // Get and validate Client ID
+      const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID';
 
-    if (GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID') {
-      console.warn('Google Client ID not configured. Set VITE_GOOGLE_CLIENT_ID environment variable.');
-      setError('Google Sign-In not configured. Please contact the administrator.');
-      return;
-    }
+      if (GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID') {
+        console.warn('Google Client ID not configured. Set VITE_GOOGLE_CLIENT_ID environment variable.');
+        setError('Google Sign-In not configured. Please contact the administrator.');
+        return false;
+      }
 
-    try {
-      // Initialize Google Sign-In
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: handleGoogleSignIn,
-        auto_select: false,
-      });
+      // Check if button ref is available
+      if (!googleButtonRef.current) {
+        return false;
+      }
 
-      // Render the Google Sign-In button
-      if (googleButtonRef.current) {
+      try {
+        // Initialize Google Sign-In
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: handleGoogleSignIn,
+          auto_select: false,
+        });
+
+        // Render the Google Sign-In button
         window.google.accounts.id.renderButton(googleButtonRef.current, {
           theme: 'filled_blue',
           size: 'large',
@@ -89,11 +95,26 @@ export function SignInPopover({ children, onSignInSuccess, onError }: SignInPopo
           shape: 'rectangular',
           width: 280,
         });
+
         isGoogleInitialized.current = true;
+        return true;
+      } catch (err) {
+        console.error('Error initializing Google Sign-In:', err);
+        setError('Failed to initialize Google Sign-In');
+        return false;
       }
-    } catch (err) {
-      console.error('Error initializing Google Sign-In:', err);
-      setError('Failed to initialize Google Sign-In');
+    };
+
+    // Try immediate initialization
+    const success = attemptInitialization();
+
+    // If failed due to timing, retry after a short delay
+    if (!success && window.google?.accounts?.id) {
+      const retryTimeout = setTimeout(() => {
+        attemptInitialization();
+      }, 100);
+
+      return () => clearTimeout(retryTimeout);
     }
   }, [open]);
 
