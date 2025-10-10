@@ -2,7 +2,7 @@ import { Routes, Route } from 'react-router-dom'
 import Navigation from './components/Navigation'
 import Gallery from './pages/GalleryPage'
 // import ShaderEditor from './pages/ShaderEditorPage'
-import NewShaderEditor from './pages/NewShaderEditorPage'
+import EditorPage from './pages/EditorPage'
 import Auth from './pages/AuthPage'
 
 function App() {
@@ -12,7 +12,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Gallery />} />
         {/* <Route path="/editor" element={<ShaderEditor />} /> */}
-        <Route path="/new_editor" element={<NewShaderEditor />} />
+        <Route path="/new" element={<EditorPage />} />
         <Route path="/auth" element={<Auth />} />
       </Routes>
     </div>

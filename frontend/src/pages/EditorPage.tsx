@@ -6,7 +6,7 @@ import type { ShaderData } from '../components/editor/ShaderEditor';
 import ShaderPlayer from '../components/ShaderPlayer';
 import type { TabShaderData, CompilationError } from '../utils/GLSLCompiler';
 
-function NewShaderEditorPage() {
+function EditorPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const shaderId = searchParams.get('id');
@@ -138,4 +138,4 @@ function NewShaderEditorPage() {
   );
 }
 
-export default NewShaderEditorPage
+export default EditorPage

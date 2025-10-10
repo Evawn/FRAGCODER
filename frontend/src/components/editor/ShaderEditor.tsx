@@ -296,7 +296,7 @@ uniform sampler2D BufferD;         // Buffer D texture`;
             size="sm"
             className="h-auto px-2 py-1 text-gray-400 bg-transparent hover:text-gray-200 hover:bg-transparent focus:outline-none"
             style={{ outline: 'none', border: 'none' }}
-            onClick={() => console.log('New+ clicked')}
+            onClick={() => window.location.href = '/new'}
           >
             <span className="text-lg">New+</span>
           </Button>
