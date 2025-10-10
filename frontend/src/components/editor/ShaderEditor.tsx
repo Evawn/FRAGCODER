@@ -4,6 +4,7 @@ import type { CompilationError, TabShaderData } from '../../utils/GLSLCompiler';
 import type { Transaction } from '@codemirror/state';
 import { updateErrorLines } from '../../utils/ErrorLineTracking';
 import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
 import { Dropdown } from '../ui/Dropdown';
 
 export interface ShaderData {
@@ -21,6 +22,7 @@ interface ShaderEditorProps {
   onCompile: (tabs: TabShaderData[]) => void;
   compilationErrors: CompilationError[];
   compilationSuccess?: boolean;
+  compilationTime: number;
   onTabChange?: () => void;
 }
 
@@ -121,7 +123,7 @@ mat2 rotate2D(float angle) {
     return mat2(c, -s, s, c);
 }`;
 
-function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess, onTabChange }: ShaderEditorProps) {
+function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess, compilationTime, onTabChange }: ShaderEditorProps) {
   const [code, setCode] = useState(shader?.code || defaultImageCode);
   const [isUniformsExpanded, setIsUniformsExpanded] = useState(false);
 
@@ -457,7 +459,7 @@ uniform sampler2D BufferD;         // Buffer D texture`;
       </div>
 
       {/* Footer */}
-      <div className="bg-gray-800 border-t border-gray-700 flex items-center px-2" style={{ height: '30px' }}>
+      <div className="bg-gray-800 border-t border-gray-700 flex items-center px-2 gap-2" style={{ height: '30px' }}>
         <Button
           variant="outline"
           size="icon"
@@ -469,6 +471,9 @@ uniform sampler2D BufferD;         // Buffer D texture`;
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3l14 9-14 9V3z" />
           </svg>
         </Button>
+        <Badge variant="outline" className="bg-transparent border-transparent text-green-500 font-mono text-xs px-2 py-0">
+          Compiled in {compilationTime} ms
+        </Badge>
       </div>
 
       {/* Delete Confirmation Modal */}

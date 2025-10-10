@@ -6,7 +6,7 @@ import type { CompilationError, TabShaderData, MultipassCompilationError } from 
 interface UseWebGLRendererProps {
   tabs: TabShaderData[];
   isPlaying: boolean;
-  onCompilationResult: (success: boolean, errors: CompilationError[]) => void;
+  onCompilationResult: (success: boolean, errors: CompilationError[], compilationTime: number) => void;
   panelResizeCounter: number;
   compileTrigger: number;
   isResolutionLocked: boolean;
@@ -54,7 +54,7 @@ export function useWebGLRenderer({
         line: 0,
         message: 'WebGL 2.0 is not supported in your browser',
         type: 'error'
-      }]);
+      }], 0);
       return;
     }
 
@@ -88,21 +88,30 @@ export function useWebGLRenderer({
         line: 0,
         message: 'No shader tabs provided',
         type: 'error'
-      }]);
+      }], 0);
       return;
     }
+
+    // Measure compilation time
+    const startTime = performance.now();
 
     try {
       // Compile all tabs using multipass renderer
       renderer.compileShader(tabs);
 
+      const endTime = performance.now();
+      const compilationTime = Math.round(endTime - startTime);
+
       // Success!
       setCompilationSuccess(true);
       setError(null);
-      onCompilationResult(true, []);
+      onCompilationResult(true, [], compilationTime);
 
       // Note: Playback control is handled by the separate playback useEffect
     } catch (err) {
+      const endTime = performance.now();
+      const compilationTime = Math.round(endTime - startTime);
+
       const errorMessage = err instanceof Error ? err.message : 'Shader compilation failed';
       let allErrors: CompilationError[] = [];
 
@@ -153,7 +162,7 @@ export function useWebGLRenderer({
         line: 0,
         message: errorMessage,
         type: 'error'
-      }]);
+      }], compilationTime);
 
       // Stop rendering on error
       renderer.stop();

@@ -15,6 +15,7 @@ function NewShaderEditorPage() {
   const [isPlaying, setIsPlaying] = useState(true);
   const [compilationErrors, setCompilationErrors] = useState<CompilationError[]>([]);
   const [compilationSuccess, setCompilationSuccess] = useState<boolean | undefined>(undefined);
+  const [compilationTime, setCompilationTime] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [allTabs, setAllTabs] = useState<TabShaderData[]>([
     { id: '1', name: 'Image', code: defaultImageCode }
@@ -41,10 +42,11 @@ function NewShaderEditorPage() {
     }
   };
 
-  const handleCompilationResult = useCallback((success: boolean, errors: CompilationError[]) => {
-    console.log('Compilation result:', success ? 'success' : 'failed', errors);
+  const handleCompilationResult = useCallback((success: boolean, errors: CompilationError[], compilationTime: number) => {
+    console.log('Compilation result:', success ? 'success' : 'failed', errors, `${compilationTime}ms`);
     setCompilationErrors(errors);
     setCompilationSuccess(success);
+    setCompilationTime(compilationTime);
 
     // Auto-play when compilation succeeds
     if (success) {
@@ -123,6 +125,7 @@ function NewShaderEditorPage() {
               }}
               compilationErrors={compilationErrors}
               compilationSuccess={compilationSuccess}
+              compilationTime={compilationTime}
               onTabChange={() => {
                 // No longer clear errors on tab change - errors are now filtered by tab in ShaderEditor
                 // This allows error decorations to persist when switching between tabs

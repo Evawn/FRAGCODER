@@ -9,7 +9,7 @@ interface ShaderPlayerProps {
   isPlaying: boolean;
   onPlayPause: () => void;
   onReset: () => void;
-  onCompilationResult: (success: boolean, errors: CompilationError[]) => void;
+  onCompilationResult: (success: boolean, errors: CompilationError[], compilationTime: number) => void;
   panelResizeCounter: number;
   compileTrigger: number;
   onResolutionLockChange?: (locked: boolean, minWidth?: number) => void;
