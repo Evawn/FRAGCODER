@@ -1,4 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
+import { GoogleLogin } from '@react-oauth/google';
+import type { CredentialResponse } from '@react-oauth/google';
 import {
   Dialog,
   DialogContent,
@@ -15,39 +17,6 @@ interface SignInDialogProps {
   onError?: (error: string) => void;
 }
 
-interface GoogleCredentialResponse {
-  credential: string;
-  select_by?: string;
-}
-
-declare global {
-  interface Window {
-    google?: {
-      accounts: {
-        id: {
-          initialize: (config: {
-            client_id: string;
-            callback: (response: GoogleCredentialResponse) => void;
-            auto_select?: boolean;
-          }) => void;
-          renderButton: (
-            element: HTMLElement,
-            config: {
-              theme?: 'outline' | 'filled_blue' | 'filled_black';
-              size?: 'large' | 'medium' | 'small';
-              text?: 'signin_with' | 'signup_with' | 'continue_with' | 'signin';
-              shape?: 'rectangular' | 'pill' | 'circle' | 'square';
-              logo_alignment?: 'left' | 'center';
-              width?: number;
-            }
-          ) => void;
-          prompt: () => void;
-        };
-      };
-    };
-  }
-}
-
 export function SignInDialog({ children, onSignInSuccess, onError }: SignInDialogProps) {
   const [open, setOpen] = useState(false);
   const [showUsernameInput, setShowUsernameInput] = useState(false);
@@ -56,84 +25,28 @@ export function SignInDialog({ children, onSignInSuccess, onError }: SignInDialo
   const [error, setError] = useState<string | null>(null);
   const [googleCredential, setGoogleCredential] = useState<string | null>(null);
 
-  const googleButtonRef = useRef<HTMLDivElement>(null);
-  const isGoogleInitialized = useRef(false);
-
   // Get dynamic title and description based on state
   const title = showUsernameInput ? 'Create Your Account' : 'Sign In';
   const description = showUsernameInput
     ? 'Choose a username to complete your registration'
     : 'Sign in with your Google account to save and share your shaders';
 
-  // Initialize Google Sign-In when dialog opens
-  useEffect(() => {
-    if (!open || isGoogleInitialized.current) return;
-
-    const attemptInitialization = () => {
-      if (!window.google?.accounts?.id) {
-        console.error('Google Identity Services not loaded');
-        setError('Google Sign-In is not available. Please refresh the page.');
-        return false;
-      }
-
-      const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID';
-
-      if (GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID') {
-        console.warn('Google Client ID not configured. Set VITE_GOOGLE_CLIENT_ID environment variable.');
-        setError('Google Sign-In not configured. Please contact the administrator.');
-        return false;
-      }
-
-      if (!googleButtonRef.current) {
-        return false;
-      }
-
-      try {
-        window.google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          callback: handleGoogleSignIn,
-          auto_select: false,
-        });
-
-        window.google.accounts.id.renderButton(googleButtonRef.current, {
-          theme: 'filled_blue',
-          size: 'large',
-          text: 'signin_with',
-          shape: 'rectangular',
-          width: 280,
-        });
-
-        isGoogleInitialized.current = true;
-        return true;
-      } catch (err) {
-        console.error('Error initializing Google Sign-In:', err);
-        setError('Failed to initialize Google Sign-In');
-        return false;
-      }
-    };
-
-    const success = attemptInitialization();
-
-    if (!success && window.google?.accounts?.id) {
-      const retryTimeout = setTimeout(() => {
-        attemptInitialization();
-      }, 100);
-
-      return () => clearTimeout(retryTimeout);
-    }
-  }, [open]);
-
-  const handleGoogleSignIn = async (response: GoogleCredentialResponse) => {
+  const handleGoogleSignIn = async (response: CredentialResponse) => {
     console.log('Google Sign-In successful');
     setLoading(true);
     setError(null);
 
     try {
-      setGoogleCredential(response.credential);
+      const credential = response.credential || null;
+      setGoogleCredential(credential);
+
+      // TODO: In Phase 2, check if user exists via backend API
       const userExists = false;
 
       if (userExists) {
-        onSignInSuccess?.(response.credential);
+        if (credential) {
+          onSignInSuccess?.(credential);
+        }
         handleClose();
       } else {
         setShowUsernameInput(true);
@@ -145,6 +58,12 @@ export function SignInDialog({ children, onSignInSuccess, onError }: SignInDialo
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoogleError = () => {
+    console.error('Google Sign-In failed');
+    setError('Failed to sign in with Google. Please try again.');
+    onError?.('Google Sign-In failed');
   };
 
   const handleCreateAccount = async () => {
@@ -186,7 +105,6 @@ export function SignInDialog({ children, onSignInSuccess, onError }: SignInDialo
     setError(null);
     setGoogleCredential(null);
     setLoading(false);
-    isGoogleInitialized.current = false;
   };
 
   const handleClose = () => {
@@ -227,9 +145,13 @@ export function SignInDialog({ children, onSignInSuccess, onError }: SignInDialo
           {/* Content */}
           {!showUsernameInput ? (
             <div className="flex flex-col items-center space-y-4">
-              <div
-                ref={googleButtonRef}
-                className="w-full flex justify-center"
+              <GoogleLogin
+                onSuccess={handleGoogleSignIn}
+                onError={handleGoogleError}
+                size="large"
+                text="signin_with"
+                shape="rectangular"
+                width="280"
               />
               {loading && (
                 <div className="flex items-center space-x-2 text-gray-400">
