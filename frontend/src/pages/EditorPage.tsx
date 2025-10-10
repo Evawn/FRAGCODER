@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '../components/ui/resizable';
 import ShaderEditor, { defaultImageCode } from '../components/editor/ShaderEditor';
 import type { ShaderData } from '../components/editor/ShaderEditor';
@@ -7,10 +7,9 @@ import ShaderPlayer from '../components/ShaderPlayer';
 import type { TabShaderData, CompilationError } from '../utils/GLSLCompiler';
 
 function EditorPage() {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { slug } = useParams<{ slug: string }>();
-  const shaderId = searchParams.get('id') || slug;
+  const [shaderUrl, setShaderUrl] = useState<string | null>(slug || null);
 
   const [shader, setShader] = useState<ShaderData | null>(null);
   const [isPlaying, setIsPlaying] = useState(true);
@@ -26,18 +25,54 @@ function EditorPage() {
   const [leftPanelMinSize, setLeftPanelMinSize] = useState(30);
 
   useEffect(() => {
-    if (shaderId) {
-      loadShader(shaderId);
+    if (slug) {
+      loadShader(slug);
+    } else {
+      // No slug means new shader - reset to defaults
+      setShaderUrl(null);
+      setShader(null);
+      setAllTabs([{ id: '1', name: 'Image', code: defaultImageCode }]);
     }
-  }, [shaderId]);
+  }, [slug]);
 
-  const loadShader = async (id: string) => {
+  const loadShader = async (slug: string) => {
     setLoading(true);
     try {
-      // TODO: Implement shader loading from API
-      console.log('Loading shader with ID:', id);
+      // Import API function
+      const { getShaderBySlug } = await import('../api/shaders');
+
+      // Fetch shader data from backend
+      const shaderData = await getShaderBySlug(slug);
+
+      // Convert API Shader format to ShaderData format for ShaderEditor
+      setShader({
+        id: shaderData.id,
+        title: shaderData.title,
+        code: shaderData.tabs[0]?.code || defaultImageCode, // Image tab
+        description: shaderData.description || undefined,
+        isPublic: shaderData.isPublic,
+        userId: shaderData.userId,
+        forkedFrom: shaderData.forkedFrom || undefined,
+      });
+
+      // Set all tabs for compilation
+      setAllTabs(shaderData.tabs.map(tab => ({
+        id: tab.id,
+        name: tab.name,
+        code: tab.code
+      })));
+
+      // Trigger compilation after loading
+      setCompileTrigger(prev => prev + 1);
+
+      // Set URL to indicate this is a saved shader
+      setShaderUrl(slug);
+
     } catch (error) {
       console.error('Error loading shader:', error);
+      alert('Failed to load shader. It may not exist or may be private.');
+      // Navigate back to new shader page on error
+      navigate('/new');
     } finally {
       setLoading(false);
     }
@@ -74,7 +109,19 @@ function EditorPage() {
   }, []);
 
   return (
-    <div className="h-screen bg-gray-900 text-white flex flex-col">
+    <div className="h-screen bg-gray-900 text-white flex flex-col relative">
+      {/* Loading Overlay */}
+      {loading && (
+        <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 px-6 py-4 rounded-lg border border-gray-700">
+            <div className="flex items-center space-x-3">
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span className="text-white">Loading shader...</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ResizablePanelGroup direction="horizontal" className="flex-1" onLayout={handlePanelResize}>
         {/* Shader Viewer - Left Panel */}
         <ResizablePanel defaultSize={50} minSize={leftPanelMinSize}>
@@ -117,6 +164,7 @@ function EditorPage() {
           <div className="h-full flex flex-col">
             <ShaderEditor
               shader={shader}
+              loadedTabs={shaderUrl ? allTabs : undefined}
               onCompile={(tabs) => {
                 console.log('Triggering shader compilation with tabs:', tabs);
 

@@ -23,6 +23,7 @@ export interface ShaderData {
 
 interface ShaderEditorProps {
   shader: ShaderData | null;
+  loadedTabs?: TabShaderData[];
   onCompile: (tabs: TabShaderData[]) => void;
   compilationErrors: CompilationError[];
   compilationSuccess?: boolean;
@@ -79,7 +80,7 @@ mat2 rotate2D(float angle) {
     return mat2(c, -s, s, c);
 }`;
 
-function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess, compilationTime, onTabChange }: ShaderEditorProps) {
+function ShaderEditor({ shader, loadedTabs, onCompile, compilationErrors, compilationSuccess, compilationTime, onTabChange }: ShaderEditorProps) {
   const { user, token, signOut } = useAuth();
   const navigate = useNavigate();
   const [code, setCode] = useState(shader?.code || defaultImageCode);
@@ -99,6 +100,24 @@ function ShaderEditor({ shader, onCompile, compilationErrors, compilationSuccess
   const [showSaveAsDialog, setShowSaveAsDialog] = useState(false);
 
   const isSwitchingTabsRef = useRef(false);
+
+  // Load tabs from shader when loadedTabs prop changes
+  useEffect(() => {
+    if (loadedTabs && loadedTabs.length > 0) {
+      // Convert loaded tabs to Tab format
+      const convertedTabs: Tab[] = loadedTabs.map(tab => ({
+        id: tab.id,
+        name: tab.name,
+        code: tab.code,
+        isDeletable: tab.name !== 'Image', // Image tab is never deletable
+        errors: []
+      }));
+
+      setTabs(convertedTabs);
+      setActiveTabId(convertedTabs[0].id);
+      setCode(convertedTabs[0].code);
+    }
+  }, [loadedTabs]);
 
   // Handle Save As button click
   const handleSaveAsClick = () => {
@@ -359,7 +378,7 @@ uniform sampler2D BufferD;         // Buffer D texture`;
             className="h-auto px-2 py-1 text-gray-400 bg-transparent hover:text-gray-200 hover:bg-transparent focus:outline-none"
             style={{ outline: 'none', border: 'none' }}
           >
-            <span className="text-lg">Untitled...</span>
+            <span className="text-lg">{shader?.title || 'Untitled...'}</span>
             <svg
               className="w-3 h-3"
               fill="currentColor"
