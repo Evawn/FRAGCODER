@@ -36,79 +36,31 @@ interface Tab {
   errors: CompilationError[]; // Per-tab error storage
 }
 
+// Default mainImage function code shared across all shader passes
+const defaultMainImageCode = `void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+    vec2 uv = fragCoord / iResolution.y;
+    fragColor = vec4(uv, 1.0, 1.0);
+}`;
+
 export const defaultImageCode = `// Image - Display all buffers in quadrants
 
-void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-    vec2 uv = fragCoord / iResolution.xy;
-
-    // Determine which quadrant we're in
-    vec2 quadrant = step(0.5, uv);
-
-    // Normalize UV to quadrant space (0-1 within each quadrant)
-    vec2 quadUV = fract(uv * 2.0);
-
-    // Select buffer based on quadrant
-    vec4 color;
-    if (quadrant.x < 0.5 && quadrant.y < 0.5) {
-        // Bottom-left: Buffer A
-        color = texture(BufferA, quadUV);
-    } else if (quadrant.x >= 0.5 && quadrant.y < 0.5) {
-        // Bottom-right: Buffer B
-        color = texture(BufferB, quadUV);
-    } else if (quadrant.x < 0.5 && quadrant.y >= 0.5) {
-        // Top-left: Buffer C
-        color = texture(BufferC, quadUV);
-    } else {
-        // Top-right: Buffer D
-        color = texture(BufferD, quadUV);
-    }
-
-    fragColor = color;
-}`;
+${defaultMainImageCode}`;
 
 const defaultBufferACode = `// Buffer A - Red pulsing circle
 
-void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;
-    float d = length(uv);
-    float c = smoothstep(0.5, 0.45, d + 0.1 * sin(iTime * 2.0));
-    fragColor = vec4(c * vec3(1.0, 0.1, 0.1), 1.0);
-}`;
+${defaultMainImageCode}`;
 
 const defaultBufferBCode = `// Buffer B - Green rotating square
 
-void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;
-    float a = iTime * 1.5;
-    mat2 rot = mat2(cos(a), -sin(a), sin(a), cos(a));
-    uv = rot * uv;
-    float d = max(abs(uv.x), abs(uv.y));
-    float c = smoothstep(0.35, 0.3, d);
-    fragColor = vec4(c * vec3(0.1, 1.0, 0.1), 1.0);
-}`;
+${defaultMainImageCode}`;
 
 const defaultBufferCCode = `// Buffer C - Blue animated triangle
 
-void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;
-    uv.y += 0.2;
-    float scale = 0.6 + 0.2 * sin(iTime);
-    uv /= scale;
-
-    float d = abs(uv.x) * 0.866 + uv.y * 0.5;
-    float c = smoothstep(0.45, 0.4, max(d, -uv.y - 0.5));
-    fragColor = vec4(c * vec3(0.1, 0.4, 1.0), 1.0);
-}`;
+${defaultMainImageCode}`;
 
 const defaultBufferDCode = `// Buffer D - Yellow/orange gradient waves
 
-void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-    vec2 uv = fragCoord / iResolution.xy;
-    float wave = sin(uv.x * 10.0 + iTime * 2.0) * 0.5 + 0.5;
-    float wave2 = sin(uv.y * 8.0 - iTime * 1.5) * 0.5 + 0.5;
-    vec3 col = mix(vec3(1.0, 0.8, 0.2), vec3(1.0, 0.4, 0.1), wave * wave2);
-    fragColor = vec4(col, 1.0);
-}`;
+${defaultMainImageCode}`;
 
 const defaultCommonCode = `// Common - Shared functions and definitions
 // Add your shared utilities here
@@ -355,7 +307,7 @@ uniform sampler2D BufferD;         // Buffer D texture`;
               options={[
                 {
                   text: `@${user.username}`,
-                  callback: () => {},
+                  callback: () => { },
                 },
                 {
                   text: 'My Shaders',
