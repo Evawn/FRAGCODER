@@ -580,13 +580,8 @@ uniform sampler2D BufferD;         // Buffer D texture`;
       {/* Sign In Dialog - Triggered when not signed in */}
       <SignInDialog
         open={showSignInDialog}
-        onOpenChange={(open) => {
-          setShowSignInDialog(open);
-          // When sign in dialog closes and user is now signed in, open save as dialog
-          if (!open && user) {
-            setShowSaveAsDialog(true);
-          }
-        }}
+        onOpenChange={setShowSignInDialog}
+        onSignInSuccess={() => setShowSaveAsDialog(true)}
       />
 
       {/* Save As Dialog */}

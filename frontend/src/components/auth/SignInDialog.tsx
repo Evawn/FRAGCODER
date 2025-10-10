@@ -15,9 +15,10 @@ import { checkGoogleAuth, registerUser } from '../../api/auth';
 interface SignInDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSignInSuccess?: () => void;
 }
 
-export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
+export function SignInDialog({ open, onOpenChange, onSignInSuccess }: SignInDialogProps) {
   const { signIn } = useAuth();
   const [showUsernameInput, setShowUsernameInput] = useState(false);
   const [username, setUsername] = useState('');
@@ -117,6 +118,8 @@ export function SignInDialog({ open, onOpenChange }: SignInDialogProps) {
   const handleClose = () => {
     onOpenChange(false);
     resetState();
+    // Call success callback if provided
+    onSignInSuccess?.();
   };
 
   const handleOpenChange = (newOpen: boolean) => {
