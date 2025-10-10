@@ -469,8 +469,18 @@ uniform sampler2D BufferD;         // Buffer D texture`;
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3l14 9-14 9V3z" />
           </svg>
         </Button>
-        <Badge variant="outline" className="bg-transparent border-transparent text-green-500 font-mono text-xs px-2 py-0">
-          Compiled in {compilationTime} ms
+        <Badge
+          variant="outline"
+          className={`bg-transparent border-transparent font-mono text-xs px-2 py-0 ${
+            compilationSuccess === false
+              ? 'text-red-500'
+              : 'text-green-500'
+          }`}
+        >
+          {compilationSuccess === false
+            ? 'Compilation Failed'
+            : `Compiled in ${compilationTime} ms`
+          }
         </Badge>
       </div>
 
