@@ -318,7 +318,7 @@ uniform sampler2D BufferD;         // Buffer D texture`;
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="bg-gray-800 border-b border-gray-700 flex items-center px-2" style={{ height: '30px' }}>
+      <div className="bg-gray-800 border-b border-gray-700 flex items-center justify-between px-2" style={{ height: '30px' }}>
         {/* Title Button with Options Dropdown */}
         <TitleOptions onRename={handleRename} onSave={handleSave}>
           <Button
@@ -337,6 +337,28 @@ uniform sampler2D BufferD;         // Buffer D texture`;
             </svg>
           </Button>
         </TitleOptions>
+
+        {/* Right-side buttons */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-auto px-2 py-1 text-gray-400 bg-transparent hover:text-gray-200 hover:bg-transparent focus:outline-none"
+            style={{ outline: 'none', border: 'none' }}
+            onClick={() => console.log('New+ clicked')}
+          >
+            <span className="text-lg">New+</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-auto px-2 py-1 text-gray-400 bg-transparent hover:text-gray-200 hover:bg-transparent focus:outline-none"
+            style={{ outline: 'none', border: 'none' }}
+            onClick={() => console.log('Sign In clicked')}
+          >
+            <span className="text-lg">Sign In</span>
+          </Button>
+        </div>
       </div>
 
       {/* Tabs Bar */}
