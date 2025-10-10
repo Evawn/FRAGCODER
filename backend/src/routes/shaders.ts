@@ -28,6 +28,12 @@ interface SaveShaderRequest {
   description?: string;
 }
 
+interface UpdateShaderRequest {
+  name: string;
+  tabs: TabData[];
+  compilationStatus: 'SUCCESS' | 'ERROR' | 'WARNING' | 'PENDING';
+}
+
 /**
  * POST /api/shaders
  * Create a new shader
@@ -201,6 +207,117 @@ router.get('/:slug', async (req, res): Promise<any> => {
   } catch (error) {
     console.error('Error fetching shader:', error);
     res.status(500).json({ error: 'Failed to fetch shader' });
+  }
+});
+
+/**
+ * PUT /api/shaders/:slug
+ * Update an existing shader
+ *
+ * Requires: Authorization: Bearer <token>
+ * Request body: {
+ *   name: string,
+ *   tabs: TabData[],
+ *   compilationStatus: CompilationStatus
+ * }
+ * Response: { shader: Shader }
+ */
+router.put('/:slug', authenticateToken, async (req, res): Promise<any> => {
+  try {
+    const { slug } = req.params;
+    const {
+      name,
+      tabs,
+      compilationStatus,
+    } = req.body as UpdateShaderRequest;
+
+    // Validate required fields
+    if (!name || !tabs || !compilationStatus) {
+      return res.status(400).json({
+        error: 'Missing required fields: name, tabs, and compilationStatus are required',
+      });
+    }
+
+    // Find shader
+    const existingShader = await prisma.shader.findUnique({
+      where: { slug },
+      select: { id: true, userId: true }
+    });
+
+    if (!existingShader) {
+      return res.status(404).json({ error: 'Shader not found' });
+    }
+
+    // Check ownership
+    if (existingShader.userId !== req.user!.id) {
+      return res.status(403).json({ error: 'You do not have permission to update this shader' });
+    }
+
+    // Validate tabs
+    if (!Array.isArray(tabs) || tabs.length === 0) {
+      return res.status(400).json({ error: 'Tabs must be a non-empty array' });
+    }
+
+    for (const tab of tabs) {
+      if (!tab.id || !tab.name || typeof tab.code !== 'string') {
+        return res.status(400).json({
+          error: 'Invalid tab structure. Each tab must have id, name, and code',
+        });
+      }
+    }
+
+    // Validate compilation status
+    const validStatuses: CompilationStatus[] = ['SUCCESS', 'ERROR', 'WARNING', 'PENDING'];
+    if (!validStatuses.includes(compilationStatus as CompilationStatus)) {
+      return res.status(400).json({
+        error: 'Invalid compilation status. Must be SUCCESS, ERROR, WARNING, or PENDING',
+      });
+    }
+
+    // Update shader in database
+    const shader = await prisma.shader.update({
+      where: { slug },
+      data: {
+        title: name,
+        tabs: JSON.stringify(tabs),
+        compilationStatus: compilationStatus as CompilationStatus,
+        lastSavedAt: new Date(),
+      },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        tabs: true,
+        description: true,
+        isPublic: true,
+        compilationStatus: true,
+        compilationErrors: true,
+        userId: true,
+        forkedFrom: true,
+        createdAt: true,
+        updatedAt: true,
+        lastSavedAt: true,
+        user: {
+          select: {
+            id: true,
+            username: true,
+          },
+        },
+      },
+    });
+
+    res.json({
+      shader: {
+        ...shader,
+        tabs: JSON.parse(shader.tabs),
+        compilationErrors: shader.compilationErrors
+          ? JSON.parse(shader.compilationErrors)
+          : null,
+      },
+    });
+  } catch (error) {
+    console.error('Error updating shader:', error);
+    res.status(500).json({ error: 'Failed to update shader' });
   }
 });
 

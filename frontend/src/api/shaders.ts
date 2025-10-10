@@ -51,6 +51,16 @@ export interface SaveShaderResponse {
   url: string;
 }
 
+export interface UpdateShaderRequest {
+  name: string;
+  tabs: TabData[];
+  compilationStatus: CompilationStatus;
+}
+
+export interface UpdateShaderResponse {
+  shader: Shader;
+}
+
 /**
  * Save a new shader
  * @param shaderData - Shader data including tabs and compilation status
@@ -81,4 +91,28 @@ export async function saveShader(
 export async function getShaderBySlug(slug: string): Promise<Shader> {
   const response = await axios.get(`${API_BASE_URL}/api/shaders/${slug}`);
   return response.data.shader;
+}
+
+/**
+ * Update an existing shader
+ * @param slug - Shader URL slug
+ * @param shaderData - Shader data to update (name, tabs, compilationStatus)
+ * @param token - JWT authentication token
+ * @returns Updated shader data
+ */
+export async function updateShader(
+  slug: string,
+  shaderData: UpdateShaderRequest,
+  token: string
+): Promise<UpdateShaderResponse> {
+  const response = await axios.put(
+    `${API_BASE_URL}/api/shaders/${slug}`,
+    shaderData,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  return response.data;
 }

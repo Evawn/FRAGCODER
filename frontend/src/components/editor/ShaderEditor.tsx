@@ -23,6 +23,7 @@ export interface ShaderData {
 
 interface ShaderEditorProps {
   shader: ShaderData | null;
+  shaderSlug?: string;
   loadedTabs?: TabShaderData[];
   isSavedShader?: boolean;
   isOwner?: boolean;
@@ -82,7 +83,7 @@ mat2 rotate2D(float angle) {
     return mat2(c, -s, s, c);
 }`;
 
-function ShaderEditor({ shader, loadedTabs, isSavedShader = false, isOwner = false, onCompile, compilationErrors, compilationSuccess, compilationTime, onTabChange }: ShaderEditorProps) {
+function ShaderEditor({ shader, shaderSlug, loadedTabs, isSavedShader = false, isOwner = false, onCompile, compilationErrors, compilationSuccess, compilationTime, onTabChange }: ShaderEditorProps) {
   const { user, token, signOut } = useAuth();
   const navigate = useNavigate();
   const [code, setCode] = useState(shader?.code || defaultImageCode);
@@ -132,9 +133,69 @@ function ShaderEditor({ shader, loadedTabs, isSavedShader = false, isOwner = fal
     }
   };
 
-  // Placeholder handler functions (to be implemented later)
-  const handleSave = () => {
-    console.log('Save clicked - to be implemented');
+  // Handle Save button click (update existing shader)
+  const handleSave = async () => {
+    try {
+      console.log('Saving shader...');
+
+      // Check if we have a shader and slug
+      if (!shader || !shaderSlug) {
+        throw new Error('No shader to save');
+      }
+
+      // Check if user is authenticated
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      // Always trigger compilation before saving
+      handleCompile();
+
+      // Wait for compilation to complete
+      await new Promise(resolve => setTimeout(resolve, 150));
+
+      // Determine compilation status
+      let status: 'SUCCESS' | 'ERROR' | 'WARNING' | 'PENDING' = 'PENDING';
+      if (compilationSuccess === true) {
+        status = compilationErrors.length > 0 ? 'WARNING' : 'SUCCESS';
+      } else if (compilationSuccess === false) {
+        status = 'ERROR';
+      }
+
+      // Prepare update data
+      const updateData = {
+        name: shader.title,
+        tabs: tabs.map(tab => ({
+          id: tab.id,
+          name: tab.name,
+          code: tab.code
+        })),
+        compilationStatus: status,
+      };
+
+      console.log('Updating shader with data:', updateData);
+
+      // Import updateShader dynamically
+      const { updateShader } = await import('../../api/shaders');
+
+      // Update shader via API
+      const response = await updateShader(shaderSlug, updateData, token);
+
+      console.log('Shader updated successfully!', response);
+
+      // Show success message
+      alert('Shader saved successfully!');
+
+    } catch (error) {
+      console.error('Failed to save shader:', error);
+
+      // Show user-friendly error message
+      if (error instanceof Error) {
+        alert(`Failed to save shader: ${error.message}`);
+      } else {
+        alert('Failed to save shader. Please try again.');
+      }
+    }
   };
 
   const handleRename = () => {

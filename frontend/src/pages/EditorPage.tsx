@@ -171,6 +171,7 @@ function EditorPage() {
           <div className="h-full flex flex-col">
             <ShaderEditor
               shader={shader}
+              shaderSlug={slug}
               loadedTabs={shaderUrl ? allTabs : undefined}
               isSavedShader={!!shaderUrl}
               isOwner={isOwner}
