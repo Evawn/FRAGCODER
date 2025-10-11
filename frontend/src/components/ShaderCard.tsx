@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 interface ShaderCardProps {
   id: string;
   title: string;
+  slug: string;
   description?: string;
   thumbnail?: string;
   author: {
@@ -13,7 +14,7 @@ interface ShaderCardProps {
   forkedFrom?: string;
 }
 
-function ShaderCard({ id, title, description, thumbnail, author, createdAt, forkedFrom }: ShaderCardProps) {
+function ShaderCard({ id, title, slug, description, thumbnail, author, createdAt, forkedFrom }: ShaderCardProps) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -24,8 +25,8 @@ function ShaderCard({ id, title, description, thumbnail, author, createdAt, fork
   };
 
   return (
-    <Link 
-      to={`/editor?id=${id}`} 
+    <Link
+      to={`/shader/${slug}`}
       className="block bg-gray-800 rounded-lg overflow-hidden hover:transform hover:scale-105 transition-transform duration-200 hover:shadow-lg"
     >
       <div className="aspect-video bg-gray-900 relative overflow-hidden">

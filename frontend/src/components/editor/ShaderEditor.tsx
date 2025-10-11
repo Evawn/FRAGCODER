@@ -9,6 +9,7 @@ import { Badge } from '../ui/badge';
 import { Dropdown } from '../ui/Dropdown';
 import { SignInDialog } from '../auth/SignInDialog';
 import { SaveAsDialog } from './SaveAsDialog';
+import { RenameDialog } from './RenameDialog';
 import { useAuth } from '../../context/AuthContext';
 
 export interface ShaderData {
@@ -102,7 +103,20 @@ function ShaderEditor({ shader, shaderSlug, loadedTabs, isSavedShader = false, i
   const [showSignInDialog, setShowSignInDialog] = useState(false);
   const [showSaveAsDialog, setShowSaveAsDialog] = useState(false);
 
+  // Rename Dialog state
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+
+  // Local shader title (can be updated independently before saving)
+  const [localShaderTitle, setLocalShaderTitle] = useState(shader?.title || 'Untitled...');
+
   const isSwitchingTabsRef = useRef(false);
+
+  // Sync local shader title with shader prop
+  useEffect(() => {
+    if (shader?.title) {
+      setLocalShaderTitle(shader.title);
+    }
+  }, [shader?.title]);
 
   // Load tabs from shader when loadedTabs prop changes
   useEffect(() => {
@@ -164,7 +178,7 @@ function ShaderEditor({ shader, shaderSlug, loadedTabs, isSavedShader = false, i
 
       // Prepare update data
       const updateData = {
-        name: shader.title,
+        name: localShaderTitle,
         tabs: tabs.map(tab => ({
           id: tab.id,
           name: tab.name,
@@ -199,7 +213,16 @@ function ShaderEditor({ shader, shaderSlug, loadedTabs, isSavedShader = false, i
   };
 
   const handleRename = () => {
-    console.log('Rename clicked - to be implemented');
+    setShowRenameDialog(true);
+  };
+
+  // Handle shader rename - updates local title and triggers save
+  const handleRenameShader = async (newName: string) => {
+    // Update local title immediately (for UI)
+    setLocalShaderTitle(newName);
+
+    // Trigger save which will read from localShaderTitle
+    await handleSave();
   };
 
   const handleClone = () => {
@@ -493,7 +516,7 @@ uniform sampler2D BufferD;         // Buffer D texture`;
             className="h-auto px-2 py-1 text-gray-400 bg-transparent hover:text-gray-200 hover:bg-transparent focus:outline-none"
             style={{ outline: 'none', border: 'none' }}
           >
-            <span className="text-lg">{shader?.title || 'Untitled...'}</span>
+            <span className="text-lg">{localShaderTitle}</span>
             <svg
               className="w-3 h-3"
               fill="currentColor"
@@ -768,6 +791,14 @@ uniform sampler2D BufferD;         // Buffer D texture`;
         open={showSaveAsDialog}
         onOpenChange={setShowSaveAsDialog}
         onSave={handleSaveShader}
+      />
+
+      {/* Rename Dialog */}
+      <RenameDialog
+        currentName={localShaderTitle}
+        open={showRenameDialog}
+        onOpenChange={setShowRenameDialog}
+        onRename={handleRenameShader}
       />
 
     </div>

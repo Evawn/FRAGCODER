@@ -3,6 +3,7 @@ import ShaderCard from './ShaderCard';
 interface Shader {
   id: string;
   title: string;
+  slug: string;
   description?: string;
   thumbnail?: string;
   userId: string;
@@ -37,6 +38,7 @@ function ShaderGrid({ shaders }: ShaderGridProps) {
           key={shader.id}
           id={shader.id}
           title={shader.title}
+          slug={shader.slug}
           description={shader.description}
           thumbnail={shader.thumbnail}
           author={shader.user}

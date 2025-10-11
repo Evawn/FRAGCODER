@@ -6,6 +6,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 interface Shader {
   id: string;
   title: string;
+  slug: string;
   description?: string;
   thumbnail?: string;
   userId: string;
