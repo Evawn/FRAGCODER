@@ -148,7 +148,7 @@ function ShaderEditor({ shader, shaderSlug, loadedTabs, isSavedShader = false, i
   };
 
   // Handle Save button click (update existing shader)
-  const handleSave = async () => {
+  const handleSave = async (titleOverride?: string) => {
     try {
       console.log('Saving shader...');
 
@@ -176,9 +176,9 @@ function ShaderEditor({ shader, shaderSlug, loadedTabs, isSavedShader = false, i
         status = 'ERROR';
       }
 
-      // Prepare update data
+      // Prepare update data - use titleOverride if provided, otherwise use localShaderTitle
       const updateData = {
-        name: localShaderTitle,
+        name: titleOverride ?? localShaderTitle,
         tabs: tabs.map(tab => ({
           id: tab.id,
           name: tab.name,
@@ -221,8 +221,8 @@ function ShaderEditor({ shader, shaderSlug, loadedTabs, isSavedShader = false, i
     // Update local title immediately (for UI)
     setLocalShaderTitle(newName);
 
-    // Trigger save which will read from localShaderTitle
-    await handleSave();
+    // Trigger save with the new name directly (to avoid async state issues)
+    await handleSave(newName);
   };
 
   const handleClone = () => {
