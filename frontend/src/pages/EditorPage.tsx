@@ -6,6 +6,7 @@ import type { ShaderData } from '../components/editor/ShaderEditor';
 import ShaderPlayer from '../components/ShaderPlayer';
 import type { TabShaderData, CompilationError } from '../utils/GLSLCompiler';
 import { useAuth } from '../context/AuthContext';
+import { useWebGLRenderer } from '../hooks/useWebGLRenderer';
 
 function EditorPage() {
   const navigate = useNavigate();
@@ -25,6 +26,10 @@ function EditorPage() {
   const [panelResizeCounter, setPanelResizeCounter] = useState(0);
   const [compileTrigger, setCompileTrigger] = useState(0);
   const [leftPanelMinSize, setLeftPanelMinSize] = useState(30);
+
+  // Resolution lock state (lifted from ShaderPlayer)
+  const [isResolutionLocked, setIsResolutionLocked] = useState(false);
+  const [lockedResolution, setLockedResolution] = useState<{ width: number; height: number } | null>(null);
 
   // Calculate whether current user owns the shader
   const isOwner = useMemo(() => {
@@ -102,7 +107,12 @@ function EditorPage() {
     setPanelResizeCounter(prev => prev + 1);
   }, []);
 
-  const handleResolutionLockChange = useCallback((locked: boolean, minWidth?: number) => {
+  const handleResolutionLockChange = useCallback((locked: boolean, resolution?: { width: number; height: number }, minWidth?: number) => {
+    // Update resolution lock state
+    setIsResolutionLocked(locked);
+    setLockedResolution(locked && resolution ? resolution : null);
+
+    // Update panel minimum size
     if (locked && minWidth) {
       // Calculate minimum size as a percentage of the viewport
       // We need to account for the width of the entire viewport
@@ -114,6 +124,25 @@ function EditorPage() {
       setLeftPanelMinSize(30);
     }
   }, []);
+
+  // WebGL renderer hook (moved from ShaderPlayer to EditorPage)
+  const {
+    canvasRef,
+    compilationSuccess: webglCompilationSuccess,
+    error: webglError,
+    reset: webglReset,
+    uTime,
+    fps,
+    resolution
+  } = useWebGLRenderer({
+    tabs: allTabs,
+    isPlaying,
+    onCompilationResult: handleCompilationResult,
+    panelResizeCounter,
+    compileTrigger,
+    isResolutionLocked,
+    lockedResolution
+  });
 
   return (
     <div className="h-screen bg-gray-900 text-white flex flex-col relative">
@@ -146,16 +175,19 @@ function EditorPage() {
             <div className="flex-1 w-full p-2">
 
               <ShaderPlayer
-                tabs={allTabs}
+                canvasRef={canvasRef}
                 isPlaying={isPlaying}
                 onPlayPause={() => setIsPlaying(!isPlaying)}
                 onReset={() => {
                   console.log('Reset shader');
+                  webglReset();
                   setIsPlaying(false);
                 }}
-                onCompilationResult={handleCompilationResult}
-                panelResizeCounter={panelResizeCounter}
-                compileTrigger={compileTrigger}
+                compilationSuccess={webglCompilationSuccess}
+                error={webglError}
+                uTime={uTime}
+                fps={fps}
+                resolution={resolution}
                 onResolutionLockChange={handleResolutionLockChange}
               />
             </div>

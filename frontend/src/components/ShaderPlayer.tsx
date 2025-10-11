@@ -1,31 +1,33 @@
 import { useState, useRef, useEffect } from 'react';
-import { useWebGLRenderer } from '../hooks/useWebGLRenderer';
-import type { CompilationError, TabShaderData } from '../utils/GLSLCompiler';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 interface ShaderPlayerProps {
-  tabs: TabShaderData[];
+  canvasRef: React.RefObject<HTMLCanvasElement | null>;
   isPlaying: boolean;
   onPlayPause: () => void;
   onReset: () => void;
-  onCompilationResult: (success: boolean, errors: CompilationError[], compilationTime: number) => void;
-  panelResizeCounter: number;
-  compileTrigger: number;
-  onResolutionLockChange?: (locked: boolean, minWidth?: number) => void;
+  compilationSuccess: boolean;
+  error: string | null;
+  uTime: number;
+  fps: number;
+  resolution: { width: number; height: number };
+  onResolutionLockChange?: (locked: boolean, resolution?: { width: number; height: number }, minWidth?: number) => void;
 }
 
 export default function ShaderPlayer({
-  tabs,
+  canvasRef,
   isPlaying,
   onPlayPause,
   onReset,
-  onCompilationResult,
-  panelResizeCounter,
-  compileTrigger,
+  compilationSuccess,
+  error,
+  uTime,
+  fps,
+  resolution,
   onResolutionLockChange
 }: ShaderPlayerProps) {
-  // Resolution lock state
+  // Resolution lock state (local to ShaderPlayer for UI purposes)
   const [isResolutionLocked, setIsResolutionLocked] = useState(false);
   const [lockedResolution, setLockedResolution] = useState<{ width: number; height: number } | null>(null);
 
@@ -36,30 +38,6 @@ export default function ShaderPlayer({
     resolution: { width: number; height: number } | null;
   } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  const {
-    canvasRef,
-    compilationSuccess,
-    error,
-    reset,
-    uTime,
-    fps,
-    resolution
-  } = useWebGLRenderer({
-    tabs,
-    isPlaying,
-    onCompilationResult,
-    panelResizeCounter,
-    compileTrigger,
-    isResolutionLocked,
-    lockedResolution
-  });
-
-  // Handle reset
-  const handleReset = () => {
-    reset();
-    onReset();
-  };
 
   // Toggle resolution lock
   const toggleResolutionLock = () => {
@@ -75,7 +53,7 @@ export default function ShaderPlayer({
         // Canvas width in CSS pixels = resolution.width / devicePixelRatio
         // Add padding (2 * 8px = 16px) and border (2 * 1px = 2px) and some extra margin
         const minWidth = (locked.width / window.devicePixelRatio) + 20;
-        onResolutionLockChange?.(true, minWidth);
+        onResolutionLockChange?.(true, locked, minWidth);
       } else {
         // Unlocking: clear locked resolution
         setLockedResolution(null);
@@ -102,7 +80,7 @@ export default function ShaderPlayer({
         // Unlock resolution so canvas fills screen
         setIsResolutionLocked(false);
         setLockedResolution(null);
-        onResolutionLockChange?.(false);
+        onResolutionLockChange?.(false, undefined, undefined);
 
         // Request fullscreen
         await containerRef.current.requestFullscreen();
@@ -132,9 +110,9 @@ export default function ShaderPlayer({
 
         if (preFullscreenLockedState.isLocked && preFullscreenLockedState.resolution) {
           const minWidth = (preFullscreenLockedState.resolution.width / window.devicePixelRatio) + 20;
-          onResolutionLockChange?.(true, minWidth);
+          onResolutionLockChange?.(true, preFullscreenLockedState.resolution, minWidth);
         } else {
-          onResolutionLockChange?.(false);
+          onResolutionLockChange?.(false, undefined, undefined);
         }
 
         // Clear saved state
@@ -212,7 +190,7 @@ export default function ShaderPlayer({
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={handleReset}
+                  onClick={onReset}
                   className="bg-transparent h-6 w-6 text-gray-400 focus:outline-none hover:text-white hover:bg-transparent"
                   title="Reset"
                 >
