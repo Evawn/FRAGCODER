@@ -116,3 +116,24 @@ export async function updateShader(
   );
   return response.data;
 }
+
+/**
+ * Delete a shader
+ * @param slug - Shader URL slug
+ * @param token - JWT authentication token
+ * @returns Success message
+ */
+export async function deleteShader(
+  slug: string,
+  token: string
+): Promise<{ message: string }> {
+  const response = await axios.delete(
+    `${API_BASE_URL}/api/shaders/${slug}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  return response.data;
+}

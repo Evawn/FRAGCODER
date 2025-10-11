@@ -321,4 +321,42 @@ router.put('/:slug', authenticateToken, async (req, res): Promise<any> => {
   }
 });
 
+/**
+ * DELETE /api/shaders/:slug
+ * Delete an existing shader
+ *
+ * Requires: Authorization: Bearer <token>
+ * Response: { message: string }
+ */
+router.delete('/:slug', authenticateToken, async (req, res): Promise<any> => {
+  try {
+    const { slug } = req.params;
+
+    // Find shader
+    const existingShader = await prisma.shader.findUnique({
+      where: { slug },
+      select: { id: true, userId: true, title: true }
+    });
+
+    if (!existingShader) {
+      return res.status(404).json({ error: 'Shader not found' });
+    }
+
+    // Check ownership
+    if (existingShader.userId !== req.user!.id) {
+      return res.status(403).json({ error: 'You do not have permission to delete this shader' });
+    }
+
+    // Delete shader from database
+    await prisma.shader.delete({
+      where: { slug }
+    });
+
+    res.json({ message: 'Shader deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting shader:', error);
+    res.status(500).json({ error: 'Failed to delete shader' });
+  }
+});
+
 export default router;

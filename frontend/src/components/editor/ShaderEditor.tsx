@@ -10,6 +10,7 @@ import { Dropdown } from '../ui/Dropdown';
 import { SignInDialog } from '../auth/SignInDialog';
 import { SaveAsDialog } from './SaveAsDialog';
 import { RenameDialog } from './RenameDialog';
+import { DeleteShaderDialog } from './DeleteShaderDialog';
 import { useAuth } from '../../context/AuthContext';
 
 export interface ShaderData {
@@ -105,6 +106,9 @@ function ShaderEditor({ shader, shaderSlug, loadedTabs, isSavedShader = false, i
 
   // Rename Dialog state
   const [showRenameDialog, setShowRenameDialog] = useState(false);
+
+  // Delete Dialog state
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // Local shader title (can be updated independently before saving)
   const [localShaderTitle, setLocalShaderTitle] = useState(shader?.title || 'Untitled...');
@@ -230,7 +234,45 @@ function ShaderEditor({ shader, shaderSlug, loadedTabs, isSavedShader = false, i
   };
 
   const handleDelete = () => {
-    console.log('Delete clicked - to be implemented');
+    setShowDeleteDialog(true);
+  };
+
+  // Handle shader deletion - deletes shader and navigates to home
+  const handleDeleteShader = async () => {
+    try {
+      console.log('Deleting shader...');
+
+      // Check if we have a shader and slug
+      if (!shader || !shaderSlug) {
+        throw new Error('No shader to delete');
+      }
+
+      // Check if user is authenticated
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      // Import deleteShader dynamically
+      const { deleteShader } = await import('../../api/shaders');
+
+      // Delete shader via API
+      await deleteShader(shaderSlug, token);
+
+      console.log('Shader deleted successfully!');
+
+      // Navigate to home page
+      navigate('/');
+
+    } catch (error) {
+      console.error('Failed to delete shader:', error);
+
+      // Re-throw error to be caught by dialog
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      } else {
+        throw new Error('Failed to delete shader. Please try again.');
+      }
+    }
   };
 
   // Handle shader save
@@ -799,6 +841,14 @@ uniform sampler2D BufferD;         // Buffer D texture`;
         open={showRenameDialog}
         onOpenChange={setShowRenameDialog}
         onRename={handleRenameShader}
+      />
+
+      {/* Delete Shader Dialog */}
+      <DeleteShaderDialog
+        shaderName={localShaderTitle}
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        onDelete={handleDeleteShader}
       />
 
     </div>
