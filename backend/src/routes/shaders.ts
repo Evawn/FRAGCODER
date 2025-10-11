@@ -359,4 +359,100 @@ router.delete('/:slug', authenticateToken, async (req, res): Promise<any> => {
   }
 });
 
+/**
+ * POST /api/shaders/:slug/clone
+ * Clone an existing shader
+ *
+ * Requires: Authorization: Bearer <token>
+ * Response: { shader: Shader, url: string }
+ */
+router.post('/:slug/clone', authenticateToken, async (req, res): Promise<any> => {
+  try {
+    const { slug } = req.params;
+
+    // Find the original shader
+    const originalShader = await prisma.shader.findUnique({
+      where: { slug },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        tabs: true,
+        description: true,
+        isPublic: true,
+        compilationStatus: true,
+        compilationErrors: true,
+      }
+    });
+
+    if (!originalShader) {
+      return res.status(404).json({ error: 'Shader not found' });
+    }
+
+    // Check if shader is public (or user has access)
+    if (!originalShader.isPublic) {
+      // TODO: Allow cloning private shaders if user has access
+      return res.status(403).json({ error: 'This shader is private and cannot be cloned' });
+    }
+
+    // Generate unique slug for the cloned shader
+    const newSlug = await generateUniqueSlug();
+
+    // Create the cloned shader
+    const clonedShader = await prisma.shader.create({
+      data: {
+        title: `${originalShader.title} (Clone)`,
+        slug: newSlug,
+        tabs: originalShader.tabs,
+        description: originalShader.description,
+        isPublic: originalShader.isPublic,
+        compilationStatus: originalShader.compilationStatus,
+        compilationErrors: originalShader.compilationErrors,
+        userId: req.user!.id,
+        forkedFrom: originalShader.slug,
+        lastSavedAt: new Date(),
+      },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        tabs: true,
+        description: true,
+        isPublic: true,
+        compilationStatus: true,
+        compilationErrors: true,
+        userId: true,
+        forkedFrom: true,
+        createdAt: true,
+        updatedAt: true,
+        lastSavedAt: true,
+        user: {
+          select: {
+            id: true,
+            username: true,
+          },
+        },
+      },
+    });
+
+    // Construct full URL
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const shaderUrl = `${baseUrl}/shader/${newSlug}`;
+
+    res.status(201).json({
+      shader: {
+        ...clonedShader,
+        tabs: JSON.parse(clonedShader.tabs),
+        compilationErrors: clonedShader.compilationErrors
+          ? JSON.parse(clonedShader.compilationErrors)
+          : null,
+      },
+      url: shaderUrl,
+    });
+  } catch (error) {
+    console.error('Error cloning shader:', error);
+    res.status(500).json({ error: 'Failed to clone shader' });
+  }
+});
+
 export default router;

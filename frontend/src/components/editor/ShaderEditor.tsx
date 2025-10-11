@@ -11,6 +11,7 @@ import { SignInDialog } from '../auth/SignInDialog';
 import { SaveAsDialog } from './SaveAsDialog';
 import { RenameDialog } from './RenameDialog';
 import { DeleteShaderDialog } from './DeleteShaderDialog';
+import { CloneDialog } from './CloneDialog';
 import { useAuth } from '../../context/AuthContext';
 
 export interface ShaderData {
@@ -110,6 +111,9 @@ function ShaderEditor({ shader, shaderSlug, loadedTabs, isSavedShader = false, i
 
   // Delete Dialog state
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  // Clone Dialog state
+  const [showCloneDialog, setShowCloneDialog] = useState(false);
 
   // Local shader title (can be updated independently before saving)
   const [localShaderTitle, setLocalShaderTitle] = useState(shader?.title || 'Untitled...');
@@ -229,7 +233,53 @@ function ShaderEditor({ shader, shaderSlug, loadedTabs, isSavedShader = false, i
   };
 
   const handleClone = () => {
-    console.log('Clone clicked - to be implemented');
+    if (!user) {
+      // Not signed in - show sign in dialog first, then clone dialog after sign-in
+      setSignInCallback(() => () => setShowCloneDialog(true));
+      setShowSignInDialog(true);
+    } else {
+      // Already signed in - show clone dialog directly
+      setShowCloneDialog(true);
+    }
+  };
+
+  // Handle shader cloning - creates a new shader and navigates to it
+  const handleCloneShader = async () => {
+    try {
+      console.log('Cloning shader...');
+
+      // Check if we have a shader and slug
+      if (!shader || !shaderSlug) {
+        throw new Error('No shader to clone');
+      }
+
+      // Check if user is authenticated
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      // Import cloneShader dynamically
+      const { cloneShader } = await import('../../api/shaders');
+
+      // Clone shader via API
+      const response = await cloneShader(shaderSlug, token);
+
+      console.log('Shader cloned successfully!', response);
+
+      // Navigate to the cloned shader's URL
+      const slug = response.shader.slug;
+      navigate(`/shader/${slug}`);
+
+    } catch (error) {
+      console.error('Failed to clone shader:', error);
+
+      // Re-throw error to be caught by dialog
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      } else {
+        throw new Error('Failed to clone shader. Please try again.');
+      }
+    }
   };
 
   const handleDelete = () => {
@@ -862,6 +912,14 @@ uniform sampler2D BufferD;         // Buffer D texture`;
         open={showDeleteDialog}
         onOpenChange={setShowDeleteDialog}
         onDelete={handleDeleteShader}
+      />
+
+      {/* Clone Dialog */}
+      <CloneDialog
+        shaderName={localShaderTitle}
+        open={showCloneDialog}
+        onOpenChange={setShowCloneDialog}
+        onClone={handleCloneShader}
       />
 
     </div>

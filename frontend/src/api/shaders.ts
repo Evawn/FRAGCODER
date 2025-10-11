@@ -137,3 +137,25 @@ export async function deleteShader(
   );
   return response.data;
 }
+
+/**
+ * Clone a shader
+ * @param slug - Shader URL slug to clone
+ * @param token - JWT authentication token
+ * @returns Cloned shader data and URL
+ */
+export async function cloneShader(
+  slug: string,
+  token: string
+): Promise<SaveShaderResponse> {
+  const response = await axios.post(
+    `${API_BASE_URL}/api/shaders/${slug}/clone`,
+    {},
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  return response.data;
+}
