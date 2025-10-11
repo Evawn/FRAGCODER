@@ -1,9 +1,6 @@
 import { Routes, Route } from 'react-router-dom'
-import Navigation from './components/Navigation'
 import Gallery from './pages/GalleryPage'
-// import ShaderEditor from './pages/ShaderEditorPage'
 import EditorPage from './pages/EditorPage'
-import Auth from './pages/AuthPage'
 
 function App() {
   return (
@@ -14,7 +11,6 @@ function App() {
         {/* <Route path="/editor" element={<ShaderEditor />} /> */}
         <Route path="/new" element={<EditorPage />} />
         <Route path="/shader/:slug" element={<EditorPage />} />
-        <Route path="/auth" element={<Auth />} />
       </Routes>
     </div>
   )
