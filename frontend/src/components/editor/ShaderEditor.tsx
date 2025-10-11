@@ -103,6 +103,7 @@ function ShaderEditor({ shader, shaderSlug, loadedTabs, isSavedShader = false, i
   // Save As Dialog state
   const [showSignInDialog, setShowSignInDialog] = useState(false);
   const [showSaveAsDialog, setShowSaveAsDialog] = useState(false);
+  const [signInCallback, setSignInCallback] = useState<(() => void) | undefined>();
 
   // Rename Dialog state
   const [showRenameDialog, setShowRenameDialog] = useState(false);
@@ -143,7 +144,8 @@ function ShaderEditor({ shader, shaderSlug, loadedTabs, isSavedShader = false, i
   // Handle Save As button click
   const handleSaveAsClick = () => {
     if (!user) {
-      // Not signed in - show sign in dialog first
+      // Not signed in - show sign in dialog first, then save as dialog after sign-in
+      setSignInCallback(() => () => setShowSaveAsDialog(true));
       setShowSignInDialog(true);
     } else {
       // Already signed in - show save as dialog directly
@@ -635,7 +637,10 @@ uniform sampler2D BufferD;         // Buffer D texture`;
               size="sm"
               className="h-auto px-2 py-1 text-gray-400 bg-transparent hover:text-gray-200 hover:bg-transparent focus:outline-none"
               style={{ outline: 'none', border: 'none' }}
-              onClick={() => setShowSignInDialog(true)}
+              onClick={() => {
+                setSignInCallback(undefined);
+                setShowSignInDialog(true);
+              }}
             >
               <span className="text-lg">Sign In</span>
             </Button>
@@ -833,7 +838,7 @@ uniform sampler2D BufferD;         // Buffer D texture`;
       <SignInDialog
         open={showSignInDialog}
         onOpenChange={setShowSignInDialog}
-        onSignInSuccess={() => setShowSaveAsDialog(true)}
+        onSignInSuccess={signInCallback}
       />
 
       {/* Save As Dialog */}
