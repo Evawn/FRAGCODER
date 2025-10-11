@@ -201,9 +201,6 @@ function ShaderEditor({ shader, shaderSlug, loadedTabs, isSavedShader = false, i
 
       console.log('Shader updated successfully!', response);
 
-      // Show success message
-      alert('Shader saved successfully!');
-
     } catch (error) {
       console.error('Failed to save shader:', error);
 
@@ -473,6 +470,17 @@ function ShaderEditor({ shader, shaderSlug, loadedTabs, isSavedShader = false, i
     onCompile(tabsData);
   };
 
+  // Compile or save based on shader ownership
+  const handleCompileOrSave = () => {
+    // If this is a saved shader that the user owns, save it (which also compiles)
+    if (isSavedShader && isOwner) {
+      handleSave();
+    } else {
+      // Otherwise, just compile
+      handleCompile();
+    }
+  };
+
   // Save current tab's code when it changes
   const handleCodeChange = (newCode: string) => {
     setCode(newCode);
@@ -730,7 +738,7 @@ uniform sampler2D BufferD;         // Buffer D texture`;
           placeholder="// Write your GLSL fragment shader here..."
           errors={activeTab?.errors || []}
           compilationSuccess={compilationSuccess}
-          onCompile={handleCompile}
+          onCompile={handleCompileOrSave}
           onDocumentChange={handleDocumentChange}
         />
       </div>
@@ -740,7 +748,7 @@ uniform sampler2D BufferD;         // Buffer D texture`;
         <Button
           variant="outline"
           size="icon"
-          onClick={handleCompile}
+          onClick={handleCompileOrSave}
           className="h-6 w-6 bg-transparent focus:outline-none border-green-500 text-green-500 hover:bg-green-500/10 hover:text-green-400"
           title="Compile Shader"
         >
