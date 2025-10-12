@@ -1,5 +1,5 @@
 import type { Transaction } from '@codemirror/state';
-import type { CompilationError } from './GLSLCompiler';
+import type { CompilationError } from '../types';
 
 /**
  * Updates error line numbers when document changes occur
