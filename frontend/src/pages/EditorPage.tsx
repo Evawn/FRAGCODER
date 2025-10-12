@@ -75,11 +75,6 @@ function EditorPage() {
   const [compilationSuccess, setCompilationSuccess] = useState<boolean | undefined>(undefined);
   const [compilationTime, setCompilationTime] = useState<number>(0);
   const [loading, setLoading] = useState(false);
-  const [allTabs, setAllTabs] = useState<TabShaderData[]>([
-    { id: '1', name: 'Image', code: defaultImageCode }
-  ]);
-  const [panelResizeCounter, setPanelResizeCounter] = useState(0);
-  const [compileTrigger, setCompileTrigger] = useState(0);
   const [leftPanelMinSize, setLeftPanelMinSize] = useState(30);
 
   // Tab management state (moved from ShaderEditor)
@@ -99,14 +94,41 @@ function EditorPage() {
   // Local shader title (moved from ShaderEditor)
   const [localShaderTitle, setLocalShaderTitle] = useState(shader?.title || 'Untitled...');
 
-  // Resolution lock state (lifted from ShaderPlayer)
-  const [isResolutionLocked, setIsResolutionLocked] = useState(false);
-  const [lockedResolution, setLockedResolution] = useState<{ width: number; height: number } | null>(null);
-
   // Calculate whether current user owns the shader
   const isOwner = useMemo(() => {
     return !!(user && shader && user.id === shader.userId);
   }, [user, shader]);
+
+  // Handle compilation results
+  const handleCompilationResult = useCallback((success: boolean, errors: CompilationError[], compilationTime: number) => {
+    console.log('Compilation result:', success ? 'success' : 'failed', errors, `${compilationTime}ms`);
+    setCompilationErrors(errors);
+    setCompilationSuccess(success);
+    setCompilationTime(compilationTime);
+
+    // Auto-play when compilation succeeds
+    if (success) {
+      setIsPlaying(true);
+    }
+  }, []);
+
+  // Initialize WebGL renderer with imperative controls
+  const {
+    canvasRef,
+    compilationSuccess: rendererCompilationSuccess,
+    error: rendererError,
+    compile: rendererCompile,
+    play: rendererPlay,
+    pause: rendererPause,
+    reset: rendererReset,
+    updateViewport: rendererUpdateViewport,
+    setResolutionLock: rendererSetResolutionLock,
+    uTime,
+    fps,
+    resolution
+  } = useWebGLRenderer({
+    onCompilationResult: handleCompilationResult
+  });
 
   useEffect(() => {
     if (slug) {
@@ -115,7 +137,7 @@ function EditorPage() {
       // No slug means new shader - reset to defaults
       setShaderUrl(null);
       setShader(null);
-      setAllTabs([{ id: '1', name: 'Image', code: defaultImageCode }]);
+      setTabs([{ id: '1', name: 'Image', code: defaultImageCode, isDeletable: false, errors: [] }]);
     }
   }, [slug]);
 
@@ -139,15 +161,23 @@ function EditorPage() {
         forkedFrom: shaderData.forkedFrom || undefined,
       });
 
-      // Set all tabs for compilation
-      setAllTabs(shaderData.tabs.map(tab => ({
+      // Load tabs from shader data
+      const loadedTabs: Tab[] = shaderData.tabs.map(tab => ({
+        id: tab.id,
+        name: tab.name,
+        code: tab.code,
+        isDeletable: tab.name !== 'Image',
+        errors: []
+      }));
+      setTabs(loadedTabs);
+
+      // Trigger compilation after loading (using imperative method)
+      const tabsData: TabShaderData[] = loadedTabs.map(tab => ({
         id: tab.id,
         name: tab.name,
         code: tab.code
-      })));
-
-      // Trigger compilation after loading
-      setCompileTrigger(prev => prev + 1);
+      }));
+      rendererCompile(tabsData);
 
       // Set URL to indicate this is a saved shader
       setShaderUrl(slug);
@@ -162,32 +192,18 @@ function EditorPage() {
     }
   };
 
-  const handleCompilationResult = useCallback((success: boolean, errors: CompilationError[], compilationTime: number) => {
-    console.log('Compilation result:', success ? 'success' : 'failed', errors, `${compilationTime}ms`);
-    setCompilationErrors(errors);
-    setCompilationSuccess(success);
-    setCompilationTime(compilationTime);
-
-    // Auto-play when compilation succeeds
-    if (success) {
-      setIsPlaying(true);
-    }
-  }, []);
-
   const handlePanelResize = useCallback(() => {
-    // Increment counter to trigger canvas resize when panels are resized
-    setPanelResizeCounter(prev => prev + 1);
-  }, []);
+    // Directly update viewport when panels are resized
+    rendererUpdateViewport();
+  }, [rendererUpdateViewport]);
 
   const handleResolutionLockChange = useCallback((locked: boolean, resolution?: { width: number; height: number }, minWidth?: number) => {
-    // Update resolution lock state
-    setIsResolutionLocked(locked);
-    setLockedResolution(locked && resolution ? resolution : null);
+    // Update renderer resolution lock
+    rendererSetResolutionLock(locked, resolution);
 
     // Update panel minimum size
     if (locked && minWidth) {
       // Calculate minimum size as a percentage of the viewport
-      // We need to account for the width of the entire viewport
       const viewportWidth = window.innerWidth;
       const minPercentage = Math.max(30, Math.min(70, (minWidth / viewportWidth) * 100));
       setLeftPanelMinSize(minPercentage);
@@ -195,7 +211,7 @@ function EditorPage() {
       // Reset to default minimum size
       setLeftPanelMinSize(30);
     }
-  }, []);
+  }, [rendererSetResolutionLock]);
 
   // Sync local shader title with shader prop
   useEffect(() => {
@@ -203,23 +219,6 @@ function EditorPage() {
       setLocalShaderTitle(shader.title);
     }
   }, [shader?.title]);
-
-  // Load tabs from shader when tabs change
-  useEffect(() => {
-    if (allTabs && allTabs.length > 0) {
-      // Convert loaded tabs to Tab format
-      const convertedTabs: Tab[] = allTabs.map(tab => ({
-        id: tab.id,
-        name: tab.name,
-        code: tab.code,
-        isDeletable: tab.name !== 'Image', // Image tab is never deletable
-        errors: []
-      }));
-
-      setTabs(convertedTabs);
-      setActiveTabId(convertedTabs[0].id);
-    }
-  }, [allTabs]);
 
   // Update tabs with incoming compilation errors
   useEffect(() => {
@@ -288,15 +287,14 @@ function EditorPage() {
   }, []);
 
   const handleCompile = useCallback(() => {
-    // Convert tabs to TabShaderData format and pass all to compilation
+    // Convert tabs to TabShaderData format and compile imperatively
     const tabsData: TabShaderData[] = tabs.map(tab => ({
       id: tab.id,
       name: tab.name,
       code: tab.code
     }));
-    setAllTabs(tabsData);
-    setCompileTrigger(prev => prev + 1);
-  }, [tabs]);
+    rendererCompile(tabsData);
+  }, [tabs, rendererCompile]);
 
   // Business logic handlers (moved from ShaderEditor)
   const handleSaveAsClick = useCallback(() => {
@@ -529,24 +527,14 @@ function EditorPage() {
     }
   }, [compilationSuccess, handleCompile, compilationErrors, tabs, token, navigate]);
 
-  // WebGL renderer hook (moved from ShaderPlayer to EditorPage)
-  const {
-    canvasRef,
-    compilationSuccess: webglCompilationSuccess,
-    error: webglError,
-    reset: webglReset,
-    uTime,
-    fps,
-    resolution
-  } = useWebGLRenderer({
-    tabs: allTabs,
-    isPlaying,
-    onCompilationResult: handleCompilationResult,
-    panelResizeCounter,
-    compileTrigger,
-    isResolutionLocked,
-    lockedResolution
-  });
+  // Handle play/pause with imperative controls
+  useEffect(() => {
+    if (isPlaying && compilationSuccess) {
+      rendererPlay();
+    } else {
+      rendererPause();
+    }
+  }, [isPlaying, compilationSuccess, rendererPlay, rendererPause]);
 
   return (
     <div className="h-screen bg-gray-900 text-white flex flex-col relative">
@@ -584,11 +572,11 @@ function EditorPage() {
                 onPlayPause={() => setIsPlaying(!isPlaying)}
                 onReset={() => {
                   console.log('Reset shader');
-                  webglReset();
+                  rendererReset();
                   setIsPlaying(false);
                 }}
-                compilationSuccess={webglCompilationSuccess}
-                error={webglError}
+                compilationSuccess={rendererCompilationSuccess}
+                error={rendererError}
                 uTime={uTime}
                 fps={fps}
                 resolution={resolution}

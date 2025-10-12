@@ -1,47 +1,46 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { WebGLRenderer } from '../utils/WebGLRenderer';
 import { parseShaderError, parseMultipassShaderError, PreprocessorCompilationError } from '../utils/GLSLCompiler';
 import type { CompilationError, TabShaderData, MultipassCompilationError } from '../utils/GLSLCompiler';
 
 interface UseWebGLRendererProps {
-  tabs: TabShaderData[];
-  isPlaying: boolean;
-  onCompilationResult: (success: boolean, errors: CompilationError[], compilationTime: number) => void;
-  panelResizeCounter: number;
-  compileTrigger: number;
-  isResolutionLocked: boolean;
-  lockedResolution: { width: number; height: number } | null;
+  onCompilationResult?: (success: boolean, errors: CompilationError[], compilationTime: number) => void;
 }
 
 interface UseWebGLRendererReturn {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
   compilationSuccess: boolean;
   error: string | null;
+
+  // Imperative control methods
+  compile: (tabs: TabShaderData[]) => void;
+  play: () => void;
+  pause: () => void;
   reset: () => void;
+  updateViewport: () => void;
+  setResolutionLock: (locked: boolean, resolution?: { width: number; height: number }) => void;
+
+  // Display state
   uTime: number;
   fps: number;
   resolution: { width: number; height: number };
 }
 
 export function useWebGLRenderer({
-  tabs,
-  isPlaying,
-  onCompilationResult,
-  panelResizeCounter,
-  compileTrigger,
-  isResolutionLocked,
-  lockedResolution
-}: UseWebGLRendererProps): UseWebGLRendererReturn {
+  onCompilationResult
+}: UseWebGLRendererProps = {}): UseWebGLRendererReturn {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<WebGLRenderer | null>(null);
+  const updateIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+
   const [compilationSuccess, setCompilationSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isRendererReady, setIsRendererReady] = useState(false);
   const [uTime, setUTime] = useState(0);
   const [fps, setFps] = useState(0);
   const [resolution, setResolution] = useState({ width: 0, height: 0 });
 
-  // Initialize renderer
+  // Initialize renderer once on mount
   useEffect(() => {
     if (!canvasRef.current) return;
 
@@ -50,7 +49,7 @@ export function useWebGLRenderer({
 
     if (!initialized) {
       setError('WebGL 2.0 is not supported in your browser');
-      onCompilationResult(false, [{
+      onCompilationResult?.(false, [{
         line: 0,
         message: 'WebGL 2.0 is not supported in your browser',
         type: 'error'
@@ -59,32 +58,88 @@ export function useWebGLRenderer({
     }
 
     rendererRef.current = renderer;
-    setIsRendererReady(true);
 
-    // Handle resize
-    const handleResize = () => {
+    // Set up window resize listener
+    const handleWindowResize = () => {
       renderer.updateViewport();
     };
-    window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', handleWindowResize);
 
+    // Set up canvas resize observer for resolution tracking
+    const updateResolution = () => {
+      const canvas = canvasRef.current;
+      if (canvas) {
+        setResolution({ width: canvas.width, height: canvas.height });
+      }
+    };
+
+    const resizeObserver = new ResizeObserver(updateResolution);
+    resizeObserver.observe(canvasRef.current);
+    resizeObserverRef.current = resizeObserver;
+    updateResolution(); // Initial update
+
+    // Cleanup on unmount
     return () => {
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', handleWindowResize);
+      resizeObserver.disconnect();
+      if (updateIntervalRef.current) {
+        clearInterval(updateIntervalRef.current);
+      }
       renderer.dispose();
       rendererRef.current = null;
-      setIsRendererReady(false);
     };
   }, [onCompilationResult]);
 
-  // Compile shader when tabs change, compile trigger changes, or renderer becomes ready
-  useEffect(() => {
-    const renderer = rendererRef.current;
-    if (!renderer || !isRendererReady) return;
+  // Update display stats when playing
+  const startStatsUpdate = useCallback(() => {
+    // Clear any existing interval
+    if (updateIntervalRef.current) {
+      clearInterval(updateIntervalRef.current);
+    }
 
-    // Don't compile if no tabs
+    const updateStats = () => {
+      const renderer = rendererRef.current;
+      const canvas = canvasRef.current;
+
+      if (renderer && canvas) {
+        setUTime(renderer.getCurrentTime());
+        setFps(renderer.getFrameRate());
+
+        // Only update resolution if it actually changed
+        setResolution(prev => {
+          if (prev.width !== canvas.width || prev.height !== canvas.height) {
+            return { width: canvas.width, height: canvas.height };
+          }
+          return prev;
+        });
+      }
+    };
+
+    // Update stats at 60fps
+    updateIntervalRef.current = setInterval(updateStats, 16);
+    updateStats(); // Immediate update
+  }, []);
+
+  const stopStatsUpdate = useCallback(() => {
+    if (updateIntervalRef.current) {
+      clearInterval(updateIntervalRef.current);
+      updateIntervalRef.current = null;
+    }
+  }, []);
+
+  // Imperative compile method
+  const compile = useCallback((tabs: TabShaderData[]) => {
+    const renderer = rendererRef.current;
+    if (!renderer) {
+      console.warn('Renderer not initialized');
+      return;
+    }
+
+    // Validate tabs
     if (!tabs || tabs.length === 0) {
       setCompilationSuccess(false);
       setError(null);
-      onCompilationResult(false, [{
+      onCompilationResult?.(false, [{
         line: 0,
         message: 'No shader tabs provided',
         type: 'error'
@@ -96,7 +151,7 @@ export function useWebGLRenderer({
     const startTime = performance.now();
 
     try {
-      // Compile all tabs using multipass renderer
+      // Compile shader
       renderer.compileShader(tabs);
 
       const endTime = performance.now();
@@ -105,9 +160,8 @@ export function useWebGLRenderer({
       // Success!
       setCompilationSuccess(true);
       setError(null);
-      onCompilationResult(true, [], compilationTime);
+      onCompilationResult?.(true, [], compilationTime);
 
-      // Note: Playback control is handled by the separate playback useEffect
     } catch (err) {
       const endTime = performance.now();
       const compilationTime = Math.round(endTime - startTime);
@@ -117,7 +171,6 @@ export function useWebGLRenderer({
 
       // Check if this is a PreprocessorCompilationError
       if (err instanceof PreprocessorCompilationError) {
-        // Convert preprocessor errors to CompilationError format with proper passName
         allErrors = err.preprocessorErrors.map(preprocessorError => ({
           line: preprocessorError.line,
           message: preprocessorError.message,
@@ -148,17 +201,15 @@ export function useWebGLRenderer({
         const lineMapping = (err as any).lineMapping;
 
         if (passName && userCodeStartLine !== undefined && commonLineCount !== undefined) {
-          // Use multipass error parser with pass-specific information
           allErrors = parseMultipassShaderError(errorMessage, passName, userCodeStartLine, commonLineCount, lineMapping);
         } else {
-          // Fallback to generic error parsing
           allErrors = parseShaderError(errorMessage, 0, lineMapping);
         }
       }
 
       setCompilationSuccess(false);
       setError('Shader compilation failed');
-      onCompilationResult(false, allErrors.length > 0 ? allErrors : [{
+      onCompilationResult?.(false, allErrors.length > 0 ? allErrors : [{
         line: 0,
         message: errorMessage,
         type: 'error'
@@ -166,22 +217,29 @@ export function useWebGLRenderer({
 
       // Stop rendering on error
       renderer.stop();
+      stopStatsUpdate();
     }
-  }, [tabs, compileTrigger, onCompilationResult, isRendererReady]);
+  }, [onCompilationResult, stopStatsUpdate]);
 
-  // Control playback
-  useEffect(() => {
+  // Imperative play method
+  const play = useCallback(() => {
     const renderer = rendererRef.current;
-    if (!renderer || !compilationSuccess) return;
-
-    if (isPlaying) {
+    if (renderer && compilationSuccess) {
       renderer.start();
-    } else {
-      renderer.stop();
+      startStatsUpdate();
     }
-  }, [isPlaying, compilationSuccess]);
+  }, [compilationSuccess, startStatsUpdate]);
 
-  // Reset function
+  // Imperative pause method
+  const pause = useCallback(() => {
+    const renderer = rendererRef.current;
+    if (renderer) {
+      renderer.stop();
+      stopStatsUpdate();
+    }
+  }, [stopStatsUpdate]);
+
+  // Imperative reset method
   const reset = useCallback(() => {
     const renderer = rendererRef.current;
     if (renderer) {
@@ -191,92 +249,51 @@ export function useWebGLRenderer({
     }
   }, []);
 
-  // Update real-time data
-  useEffect(() => {
-    // Only update when playing and compilation is successful
-    if (!isPlaying || !compilationSuccess) {
-      return;
+  // Imperative viewport update method
+  const updateViewport = useCallback(() => {
+    const renderer = rendererRef.current;
+    if (renderer) {
+      renderer.updateViewport();
     }
+  }, []);
 
-    const updateData = () => {
-      const renderer = rendererRef.current;
-      const canvas = canvasRef.current;
-
-      if (renderer && canvas) {
-        // Update uTime only when playing
-        const currentTime = renderer.getCurrentTime();
-        setUTime(currentTime);
-
-        // Update resolution
-        setResolution({ width: canvas.width, height: canvas.height });
-
-        // Update FPS from renderer's actual frame rate calculation
-        const frameRate = renderer.getFrameRate();
-        setFps(frameRate);
-      }
-    };
-
-    // Start updating immediately and continue at 60fps
-    const intervalId = setInterval(updateData, 16); // ~60fps update rate
-    updateData(); // Initial update
-    
-    return () => clearInterval(intervalId);
-  }, [isPlaying, compilationSuccess, isRendererReady]);
-
-
-  // Update resolution whenever canvas dimensions change
-  useEffect(() => {
-    const updateResolution = () => {
-      const canvas = canvasRef.current;
-      if (canvas) {
-        setResolution({ width: canvas.width, height: canvas.height });
-      }
-    };
-
-    // Initial update
-    updateResolution();
-
-    // Listen for resize events
-    const resizeObserver = new ResizeObserver(updateResolution);
-    if (canvasRef.current) {
-      resizeObserver.observe(canvasRef.current);
-    }
-
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, [isRendererReady]);
-
-  // Handle resolution locking/unlocking
-  useEffect(() => {
+  // Imperative resolution lock method
+  const setResolutionLock = useCallback((locked: boolean, resolution?: { width: number; height: number }) => {
     const renderer = rendererRef.current;
     if (!renderer) return;
 
-    if (isResolutionLocked && lockedResolution) {
-      // Lock to specific resolution
-      renderer.setLockedResolution(lockedResolution.width, lockedResolution.height);
+    if (locked && resolution) {
+      renderer.setLockedResolution(resolution.width, resolution.height);
     } else {
-      // Unlock: update viewport to match current container size
       renderer.updateViewport();
     }
-  }, [isResolutionLocked, lockedResolution]);
+  }, []);
 
-  // Handle panel resize to trigger WebGL viewport updates
-  useEffect(() => {
-    const renderer = rendererRef.current;
-    if (renderer && !isResolutionLocked) {
-      // Only trigger viewport update when panels are resized if resolution is not locked
-      renderer.updateViewport();
-    }
-  }, [panelResizeCounter, isResolutionLocked]);
-
-  return {
+  return useMemo(() => ({
     canvasRef,
     compilationSuccess,
     error,
+    compile,
+    play,
+    pause,
     reset,
+    updateViewport,
+    setResolutionLock,
     uTime,
     fps,
     resolution
-  };
+  }), [
+    canvasRef,
+    compilationSuccess,
+    error,
+    compile,
+    play,
+    pause,
+    reset,
+    updateViewport,
+    setResolutionLock,
+    uTime,
+    fps,
+    resolution
+  ]);
 }
