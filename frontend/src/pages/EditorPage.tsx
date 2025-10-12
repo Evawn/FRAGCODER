@@ -7,6 +7,7 @@ import ShaderPlayer from '../components/ShaderPlayer';
 import type { TabShaderData, CompilationError } from '../utils/GLSLCompiler';
 import { useAuth } from '../context/AuthContext';
 import { useWebGLRenderer } from '../hooks/useWebGLRenderer';
+import { useDialogManager } from '../hooks/useDialogManager';
 import { SignInDialog } from '../components/auth/SignInDialog';
 import { SaveAsDialog } from '../components/editor/SaveAsDialog';
 import { RenameDialog } from '../components/editor/RenameDialog';
@@ -83,13 +84,8 @@ function EditorPage() {
   ]);
   const [activeTabId, setActiveTabId] = useState('1');
 
-  // Dialog state (moved from ShaderEditor)
-  const [showSignInDialog, setShowSignInDialog] = useState(false);
-  const [showSaveAsDialog, setShowSaveAsDialog] = useState(false);
-  const [showRenameDialog, setShowRenameDialog] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showCloneDialog, setShowCloneDialog] = useState(false);
-  const [signInCallback, setSignInCallback] = useState<(() => void) | undefined>();
+  // Dialog management (simplified with custom hook)
+  const dialogManager = useDialogManager();
 
   // Local shader title (moved from ShaderEditor)
   const [localShaderTitle, setLocalShaderTitle] = useState(shader?.title || 'Untitled...');
@@ -300,13 +296,12 @@ function EditorPage() {
   const handleSaveAsClick = useCallback(() => {
     if (!user) {
       // Not signed in - show sign in dialog first, then save as dialog after sign-in
-      setSignInCallback(() => () => setShowSaveAsDialog(true));
-      setShowSignInDialog(true);
+      dialogManager.openSignIn(() => dialogManager.openSaveAs());
     } else {
       // Already signed in - show save as dialog directly
-      setShowSaveAsDialog(true);
+      dialogManager.openSaveAs();
     }
-  }, [user]);
+  }, [user, dialogManager]);
 
   const handleSave = useCallback(async (titleOverride?: string) => {
     try {
@@ -380,13 +375,12 @@ function EditorPage() {
   const handleCloneClick = useCallback(() => {
     if (!user) {
       // Not signed in - show sign in dialog first, then clone dialog after sign-in
-      setSignInCallback(() => () => setShowCloneDialog(true));
-      setShowSignInDialog(true);
+      dialogManager.openSignIn(() => dialogManager.openClone());
     } else {
       // Already signed in - show clone dialog directly
-      setShowCloneDialog(true);
+      dialogManager.openClone();
     }
-  }, [user]);
+  }, [user, dialogManager]);
 
   const handleCloneShader = useCallback(async () => {
     try {
@@ -620,13 +614,10 @@ function EditorPage() {
               onCompile={handleCompile}
               onSave={handleSave}
               onSaveAs={handleSaveAsClick}
-              onRename={() => setShowRenameDialog(true)}
+              onRename={() => dialogManager.openRename()}
               onClone={handleCloneClick}
-              onDelete={() => setShowDeleteDialog(true)}
-              onSignIn={() => {
-                setSignInCallback(undefined);
-                setShowSignInDialog(true);
-              }}
+              onDelete={() => dialogManager.openDelete()}
+              onSignIn={() => dialogManager.openSignIn()}
               onSignOut={signOut}
             />
           </div>
@@ -635,35 +626,35 @@ function EditorPage() {
 
       {/* Dialogs (moved from ShaderEditor) */}
       <SignInDialog
-        open={showSignInDialog}
-        onOpenChange={setShowSignInDialog}
-        onSignInSuccess={signInCallback}
+        open={dialogManager.isOpen('signin')}
+        onOpenChange={(open) => !open && dialogManager.closeDialog()}
+        onSignInSuccess={dialogManager.signInCallback}
       />
 
       <SaveAsDialog
-        open={showSaveAsDialog}
-        onOpenChange={setShowSaveAsDialog}
+        open={dialogManager.isOpen('saveAs')}
+        onOpenChange={(open) => !open && dialogManager.closeDialog()}
         onSave={handleSaveShader}
       />
 
       <RenameDialog
         currentName={localShaderTitle}
-        open={showRenameDialog}
-        onOpenChange={setShowRenameDialog}
+        open={dialogManager.isOpen('rename')}
+        onOpenChange={(open) => !open && dialogManager.closeDialog()}
         onRename={handleRenameShader}
       />
 
       <DeleteShaderDialog
         shaderName={localShaderTitle}
-        open={showDeleteDialog}
-        onOpenChange={setShowDeleteDialog}
+        open={dialogManager.isOpen('delete')}
+        onOpenChange={(open) => !open && dialogManager.closeDialog()}
         onDelete={handleDeleteShader}
       />
 
       <CloneDialog
         shaderName={localShaderTitle}
-        open={showCloneDialog}
-        onOpenChange={setShowCloneDialog}
+        open={dialogManager.isOpen('clone')}
+        onOpenChange={(open) => !open && dialogManager.closeDialog()}
         onClone={handleCloneShader}
       />
     </div>

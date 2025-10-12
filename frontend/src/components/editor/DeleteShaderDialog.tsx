@@ -1,12 +1,6 @@
-import { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '../ui/dialog';
-import { Button } from '../ui/button';
+import { useEffect } from 'react';
+import { ActionDialog } from '../ui/ActionDialog';
+import { useDialogState } from '../../hooks/useDialogState';
 
 interface DeleteShaderDialogProps {
   shaderName?: string;
@@ -16,34 +10,22 @@ interface DeleteShaderDialogProps {
 }
 
 export function DeleteShaderDialog({ shaderName, onDelete, open, onOpenChange }: DeleteShaderDialogProps) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { loading, error, setLoading, setError, resetState } = useDialogState();
 
-  const resetState = () => {
-    setError(null);
-    setLoading(false);
-  };
-
-  const handleClose = () => {
-    onOpenChange(false);
-    resetState();
-  };
-
-  const handleOpenChange = (newOpen: boolean) => {
-    onOpenChange(newOpen);
-    if (!newOpen) {
+  // Reset state when dialog closes
+  useEffect(() => {
+    if (!open) {
       resetState();
     }
-  };
+  }, [open, resetState]);
 
   const handleDelete = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // Call the parent's delete handler
       await onDelete();
-      handleClose();
+      onOpenChange(false);
     } catch (err: any) {
       console.error('Error deleting shader:', err);
       const message = err.message || 'Failed to delete shader. Please try again.';
@@ -54,27 +36,21 @@ export function DeleteShaderDialog({ shaderName, onDelete, open, onOpenChange }:
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="w-80 bg-gray-800 border-gray-700 text-white p-6">
-        <DialogHeader>
-          <DialogTitle className="text-lg font-semibold text-white">
-            Delete Shader
-          </DialogTitle>
-          <DialogDescription className="text-sm text-gray-400">
-            This action cannot be undone
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          {/* Error Message */}
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/50 rounded-md p-3">
-              <p className="text-sm text-red-400">{error}</p>
-            </div>
-          )}
-
-          {/* Warning Message */}
-          <div className="bg-yellow-500/10 border border-yellow-500/50 rounded-md p-3">
+    <ActionDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Delete Shader"
+      description="This action cannot be undone"
+      error={error}
+      onConfirm={handleDelete}
+      confirmText="Delete"
+      confirmClassName="bg-red-600 hover:bg-red-700 text-white"
+      loading={loading}
+      loadingText="Deleting..."
+      message={{
+        type: 'warning',
+        content: (
+          <>
             <p className="text-sm text-yellow-300">
               Are you sure you want to delete{' '}
               <span className="font-semibold">{shaderName || 'this shader'}</span>?
@@ -82,35 +58,9 @@ export function DeleteShaderDialog({ shaderName, onDelete, open, onOpenChange }:
             <p className="text-xs text-yellow-400 mt-2">
               This will permanently delete the shader and cannot be undone.
             </p>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex space-x-2">
-            <Button
-              onClick={handleClose}
-              variant="outline"
-              className="flex-1 bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600 hover:text-white"
-              disabled={loading}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleDelete}
-              className="flex-1 bg-red-600 hover:bg-red-700 text-white"
-              disabled={loading}
-            >
-              {loading ? (
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Deleting...</span>
-                </div>
-              ) : (
-                'Delete'
-              )}
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+          </>
+        ),
+      }}
+    />
   );
 }
