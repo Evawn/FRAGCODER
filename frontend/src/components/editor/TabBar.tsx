@@ -3,16 +3,7 @@ import { Button } from '../ui/button';
 import { Dropdown } from '../ui/Dropdown';
 import type { DropdownOption } from '../ui/Dropdown';
 import { DeleteTabDialog } from './DeleteTabDialog';
-import type { CompilationError } from '../../utils/GLSLCompiler';
-
-// Tab interface
-export interface Tab {
-  id: string;
-  name: string;
-  code: string;
-  isDeletable: boolean;
-  errors: CompilationError[];
-}
+import type { Tab } from '../../types';
 
 interface TabBarProps {
   tabs: Tab[];

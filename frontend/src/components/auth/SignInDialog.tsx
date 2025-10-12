@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from '../ui/dialog';
 import { Button } from '../ui/button';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../AuthContext';
 import { checkGoogleAuth, registerUser } from '../../api/auth';
 
 interface SignInDialogProps {

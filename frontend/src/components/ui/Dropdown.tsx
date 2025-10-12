@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from './popover';
-import { cn } from '../../lib/utils';
+import { cn } from '../../utils/cn';
 
 export interface DropdownOption {
   text: string;

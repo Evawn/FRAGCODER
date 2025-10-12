@@ -1,65 +1,13 @@
 import axios from 'axios';
+import type {
+  SaveShaderRequest,
+  SaveShaderResponse,
+  UpdateShaderRequest,
+  UpdateShaderResponse,
+  Shader,
+} from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-export interface TabData {
-  id: string;
-  name: string;
-  code: string;
-}
-
-export interface CompilationError {
-  line: number;
-  message: string;
-  type: 'error' | 'warning';
-  passName?: string;
-}
-
-export type CompilationStatus = 'SUCCESS' | 'ERROR' | 'WARNING' | 'PENDING';
-
-export interface SaveShaderRequest {
-  name: string;
-  tabs: TabData[];
-  isPublic?: boolean;
-  compilationStatus: CompilationStatus;
-  compilationErrors?: CompilationError[];
-  description?: string;
-}
-
-export interface Shader {
-  id: string;
-  title: string;
-  slug: string;
-  tabs: TabData[];
-  description: string | null;
-  isPublic: boolean;
-  compilationStatus: CompilationStatus;
-  compilationErrors: CompilationError[] | null;
-  userId: string;
-  forkedFrom: string | null;
-  createdAt: string;
-  updatedAt: string;
-  lastSavedAt: string;
-  user: {
-    id: string;
-    username: string;
-  };
-}
-
-export interface SaveShaderResponse {
-  shader: Shader;
-  url: string;
-}
-
-export interface UpdateShaderRequest {
-  name: string;
-  tabs: TabData[];
-  compilationStatus: CompilationStatus;
-}
-
-export interface UpdateShaderResponse {
-  shader: Shader;
-}
 
 /**
  * Save a new shader

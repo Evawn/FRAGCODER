@@ -33,13 +33,18 @@ export interface MultipassCompilationError extends Error {
 }
 
 export class PreprocessorCompilationError extends Error {
+  passName: string;
+  preprocessorErrors: Array<{ line: number; message: string }>;
+
   constructor(
-    public passName: string,
-    public preprocessorErrors: Array<{ line: number; message: string }>,
+    passName: string,
+    preprocessorErrors: Array<{ line: number; message: string }>,
     message?: string
   ) {
     super(message || `Preprocessor errors in ${passName}`);
     this.name = 'PreprocessorCompilationError';
+    this.passName = passName;
+    this.preprocessorErrors = preprocessorErrors;
   }
 }
 

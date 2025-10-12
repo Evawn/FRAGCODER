@@ -2,12 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import CodeMirrorEditor from './CodeMirrorEditor';
 import { EditorHeader } from './EditorHeader';
 import { TabBar } from './TabBar';
-import type { Tab } from './TabBar';
+import type { Tab } from '../../types';
 import { UniformsPanel } from './UniformsPanel';
 import { EditorFooter } from './EditorFooter';
-
-// Re-export Tab for backward compatibility
-export type { Tab };
 
 // Props interface - display-only component
 interface ShaderEditorProps {
@@ -42,25 +39,6 @@ interface ShaderEditorProps {
   onDelete: () => void;
   onSignIn: () => void;
   onSignOut: () => void;
-}
-
-// Re-export for backward compatibility
-export const defaultImageCode = `// Image - Display all buffers in quadrants
-
-void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-    vec2 uv = fragCoord / iResolution.y;
-    fragColor = vec4(uv, 1.0, 1.0);
-}`;
-
-// This interface is kept for backward compatibility (used by EditorPage)
-export interface ShaderData {
-  id: string;
-  title: string;
-  code: string;
-  description?: string;
-  isPublic: boolean;
-  userId: string;
-  forkedFrom?: string;
 }
 
 function ShaderEditor({

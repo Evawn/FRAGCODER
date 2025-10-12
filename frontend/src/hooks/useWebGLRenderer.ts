@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { WebGLRenderer } from '../utils/WebGLRenderer';
 import { parseShaderError, parseMultipassShaderError, PreprocessorCompilationError } from '../utils/GLSLCompiler';
-import type { CompilationError, TabShaderData, MultipassCompilationError } from '../utils/GLSLCompiler';
+import type { CompilationError } from '../types';
+import type { TabShaderData, MultipassCompilationError } from '../utils/GLSLCompiler';
 
 interface UseWebGLRendererProps {
   onCompilationResult?: (success: boolean, errors: CompilationError[], compilationTime: number) => void;

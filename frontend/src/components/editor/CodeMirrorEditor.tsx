@@ -8,7 +8,7 @@ import { acceptCompletion, completionStatus, closeCompletion } from '@codemirror
 import { indentMore, insertNewlineAndIndent, selectAll, cursorDocStart, cursorDocEnd, cursorLineStart, cursorLineEnd, deleteCharBackward, deleteCharForward } from '@codemirror/commands';
 import type { Transaction, Extension } from '@codemirror/state';
 import { glsl } from '../../utils/GLSLLanguage';
-import type { CompilationError } from '../../utils/GLSLCompiler';
+import type { CompilationError } from '../../types';
 import { createErrorDecorationExtensions, setErrorsEffect } from './ErrorDecorations';
 
 interface CodeMirrorEditorProps {

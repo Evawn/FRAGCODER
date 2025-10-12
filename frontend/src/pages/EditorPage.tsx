@@ -3,8 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '../components/ui/resizable';
 import ShaderEditor from '../components/editor/ShaderEditor';
 import ShaderPlayer from '../components/ShaderPlayer';
-import type { CompilationError } from '../utils/GLSLCompiler';
-import { useAuth } from '../context/AuthContext';
+import type { CompilationError, Tab, ShaderData } from '../types';
+import { useAuth } from '../AuthContext';
 import { useWebGLRenderer } from '../hooks/useWebGLRenderer';
 import { useDialogManager } from '../hooks/useDialogManager';
 import { SignInDialog } from '../components/auth/SignInDialog';
@@ -12,7 +12,7 @@ import { SaveAsDialog } from '../components/editor/SaveAsDialog';
 import { RenameDialog } from '../components/editor/RenameDialog';
 import { DeleteShaderDialog } from '../components/editor/DeleteShaderDialog';
 import { CloneDialog } from '../components/editor/CloneDialog';
-import { DEFAULT_SHADER_CODES, getDefaultCode } from '../constants/defaultShaderCode';
+import { DEFAULT_SHADER_CODES, getDefaultCode } from '../utils/defaultShaderCode';
 import {
   getShaderBySlug,
   updateShader,
@@ -21,8 +21,6 @@ import {
   deleteShader,
 } from '../api/shaders';
 import {
-  type Tab,
-  type ShaderData,
   determineCompilationStatus,
   apiShaderToShaderData,
   tabsToTabData,

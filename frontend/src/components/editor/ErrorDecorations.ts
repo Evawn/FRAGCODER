@@ -1,6 +1,6 @@
 import { EditorView, Decoration, WidgetType } from '@codemirror/view';
 import { StateField, StateEffect } from '@codemirror/state';
-import type { CompilationError } from '../../utils/GLSLCompiler';
+import type { CompilationError } from '../../types';
 import type { DecorationSet } from '@codemirror/view';
 
 class ErrorWidget extends WidgetType {

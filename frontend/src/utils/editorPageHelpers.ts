@@ -1,26 +1,5 @@
-import type { CompilationError } from './GLSLCompiler';
-import type { TabData, CompilationStatus, Shader } from '../api/shaders';
-import { DEFAULT_SHADER_CODES } from '../constants/defaultShaderCode';
-
-// Tab interface matching EditorPage's local Tab type
-export interface Tab {
-  id: string;
-  name: string;
-  code: string;
-  isDeletable: boolean;
-  errors: CompilationError[];
-}
-
-// ShaderData interface matching ShaderEditor's expectations
-export interface ShaderData {
-  id: string;
-  title: string;
-  code: string;
-  description?: string;
-  isPublic: boolean;
-  userId: string;
-  forkedFrom?: string;
-}
+import type { CompilationError, Tab, ShaderData, TabData, CompilationStatus, Shader } from '../types';
+import { DEFAULT_SHADER_CODES } from './defaultShaderCode';
 
 /**
  * Determines compilation status based on success and errors

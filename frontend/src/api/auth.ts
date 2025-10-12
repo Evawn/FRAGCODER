@@ -1,31 +1,7 @@
 import axios from 'axios';
+import type { User, GoogleAuthResponse, RegisterResponse } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-export interface User {
-  id: string;
-  googleId: string;
-  email: string;
-  username: string;
-  name: string | null;
-  picture: string | null;
-  createdAt: string;
-}
-
-export interface GoogleAuthResponse {
-  exists: boolean;
-  user?: User;
-  token?: string;
-  profile?: {
-    googleId: string;
-    email: string;
-  };
-}
-
-export interface RegisterResponse {
-  user: User;
-  token: string;
-}
 
 /**
  * Check if user exists with Google account
