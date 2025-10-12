@@ -1,19 +1,63 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import CodeMirrorEditor from './CodeMirrorEditor';
-import type { CompilationError, TabShaderData } from '../../utils/GLSLCompiler';
-import type { Transaction } from '@codemirror/state';
-import { updateErrorLines } from '../../utils/ErrorLineTracking';
+import type { CompilationError } from '../../utils/GLSLCompiler';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Dropdown } from '../ui/Dropdown';
-import { SignInDialog } from '../auth/SignInDialog';
-import { SaveAsDialog } from './SaveAsDialog';
-import { RenameDialog } from './RenameDialog';
-import { DeleteShaderDialog } from './DeleteShaderDialog';
-import { CloneDialog } from './CloneDialog';
-import { useAuth } from '../../context/AuthContext';
 
+// Tab interface
+export interface Tab {
+  id: string;
+  name: string;
+  code: string;
+  isDeletable: boolean;
+  errors: CompilationError[];
+}
+
+// Props interface - display-only component
+interface ShaderEditorProps {
+  // Display data
+  tabs: Tab[];
+  activeTabId: string;
+  localShaderTitle: string;
+
+  // Compilation state
+  compilationSuccess?: boolean;
+  compilationTime: number;
+
+  // User/ownership
+  isSavedShader: boolean;
+  isOwner: boolean;
+  isSignedIn: boolean;
+  username?: string;
+  userPicture?: string;
+
+  // Tab callbacks
+  onTabChange: (tabId: string) => void;
+  onAddTab: (tabName: string) => void;
+  onDeleteTab: (tabId: string) => void;
+  onCodeChange: (newCode: string, tabId: string) => void;
+
+  // Shader operation callbacks
+  onCompile: () => void;
+  onSave: (titleOverride?: string) => void;
+  onSaveAs: () => void;
+  onRename: () => void;
+  onClone: () => void;
+  onDelete: () => void;
+  onSignIn: () => void;
+  onSignOut: () => void;
+}
+
+// Re-export for backward compatibility
+export const defaultImageCode = `// Image - Display all buffers in quadrants
+
+void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+    vec2 uv = fragCoord / iResolution.y;
+    fragColor = vec4(uv, 1.0, 1.0);
+}`;
+
+// This interface is kept for backward compatibility (used by EditorPage)
 export interface ShaderData {
   id: string;
   title: string;
@@ -24,368 +68,96 @@ export interface ShaderData {
   forkedFrom?: string;
 }
 
-interface ShaderEditorProps {
-  shader: ShaderData | null;
-  shaderSlug?: string;
-  loadedTabs?: TabShaderData[];
-  isSavedShader?: boolean;
-  isOwner?: boolean;
-  onCompile: (tabs: TabShaderData[]) => void;
-  compilationErrors: CompilationError[];
-  compilationSuccess?: boolean;
-  compilationTime: number;
-  onTabChange?: () => void;
-}
-
-interface Tab {
-  id: string;
-  name: string;
-  code: string;
-  isDeletable: boolean;
-  errors: CompilationError[]; // Per-tab error storage
-}
-
-// Default mainImage function code shared across all shader passes
-const defaultMainImageCode = `void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-    vec2 uv = fragCoord / iResolution.y;
-    fragColor = vec4(uv, 1.0, 1.0);
-}`;
-
-export const defaultImageCode = `// Image - Display all buffers in quadrants
-
-${defaultMainImageCode}`;
-
-const defaultBufferACode = `// Buffer A - Red pulsing circle
-
-${defaultMainImageCode}`;
-
-const defaultBufferBCode = `// Buffer B - Green rotating square
-
-${defaultMainImageCode}`;
-
-const defaultBufferCCode = `// Buffer C - Blue animated triangle
-
-${defaultMainImageCode}`;
-
-const defaultBufferDCode = `// Buffer D - Yellow/orange gradient waves
-
-${defaultMainImageCode}`;
-
-const defaultCommonCode = `// Common - Shared functions and definitions
-// Add your shared utilities here
-
-// Example: Distance to circle
-float sdCircle(vec2 p, float r) {
-    return length(p) - r;
-}
-
-// Example: Rotation matrix
-mat2 rotate2D(float angle) {
-    float s = sin(angle);
-    float c = cos(angle);
-    return mat2(c, -s, s, c);
-}`;
-
-function ShaderEditor({ shader, shaderSlug, loadedTabs, isSavedShader = false, isOwner = false, onCompile, compilationErrors, compilationSuccess, compilationTime, onTabChange }: ShaderEditorProps) {
-  const { user, token, signOut } = useAuth();
-  const navigate = useNavigate();
-  const [code, setCode] = useState(shader?.code || defaultImageCode);
+function ShaderEditor({
+  tabs,
+  activeTabId,
+  localShaderTitle,
+  compilationSuccess,
+  compilationTime,
+  isSavedShader,
+  isOwner,
+  isSignedIn,
+  username,
+  userPicture,
+  onTabChange,
+  onAddTab,
+  onDeleteTab,
+  onCodeChange,
+  onCompile,
+  onSave,
+  onSaveAs,
+  onRename,
+  onClone,
+  onDelete,
+  onSignIn,
+  onSignOut,
+}: ShaderEditorProps) {
   const [isUniformsExpanded, setIsUniformsExpanded] = useState(false);
   const [showErrorDecorations, setShowErrorDecorations] = useState(true);
-
-  // Tab management state
-  const [tabs, setTabs] = useState<Tab[]>([
-    { id: '1', name: 'Image', code: shader?.code || defaultImageCode, isDeletable: false, errors: [] }
-  ]);
-  const [activeTabId, setActiveTabId] = useState('1');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [tabToDelete, setTabToDelete] = useState<Tab | null>(null);
 
-  // Save As Dialog state
-  const [showSignInDialog, setShowSignInDialog] = useState(false);
-  const [showSaveAsDialog, setShowSaveAsDialog] = useState(false);
-  const [signInCallback, setSignInCallback] = useState<(() => void) | undefined>();
-
-  // Rename Dialog state
-  const [showRenameDialog, setShowRenameDialog] = useState(false);
-
-  // Delete Dialog state
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-
-  // Clone Dialog state
-  const [showCloneDialog, setShowCloneDialog] = useState(false);
-
-  // Local shader title (can be updated independently before saving)
-  const [localShaderTitle, setLocalShaderTitle] = useState(shader?.title || 'Untitled...');
-
   const isSwitchingTabsRef = useRef(false);
 
-  // Sync local shader title with shader prop
+  // Get active tab
+  const activeTab = tabs.find(tab => tab.id === activeTabId);
+
+  // Check if a tab has errors
+  const tabHasErrors = (tab: Tab): boolean => {
+    return tab.errors.length > 0;
+  };
+
+  // Handle document changes - placeholder for error line tracking
+  const handleDocumentChange = () => {
+    // Ignore document changes during tab switches
+    if (isSwitchingTabsRef.current) {
+      return;
+    }
+
+    // Note: Error line tracking is now handled in the parent (EditorPage)
+    // This is just a placeholder to maintain the interface with CodeMirrorEditor
+  };
+
+  // Handle tab switch - prevent error line tracking during switch
   useEffect(() => {
-    if (shader?.title) {
-      setLocalShaderTitle(shader.title);
+    // Set flag to ignore document changes during tab switch
+    isSwitchingTabsRef.current = true;
+
+    // Clear the flag after a short delay to allow CodeMirror to settle
+    const timeout = setTimeout(() => {
+      isSwitchingTabsRef.current = false;
+    }, 100);
+
+    return () => clearTimeout(timeout);
+  }, [activeTabId]);
+
+  // Handle code changes
+  const handleCodeChangeInternal = (newCode: string) => {
+    onCodeChange(newCode, activeTabId);
+  };
+
+  // Handle tab deletion
+  const handleDeleteTabClick = (tab: Tab) => {
+    setTabToDelete(tab);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteTab = () => {
+    if (tabToDelete) {
+      onDeleteTab(tabToDelete.id);
     }
-  }, [shader?.title]);
+    setShowDeleteConfirm(false);
+    setTabToDelete(null);
+  };
 
-  // Load tabs from shader when loadedTabs prop changes
-  useEffect(() => {
-    if (loadedTabs && loadedTabs.length > 0) {
-      // Convert loaded tabs to Tab format
-      const convertedTabs: Tab[] = loadedTabs.map(tab => ({
-        id: tab.id,
-        name: tab.name,
-        code: tab.code,
-        isDeletable: tab.name !== 'Image', // Image tab is never deletable
-        errors: []
-      }));
-
-      setTabs(convertedTabs);
-      setActiveTabId(convertedTabs[0].id);
-      setCode(convertedTabs[0].code);
-    }
-  }, [loadedTabs]);
-
-  // Handle Save As button click
-  const handleSaveAsClick = () => {
-    if (!user) {
-      // Not signed in - show sign in dialog first, then save as dialog after sign-in
-      setSignInCallback(() => () => setShowSaveAsDialog(true));
-      setShowSignInDialog(true);
+  // Compile or save based on shader ownership
+  const handleCompileOrSave = () => {
+    // If this is a saved shader that the user owns, save it (which also compiles)
+    if (isSavedShader && isOwner) {
+      onSave();
     } else {
-      // Already signed in - show save as dialog directly
-      setShowSaveAsDialog(true);
-    }
-  };
-
-  // Handle Save button click (update existing shader)
-  const handleSave = async (titleOverride?: string) => {
-    try {
-      console.log('Saving shader...');
-
-      // Check if we have a shader and slug
-      if (!shader || !shaderSlug) {
-        throw new Error('No shader to save');
-      }
-
-      // Check if user is authenticated
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
-      // Always trigger compilation before saving
-      handleCompile();
-
-      // Wait for compilation to complete
-      await new Promise(resolve => setTimeout(resolve, 150));
-
-      // Determine compilation status
-      let status: 'SUCCESS' | 'ERROR' | 'WARNING' | 'PENDING' = 'PENDING';
-      if (compilationSuccess === true) {
-        status = compilationErrors.length > 0 ? 'WARNING' : 'SUCCESS';
-      } else if (compilationSuccess === false) {
-        status = 'ERROR';
-      }
-
-      // Prepare update data - use titleOverride if provided, otherwise use localShaderTitle
-      const updateData = {
-        name: titleOverride ?? localShaderTitle,
-        tabs: tabs.map(tab => ({
-          id: tab.id,
-          name: tab.name,
-          code: tab.code
-        })),
-        compilationStatus: status,
-      };
-
-      console.log('Updating shader with data:', updateData);
-
-      // Import updateShader dynamically
-      const { updateShader } = await import('../../api/shaders');
-
-      // Update shader via API
-      const response = await updateShader(shaderSlug, updateData, token);
-
-      console.log('Shader updated successfully!', response);
-
-    } catch (error) {
-      console.error('Failed to save shader:', error);
-
-      // Show user-friendly error message
-      if (error instanceof Error) {
-        alert(`Failed to save shader: ${error.message}`);
-      } else {
-        alert('Failed to save shader. Please try again.');
-      }
-    }
-  };
-
-  const handleRename = () => {
-    setShowRenameDialog(true);
-  };
-
-  // Handle shader rename - updates local title and triggers save
-  const handleRenameShader = async (newName: string) => {
-    // Update local title immediately (for UI)
-    setLocalShaderTitle(newName);
-
-    // Trigger save with the new name directly (to avoid async state issues)
-    await handleSave(newName);
-  };
-
-  const handleClone = () => {
-    if (!user) {
-      // Not signed in - show sign in dialog first, then clone dialog after sign-in
-      setSignInCallback(() => () => setShowCloneDialog(true));
-      setShowSignInDialog(true);
-    } else {
-      // Already signed in - show clone dialog directly
-      setShowCloneDialog(true);
-    }
-  };
-
-  // Handle shader cloning - creates a new shader and navigates to it
-  const handleCloneShader = async () => {
-    try {
-      console.log('Cloning shader...');
-
-      // Check if we have a shader and slug
-      if (!shader || !shaderSlug) {
-        throw new Error('No shader to clone');
-      }
-
-      // Check if user is authenticated
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
-      // Import cloneShader dynamically
-      const { cloneShader } = await import('../../api/shaders');
-
-      // Clone shader via API
-      const response = await cloneShader(shaderSlug, token);
-
-      console.log('Shader cloned successfully!', response);
-
-      // Navigate to the cloned shader's URL
-      const slug = response.shader.slug;
-      navigate(`/shader/${slug}`);
-
-    } catch (error) {
-      console.error('Failed to clone shader:', error);
-
-      // Re-throw error to be caught by dialog
-      if (error instanceof Error) {
-        throw new Error(error.message);
-      } else {
-        throw new Error('Failed to clone shader. Please try again.');
-      }
-    }
-  };
-
-  const handleDelete = () => {
-    setShowDeleteDialog(true);
-  };
-
-  // Handle shader deletion - deletes shader and navigates to home
-  const handleDeleteShader = async () => {
-    try {
-      console.log('Deleting shader...');
-
-      // Check if we have a shader and slug
-      if (!shader || !shaderSlug) {
-        throw new Error('No shader to delete');
-      }
-
-      // Check if user is authenticated
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
-      // Import deleteShader dynamically
-      const { deleteShader } = await import('../../api/shaders');
-
-      // Delete shader via API
-      await deleteShader(shaderSlug, token);
-
-      console.log('Shader deleted successfully!');
-
-      // Navigate to home page
-      navigate('/');
-
-    } catch (error) {
-      console.error('Failed to delete shader:', error);
-
-      // Re-throw error to be caught by dialog
-      if (error instanceof Error) {
-        throw new Error(error.message);
-      } else {
-        throw new Error('Failed to delete shader. Please try again.');
-      }
-    }
-  };
-
-  // Handle shader save
-  const handleSaveShader = async (shaderName: string) => {
-    try {
-      console.log('Saving shader:', shaderName);
-
-      // Trigger compilation if not already compiled or if code has changed
-      // This ensures we have accurate compilation status before saving
-      if (compilationSuccess === undefined) {
-        handleCompile();
-        // Wait a moment for compilation to complete
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-
-      // Determine compilation status
-      let status: 'SUCCESS' | 'ERROR' | 'WARNING' | 'PENDING' = 'PENDING';
-      if (compilationSuccess === true) {
-        status = compilationErrors.length > 0 ? 'WARNING' : 'SUCCESS';
-      } else if (compilationSuccess === false) {
-        status = 'ERROR';
-      }
-
-      // Prepare shader data structure
-      const shaderData = {
-        name: shaderName,
-        tabs: tabs.map(tab => ({
-          id: tab.id,
-          name: tab.name,
-          code: tab.code
-        })),
-        isPublic: true, // Default to public
-        compilationStatus: status,
-        compilationErrors: compilationErrors.length > 0 ? compilationErrors : undefined
-      };
-
-      console.log('Shader data to save:', shaderData);
-
-      // Import saveShader dynamically to avoid circular dependencies
-      const { saveShader } = await import('../../api/shaders');
-
-      // Check if user is authenticated
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
-      // Save shader to backend
-      const response = await saveShader(shaderData, token);
-
-      console.log('Shader saved successfully!', response);
-
-      // Navigate to the saved shader's URL
-      const slug = response.shader.slug;
-      navigate(`/shader/${slug}`);
-
-    } catch (error) {
-      console.error('Failed to save shader:', error);
-
-      // Show user-friendly error message
-      if (error instanceof Error) {
-        alert(`Failed to save shader: ${error.message}`);
-      } else {
-        alert('Failed to save shader. Please try again.');
-      }
+      // Otherwise, just compile
+      onCompile();
     }
   };
 
@@ -396,7 +168,7 @@ function ShaderEditor({ shader, shaderSlug, loadedTabs, isSavedShader = false, i
       return [
         {
           text: 'Save as...',
-          callback: handleSaveAsClick
+          callback: onSaveAs
         }
       ];
     }
@@ -406,19 +178,19 @@ function ShaderEditor({ shader, shaderSlug, loadedTabs, isSavedShader = false, i
       return [
         {
           text: 'Save',
-          callback: handleSave
+          callback: () => onSave()
         },
         {
           text: 'Rename',
-          callback: handleRename
+          callback: onRename
         },
         {
           text: 'Clone',
-          callback: handleClone
+          callback: onClone
         },
         {
           text: 'Delete',
-          callback: handleDelete
+          callback: onDelete
         }
       ];
     }
@@ -427,170 +199,19 @@ function ShaderEditor({ shader, shaderSlug, loadedTabs, isSavedShader = false, i
     return [
       {
         text: 'Clone',
-        callback: handleClone
+        callback: onClone
       }
     ];
-  }, [isSavedShader, isOwner]);
+  }, [isSavedShader, isOwner, onSave, onSaveAs, onRename, onClone, onDelete]);
 
   // Add tab dropdown options
   const addTabDropdownOptions = [
-    { text: 'Buffer A', callback: () => handleAddTab('Buffer A') },
-    { text: 'Buffer B', callback: () => handleAddTab('Buffer B') },
-    { text: 'Buffer C', callback: () => handleAddTab('Buffer C') },
-    { text: 'Buffer D', callback: () => handleAddTab('Buffer D') },
-    { text: 'Common', callback: () => handleAddTab('Common') }
+    { text: 'Buffer A', callback: () => onAddTab('Buffer A') },
+    { text: 'Buffer B', callback: () => onAddTab('Buffer B') },
+    { text: 'Buffer C', callback: () => onAddTab('Buffer C') },
+    { text: 'Buffer D', callback: () => onAddTab('Buffer D') },
+    { text: 'Common', callback: () => onAddTab('Common') }
   ];
-
-  // Update tabs with incoming compilation errors
-  useEffect(() => {
-    setTabs(prevTabs => {
-      const newTabs = prevTabs.map(tab => {
-        // Get errors for this tab
-        const tabErrors = compilationErrors.filter(error =>
-          !error.passName || error.passName === tab.name
-        );
-        return { ...tab, errors: tabErrors };
-      });
-      return newTabs;
-    });
-  }, [compilationErrors]);
-
-  useEffect(() => {
-    if (shader?.code) {
-      setCode(shader.code);
-      // Update the Image tab's code when shader changes
-      setTabs(prevTabs => prevTabs.map(tab =>
-        tab.id === '1' ? { ...tab, code: shader.code } : tab
-      ));
-    }
-  }, [shader]);
-
-  // Get active tab
-  const activeTab = tabs.find(tab => tab.id === activeTabId);
-
-  // Check if a tab has errors
-  const tabHasErrors = (tab: Tab): boolean => {
-    return tab.errors.length > 0;
-  };
-
-  // Handle document changes to update error line numbers
-  const handleDocumentChange = (tr: Transaction) => {
-    // Ignore document changes during tab switches
-    if (isSwitchingTabsRef.current) {
-      return;
-    }
-
-    setTabs(prevTabs => {
-      const newTabs = prevTabs.map(tab => {
-        if (tab.id === activeTabId) {
-          // Update errors for the active tab
-          const updatedErrors = updateErrorLines(tab.errors, tr);
-          return { ...tab, errors: updatedErrors };
-        }
-        return tab;
-      });
-      return newTabs;
-    });
-  };
-
-  // Update code state when switching tabs
-  useEffect(() => {
-    const activeTab = tabs.find(tab => tab.id === activeTabId);
-    if (activeTab) {
-      // Set flag to ignore document changes during tab switch
-      isSwitchingTabsRef.current = true;
-
-      setCode(activeTab.code);
-
-      // Clear the flag after a short delay to allow CodeMirror to settle
-      setTimeout(() => {
-        isSwitchingTabsRef.current = false;
-      }, 100);
-
-      // Notify parent that tab changed
-      onTabChange?.();
-    }
-  }, [activeTabId]); // Only trigger on activeTabId change, not tab content changes
-
-  const handleCompile = () => {
-    // Convert tabs to TabShaderData format and pass all to parent
-    const tabsData: TabShaderData[] = tabs.map(tab => ({
-      id: tab.id,
-      name: tab.name,
-      code: tab.code
-    }));
-    onCompile(tabsData);
-  };
-
-  // Compile or save based on shader ownership
-  const handleCompileOrSave = () => {
-    // If this is a saved shader that the user owns, save it (which also compiles)
-    if (isSavedShader && isOwner) {
-      handleSave();
-    } else {
-      // Otherwise, just compile
-      handleCompile();
-    }
-  };
-
-  // Save current tab's code when it changes
-  const handleCodeChange = (newCode: string) => {
-    setCode(newCode);
-    setTabs(prevTabs => prevTabs.map(tab =>
-      tab.id === activeTabId ? { ...tab, code: newCode } : tab
-    ));
-  };
-
-  const handleAddTab = (name: string) => {
-    let defaultCode = defaultImageCode;
-
-    switch (name) {
-      case 'Buffer A':
-        defaultCode = defaultBufferACode;
-        break;
-      case 'Buffer B':
-        defaultCode = defaultBufferBCode;
-        break;
-      case 'Buffer C':
-        defaultCode = defaultBufferCCode;
-        break;
-      case 'Buffer D':
-        defaultCode = defaultBufferDCode;
-        break;
-      case 'Common':
-        defaultCode = defaultCommonCode;
-        break;
-      default:
-        defaultCode = defaultImageCode;
-    }
-
-    const newTab: Tab = {
-      id: Date.now().toString(),
-      name,
-      code: defaultCode,
-      isDeletable: true,
-      errors: []
-    };
-    setTabs([...tabs, newTab]);
-    setActiveTabId(newTab.id);
-  };
-
-  const handleDeleteTab = (tab: Tab) => {
-    setTabToDelete(tab);
-    setShowDeleteConfirm(true);
-  };
-
-  const confirmDeleteTab = () => {
-    if (tabToDelete) {
-      setTabs(tabs.filter(tab => tab.id !== tabToDelete.id));
-      // If deleting active tab, switch to first tab
-      if (activeTabId === tabToDelete.id) {
-        setActiveTabId(tabs[0].id);
-      }
-    }
-    setShowDeleteConfirm(false);
-    setTabToDelete(null);
-  };
 
   // Standard GLSL uniform declarations for shader inputs
   const uniformHeader = `// Standard Shader Uniforms
@@ -641,12 +262,12 @@ uniform sampler2D BufferD;         // Buffer D texture`;
             <span className="text-lg">New+</span>
           </Button>
 
-          {user ? (
+          {isSignedIn && username ? (
             // Show user menu when signed in
             <Dropdown
               options={[
                 {
-                  text: `@${user.username}`,
+                  text: `@${username}`,
                   callback: () => { },
                 },
                 {
@@ -656,7 +277,7 @@ uniform sampler2D BufferD;         // Buffer D texture`;
                 {
                   text: 'Sign Out',
                   callback: () => {
-                    signOut();
+                    onSignOut();
                     console.log('User signed out');
                   },
                 },
@@ -669,14 +290,14 @@ uniform sampler2D BufferD;         // Buffer D texture`;
                 style={{ outline: 'none', border: 'none' }}
               >
                 <div className="flex items-center gap-2">
-                  {user.picture && (
+                  {userPicture && (
                     <img
-                      src={user.picture}
-                      alt={user.username}
+                      src={userPicture}
+                      alt={username}
                       className="w-6 h-6 rounded-full"
                     />
                   )}
-                  <span className="text-lg">{user.username}</span>
+                  <span className="text-lg">{username}</span>
                 </div>
               </Button>
             </Dropdown>
@@ -687,10 +308,7 @@ uniform sampler2D BufferD;         // Buffer D texture`;
               size="sm"
               className="h-auto px-2 py-1 text-gray-400 bg-transparent hover:text-gray-200 hover:bg-transparent focus:outline-none"
               style={{ outline: 'none', border: 'none' }}
-              onClick={() => {
-                setSignInCallback(undefined);
-                setShowSignInDialog(true);
-              }}
+              onClick={onSignIn}
             >
               <span className="text-lg">Sign In</span>
             </Button>
@@ -727,7 +345,7 @@ uniform sampler2D BufferD;         // Buffer D texture`;
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-gray-100'
                 }`}
               style={{ height: '30px', minWidth: 'fit-content' }}
-              onClick={() => setActiveTabId(tab.id)}
+              onClick={() => onTabChange(tab.id)}
             >
               {/* Error indicator dot */}
               {tabHasErrors(tab) && (
@@ -742,7 +360,7 @@ uniform sampler2D BufferD;         // Buffer D texture`;
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDeleteTab(tab);
+                    handleDeleteTabClick(tab);
                   }}
                   className="ml-1 rounded hover:bg-gray-500 transition-colors"
                   style={{ padding: '1px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -788,8 +406,8 @@ uniform sampler2D BufferD;         // Buffer D texture`;
       {/* Code Editor Area */}
       <div className="flex-1 bg-gray-900 flex flex-col p-0 overflow-hidden min-h-0">
         <CodeMirrorEditor
-          value={code}
-          onChange={handleCodeChange}
+          value={activeTab?.code || ''}
+          onChange={handleCodeChangeInternal}
           placeholder="// Write your GLSL fragment shader here..."
           errors={activeTab?.errors || []}
           compilationSuccess={compilationSuccess}
@@ -850,12 +468,12 @@ uniform sampler2D BufferD;         // Buffer D texture`;
             variant="outline"
             className="bg-transparent border-transparent font-mono text-xs px-2 py-0 text-gray-400"
           >
-            {code.length} chars
+            {activeTab?.code.length || 0} chars
           </Badge>
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Tab Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-gray-800 rounded-lg p-6 max-w-sm mx-4 border border-gray-700">
@@ -883,45 +501,6 @@ uniform sampler2D BufferD;         // Buffer D texture`;
           </div>
         </div>
       )}
-
-      {/* Sign In Dialog - Triggered when not signed in */}
-      <SignInDialog
-        open={showSignInDialog}
-        onOpenChange={setShowSignInDialog}
-        onSignInSuccess={signInCallback}
-      />
-
-      {/* Save As Dialog */}
-      <SaveAsDialog
-        open={showSaveAsDialog}
-        onOpenChange={setShowSaveAsDialog}
-        onSave={handleSaveShader}
-      />
-
-      {/* Rename Dialog */}
-      <RenameDialog
-        currentName={localShaderTitle}
-        open={showRenameDialog}
-        onOpenChange={setShowRenameDialog}
-        onRename={handleRenameShader}
-      />
-
-      {/* Delete Shader Dialog */}
-      <DeleteShaderDialog
-        shaderName={localShaderTitle}
-        open={showDeleteDialog}
-        onOpenChange={setShowDeleteDialog}
-        onDelete={handleDeleteShader}
-      />
-
-      {/* Clone Dialog */}
-      <CloneDialog
-        shaderName={localShaderTitle}
-        open={showCloneDialog}
-        onOpenChange={setShowCloneDialog}
-        onClone={handleCloneShader}
-      />
-
     </div>
   );
 }
