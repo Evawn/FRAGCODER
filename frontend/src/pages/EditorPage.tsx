@@ -12,6 +12,7 @@ import { SaveAsDialog } from '../components/editor/SaveAsDialog';
 import { RenameDialog } from '../components/editor/RenameDialog';
 import { DeleteShaderDialog } from '../components/editor/DeleteShaderDialog';
 import { CloneDialog } from '../components/editor/CloneDialog';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { DEFAULT_SHADER_CODES, getDefaultCode } from '../utils/defaultShaderCode';
 import {
   getShaderBySlug,
@@ -403,7 +404,7 @@ function EditorPage() {
         <ResizablePanel defaultSize={50} minSize={leftPanelMinSize}>
           <div className="h-full flex flex-col gap-0 p-0">
             {/* Header */}
-            <div className="w-full flex items-center px-1 bg-editor-header border-b border-border" style={{ height: '30px' }}>
+            <div className="w-full flex items-center justify-between px-1 bg-editor-header border-b border-border" style={{ height: '30px' }}>
               <button
                 onClick={() => navigate('/')}
                 className="text-lg font-bold bg-transparent text-foreground"
@@ -411,6 +412,7 @@ function EditorPage() {
               >
                 FRAGCODER
               </button>
+              <ThemeToggle />
             </div>
             <div className="flex-1 w-full p-2">
 
