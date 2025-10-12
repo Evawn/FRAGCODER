@@ -76,7 +76,7 @@ function Gallery() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white">
+      <div className="min-h-screen bg-background text-foreground">
         <div className="container mx-auto px-4 py-8">
           <LoadingSpinner message="Loading shaders..." />
         </div>
@@ -86,14 +86,14 @@ function Gallery() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white">
+      <div className="min-h-screen bg-background text-foreground">
         <div className="container mx-auto px-4 py-8">
           <div className="text-center py-16">
-            <p className="text-red-400 text-lg mb-4">Error loading shaders</p>
-            <p className="text-gray-400 mb-4">{error}</p>
+            <p className="text-error text-lg mb-4">Error loading shaders</p>
+            <p className="text-muted-foreground mb-4">{error}</p>
             <button
               onClick={fetchShaders}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg transition-colors"
             >
               Try Again
             </button>
@@ -104,7 +104,7 @@ function Gallery() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-background text-foreground">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-6">Shader Gallery</h1>
@@ -116,8 +116,8 @@ function Gallery() {
             />
           </div>
           {searchTerm && (
-            <p className="text-gray-400 mt-2 text-sm">
-              Found {filteredShaders.length} shader{filteredShaders.length !== 1 ? 's' : ''} 
+            <p className="text-muted-foreground mt-2 text-sm">
+              Found {filteredShaders.length} shader{filteredShaders.length !== 1 ? 's' : ''}
               {searchTerm && ` matching "${searchTerm}"`}
             </p>
           )}

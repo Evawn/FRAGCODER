@@ -25,8 +25,8 @@ function ShaderGrid({ shaders }: ShaderGridProps) {
   if (shaders.length === 0) {
     return (
       <div className="text-center py-16">
-        <p className="text-gray-400 text-lg">No shaders found</p>
-        <p className="text-gray-500 mt-2">Be the first to create one!</p>
+        <p className="text-muted-foreground text-lg">No shaders found</p>
+        <p className="text-muted-foreground/70 mt-2">Be the first to create one!</p>
       </div>
     );
   }

@@ -12,9 +12,9 @@ function LoadingSpinner({ size = 'medium', message }: LoadingSpinnerProps) {
 
   return (
     <div className="flex flex-col items-center justify-center py-16">
-      <div className={`${sizeClasses[size]} animate-spin rounded-full border-2 border-gray-700 border-t-blue-500`}></div>
+      <div className={`${sizeClasses[size]} animate-spin rounded-full border-2 border-border border-t-primary`}></div>
       {message && (
-        <p className="mt-4 text-gray-400 text-sm">{message}</p>
+        <p className="mt-4 text-muted-foreground text-sm">{message}</p>
       )}
     </div>
   );
