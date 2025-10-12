@@ -4,6 +4,7 @@
 
 @layer base {
   :root {
+    /* shadcn/ui base colors */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
@@ -29,9 +30,51 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
+
+    /* Editor chrome */
+    --editor-bg: 0 0% 98%;
+    --editor-header: 0 0% 96%;
+    --editor-footer: 0 0% 96%;
+
+    /* Tabs */
+    --tab-default: 0 0% 93%;
+    --tab-hover: 0 0% 90%;
+    --tab-active: 0 0% 100%;
+    --tab-border: 214.3 31.8% 91.4%;
+
+    /* Code editor */
+    --code-editor-bg: 0 0% 99%;
+    --code-editor-gutter: 0 0% 95%;
+    --code-editor-selection: 210 100% 95%;
+
+    /* Shader player */
+    --player-bg: 0 0% 10%;
+    --player-controls: 0 0% 20%;
+    --player-controls-fg: 0 0% 90%;
+
+    /* Gallery & cards */
+    --card-bg: 0 0% 100%;
+    --card-border: 214.3 31.8% 91.4%;
+    --card-hover: 0 0% 98%;
+
+    /* Status colors */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --error: 0 84.2% 60.2%;
+    --error-foreground: 210 40% 98%;
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+
+    /* Surface variants */
+    --surface-raised: 0 0% 100%;
+    --surface-sunken: 0 0% 96%;
+    --overlay: 0 0% 0%;
   }
 
   .dark {
+    /* shadcn/ui base colors */
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
     --card: 222.2 84% 4.9%;
@@ -56,6 +99,47 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+
+    /* Editor chrome */
+    --editor-bg: 220 13% 13%;
+    --editor-header: 220 13% 11%;
+    --editor-footer: 220 13% 11%;
+
+    /* Tabs */
+    --tab-default: 220 13% 15%;
+    --tab-hover: 220 13% 18%;
+    --tab-active: 220 13% 21%;
+    --tab-border: 217.2 32.6% 17.5%;
+
+    /* Code editor */
+    --code-editor-bg: 220 13% 18%;
+    --code-editor-gutter: 220 13% 13%;
+    --code-editor-selection: 217 89% 25%;
+
+    /* Shader player */
+    --player-bg: 0 0% 8%;
+    --player-controls: 220 13% 15%;
+    --player-controls-fg: 210 40% 98%;
+
+    /* Gallery & cards */
+    --card-bg: 220 13% 16%;
+    --card-border: 217.2 32.6% 20%;
+    --card-hover: 220 13% 18%;
+
+    /* Status colors */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+    --error: 0 62.8% 30.6%;
+    --error-foreground: 210 40% 98%;
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+
+    /* Surface variants */
+    --surface-raised: 220 13% 18%;
+    --surface-sunken: 220 13% 10%;
+    --overlay: 0 0% 0%;
   }
 }
 
@@ -71,77 +155,5 @@
 @layer utilities {
   .animate-spin-slow {
     animation: spin 20s linear infinite;
-  }
-}
-
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-
-button:hover {
-  border-color: #646cff;
-}
-
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-
-  a:hover {
-    color: #747bff;
-  }
-
-  button {
-    background-color: #f9f9f9;
   }
 }

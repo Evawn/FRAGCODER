@@ -4,7 +4,7 @@ import EditorPage from './pages/EditorPage'
 
 function App() {
   return (
-    <div className="relative min-h-screen bg-gray-900 text-white w-full">
+    <div className="relative min-h-screen bg-background text-foreground w-full">
       {/* <Navigation /> */}
       <Routes>
         <Route path="/" element={<Gallery />} />
