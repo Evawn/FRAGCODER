@@ -57,37 +57,37 @@ export const theme = {
       overlay: '0 0% 0%',
     },
 
-    // Dark mode palette
+    // Dark mode palette (based on Editor Page Design)
     dark: {
-      // Base colors (inherited from shadcn/ui)
-      background: '222.2 84% 4.9%',
-      foreground: '210 40% 98%',
+      // Base colors
+      background: '0 0% 11%',           // #1c1c1c - Main dark background
+      foreground: '0 0% 90%',           // #e6e6e6 - Light text
 
       // Editor chrome
-      editorBg: '220 13% 13%',
-      editorHeader: '220 13% 11%',
-      editorFooter: '220 13% 11%',
+      editorBg: '0 0% 11%',             // #1c1c1c - Main editor area
+      editorHeader: '0 0% 19%',         // #303030 - Top navbar
+      editorFooter: '0 0% 17%',         // #2b2b2b - Bottom status bar
 
       // Tabs
-      tabDefault: '220 13% 15%',
-      tabHover: '220 13% 18%',
-      tabActive: '220 13% 21%',
-      tabBorder: '217.2 32.6% 17.5%',
+      tabDefault: '0 0% 17%',           // #2b2b2b - Inactive tab
+      tabHover: '0 0% 20%',             // #333333 - Tab hover state
+      tabActive: '0 0% 14%',            // #232323 - Active tab (slightly lighter than bg)
+      tabBorder: '0 0% 25%',            // #404040 - Tab borders
 
       // Code editor
-      codeEditorBg: '220 13% 18%',
-      codeEditorGutter: '220 13% 13%',
-      codeEditorSelection: '217 89% 25%',
+      codeEditorBg: '0 0% 11%',         // #1c1c1c - Code area background
+      codeEditorGutter: '0 0% 15%',     // #262626 - Line numbers gutter
+      codeEditorSelection: '217 89% 25%', // Blue selection (keep existing)
 
       // Shader player
-      playerBg: '0 0% 8%',
-      playerControls: '220 13% 15%',
-      playerControlsFg: '210 40% 98%',
+      playerBg: '0 0% 48%',             // #7a7a7a - Gray preview area
+      playerControls: '0 0% 17%',       // #2b2b2b - Control bar
+      playerControlsFg: '0 0% 90%',     // #e6e6e6 - Control text
 
       // Gallery & cards
-      cardBg: '220 13% 16%',
-      cardBorder: '217.2 32.6% 20%',
-      cardHover: '220 13% 18%',
+      cardBg: '0 0% 16%',               // #292929 - Card background
+      cardBorder: '0 0% 25%',           // #404040 - Card borders
+      cardHover: '0 0% 18%',            // #2e2e2e - Card hover
 
       // Status colors
       success: '142 76% 36%',
@@ -96,13 +96,13 @@ export const theme = {
       warningForeground: '0 0% 0%',
       error: '0 62.8% 30.6%',
       errorForeground: '210 40% 98%',
-      info: '199 89% 48%',
+      info: '217 89% 65%',              // #5b8ef4 - Blue accent (logo color)
       infoForeground: '0 0% 100%',
 
       // Surface variants
-      surfaceRaised: '220 13% 18%',
-      surfaceSunken: '220 13% 10%',
-      overlay: '0 0% 0%',
+      surfaceRaised: '0 0% 19%',        // #303030 - Raised surfaces
+      surfaceSunken: '0 0% 9%',         // #171717 - Sunken areas
+      overlay: '0 0% 0%',               // Black overlay
     },
   },
 
