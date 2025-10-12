@@ -1,10 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '../components/ui/resizable';
-import ShaderEditor, { defaultImageCode } from '../components/editor/ShaderEditor';
-import type { ShaderData } from '../components/editor/ShaderEditor';
+import ShaderEditor from '../components/editor/ShaderEditor';
 import ShaderPlayer from '../components/ShaderPlayer';
-import type { TabShaderData, CompilationError } from '../utils/GLSLCompiler';
+import type { CompilationError } from '../utils/GLSLCompiler';
 import { useAuth } from '../context/AuthContext';
 import { useWebGLRenderer } from '../hooks/useWebGLRenderer';
 import { useDialogManager } from '../hooks/useDialogManager';
@@ -13,56 +12,25 @@ import { SaveAsDialog } from '../components/editor/SaveAsDialog';
 import { RenameDialog } from '../components/editor/RenameDialog';
 import { DeleteShaderDialog } from '../components/editor/DeleteShaderDialog';
 import { CloneDialog } from '../components/editor/CloneDialog';
-
-// Tab interface (matching ShaderEditor's Tab interface)
-interface Tab {
-  id: string;
-  name: string;
-  code: string;
-  isDeletable: boolean;
-  errors: CompilationError[];
-}
-
-// Default tab codes
-const defaultMainImageCode = `void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-    vec2 uv = fragCoord / iResolution.y;
-    fragColor = vec4(uv, 1.0, 1.0);
-}`;
-
-const defaultImageCodeFull = `// Image - Display all buffers in quadrants
-
-${defaultMainImageCode}`;
-
-const defaultBufferACode = `// Buffer A - Red pulsing circle
-
-${defaultMainImageCode}`;
-
-const defaultBufferBCode = `// Buffer B - Green rotating square
-
-${defaultMainImageCode}`;
-
-const defaultBufferCCode = `// Buffer C - Blue animated triangle
-
-${defaultMainImageCode}`;
-
-const defaultBufferDCode = `// Buffer D - Yellow/orange gradient waves
-
-${defaultMainImageCode}`;
-
-const defaultCommonCode = `// Common - Shared functions and definitions
-// Add your shared utilities here
-
-// Example: Distance to circle
-float sdCircle(vec2 p, float r) {
-    return length(p) - r;
-}
-
-// Example: Rotation matrix
-mat2 rotate2D(float angle) {
-    float s = sin(angle);
-    float c = cos(angle);
-    return mat2(c, -s, s, c);
-}`;
+import { DEFAULT_SHADER_CODES, getDefaultCode } from '../constants/defaultShaderCode';
+import {
+  getShaderBySlug,
+  updateShader,
+  saveShader,
+  cloneShader,
+  deleteShader,
+} from '../api/shaders';
+import {
+  type Tab,
+  type ShaderData,
+  determineCompilationStatus,
+  apiShaderToShaderData,
+  tabsToTabData,
+  apiTabsToLocalTabs,
+  distributeErrorsToTabs,
+  calculatePanelMinSize,
+  showErrorAlert,
+} from '../utils/editorPageHelpers';
 
 function EditorPage() {
   const navigate = useNavigate();
@@ -80,7 +48,7 @@ function EditorPage() {
 
   // Tab management state (moved from ShaderEditor)
   const [tabs, setTabs] = useState<Tab[]>([
-    { id: '1', name: 'Image', code: defaultImageCode, isDeletable: false, errors: [] }
+    { id: '1', name: 'Image', code: DEFAULT_SHADER_CODES.Image, isDeletable: false, errors: [] }
   ]);
   const [activeTabId, setActiveTabId] = useState('1');
 
@@ -133,46 +101,25 @@ function EditorPage() {
       // No slug means new shader - reset to defaults
       setShaderUrl(null);
       setShader(null);
-      setTabs([{ id: '1', name: 'Image', code: defaultImageCode, isDeletable: false, errors: [] }]);
+      setTabs([{ id: '1', name: 'Image', code: DEFAULT_SHADER_CODES.Image, isDeletable: false, errors: [] }]);
     }
   }, [slug]);
 
   const loadShader = async (slug: string) => {
     setLoading(true);
     try {
-      // Import API function
-      const { getShaderBySlug } = await import('../api/shaders');
-
       // Fetch shader data from backend
-      const shaderData = await getShaderBySlug(slug);
+      const apiShader = await getShaderBySlug(slug);
 
       // Convert API Shader format to ShaderData format for ShaderEditor
-      setShader({
-        id: shaderData.id,
-        title: shaderData.title,
-        code: shaderData.tabs[0]?.code || defaultImageCode, // Image tab
-        description: shaderData.description || undefined,
-        isPublic: shaderData.isPublic,
-        userId: shaderData.userId,
-        forkedFrom: shaderData.forkedFrom || undefined,
-      });
+      setShader(apiShaderToShaderData(apiShader));
 
       // Load tabs from shader data
-      const loadedTabs: Tab[] = shaderData.tabs.map(tab => ({
-        id: tab.id,
-        name: tab.name,
-        code: tab.code,
-        isDeletable: tab.name !== 'Image',
-        errors: []
-      }));
+      const loadedTabs = apiTabsToLocalTabs(apiShader.tabs);
       setTabs(loadedTabs);
 
       // Trigger compilation after loading (using imperative method)
-      const tabsData: TabShaderData[] = loadedTabs.map(tab => ({
-        id: tab.id,
-        name: tab.name,
-        code: tab.code
-      }));
+      const tabsData = tabsToTabData(loadedTabs);
       rendererCompile(tabsData);
 
       // Set URL to indicate this is a saved shader
@@ -198,15 +145,7 @@ function EditorPage() {
     rendererSetResolutionLock(locked, resolution);
 
     // Update panel minimum size
-    if (locked && minWidth) {
-      // Calculate minimum size as a percentage of the viewport
-      const viewportWidth = window.innerWidth;
-      const minPercentage = Math.max(30, Math.min(70, (minWidth / viewportWidth) * 100));
-      setLeftPanelMinSize(minPercentage);
-    } else {
-      // Reset to default minimum size
-      setLeftPanelMinSize(30);
-    }
+    setLeftPanelMinSize(calculatePanelMinSize(locked, minWidth));
   }, [rendererSetResolutionLock]);
 
   // Sync local shader title with shader prop
@@ -218,46 +157,15 @@ function EditorPage() {
 
   // Update tabs with incoming compilation errors
   useEffect(() => {
-    setTabs(prevTabs => {
-      const newTabs = prevTabs.map(tab => {
-        // Get errors for this tab
-        const tabErrors = compilationErrors.filter(error =>
-          !error.passName || error.passName === tab.name
-        );
-        return { ...tab, errors: tabErrors };
-      });
-      return newTabs;
-    });
+    setTabs(prevTabs => distributeErrorsToTabs(prevTabs, compilationErrors));
   }, [compilationErrors]);
 
   // Tab management handlers (moved from ShaderEditor)
   const handleAddTab = useCallback((name: string) => {
-    let defaultCode = defaultImageCodeFull;
-
-    switch (name) {
-      case 'Buffer A':
-        defaultCode = defaultBufferACode;
-        break;
-      case 'Buffer B':
-        defaultCode = defaultBufferBCode;
-        break;
-      case 'Buffer C':
-        defaultCode = defaultBufferCCode;
-        break;
-      case 'Buffer D':
-        defaultCode = defaultBufferDCode;
-        break;
-      case 'Common':
-        defaultCode = defaultCommonCode;
-        break;
-      default:
-        defaultCode = defaultImageCodeFull;
-    }
-
     const newTab: Tab = {
       id: Date.now().toString(),
       name,
-      code: defaultCode,
+      code: getDefaultCode(name),
       isDeletable: true,
       errors: []
     };
@@ -284,11 +192,7 @@ function EditorPage() {
 
   const handleCompile = useCallback(() => {
     // Convert tabs to TabShaderData format and compile imperatively
-    const tabsData: TabShaderData[] = tabs.map(tab => ({
-      id: tab.id,
-      name: tab.name,
-      code: tab.code
-    }));
+    const tabsData = tabsToTabData(tabs);
     rendererCompile(tabsData);
   }, [tabs, rendererCompile]);
 
@@ -324,43 +228,23 @@ function EditorPage() {
       await new Promise(resolve => setTimeout(resolve, 150));
 
       // Determine compilation status
-      let status: 'SUCCESS' | 'ERROR' | 'WARNING' | 'PENDING' = 'PENDING';
-      if (compilationSuccess === true) {
-        status = compilationErrors.length > 0 ? 'WARNING' : 'SUCCESS';
-      } else if (compilationSuccess === false) {
-        status = 'ERROR';
-      }
+      const status = determineCompilationStatus(compilationSuccess, compilationErrors);
 
-      // Prepare update data - use titleOverride if provided, otherwise use localShaderTitle
+      // Prepare tabs data and update data
+      const tabsData = tabsToTabData(tabs);
       const updateData = {
         name: titleOverride ?? localShaderTitle,
-        tabs: tabs.map(tab => ({
-          id: tab.id,
-          name: tab.name,
-          code: tab.code
-        })),
+        tabs: tabsData,
         compilationStatus: status,
       };
 
-      console.log('Updating shader with data:', updateData);
-
-      // Import updateShader dynamically
-      const { updateShader } = await import('../api/shaders');
-
-      // Update shader via API
-      const response = await updateShader(slug, updateData, token);
-
-      console.log('Shader updated successfully!', response);
+      // Save via API
+      await updateShader(slug, updateData, token);
+      console.log('Shader saved successfully!');
 
     } catch (error) {
       console.error('Failed to save shader:', error);
-
-      // Show user-friendly error message
-      if (error instanceof Error) {
-        alert(`Failed to save shader: ${error.message}`);
-      } else {
-        alert('Failed to save shader. Please try again.');
-      }
+      showErrorAlert(error, 'save shader');
     }
   }, [shader, slug, token, handleCompile, compilationSuccess, compilationErrors, localShaderTitle, tabs]);
 
@@ -396,12 +280,8 @@ function EditorPage() {
         throw new Error('No authentication token found');
       }
 
-      // Import cloneShader dynamically
-      const { cloneShader } = await import('../api/shaders');
-
-      // Clone shader via API
+      // Clone via API
       const response = await cloneShader(slug, token);
-
       console.log('Shader cloned successfully!', response);
 
       // Navigate to the cloned shader's URL
@@ -434,12 +314,8 @@ function EditorPage() {
         throw new Error('No authentication token found');
       }
 
-      // Import deleteShader dynamically
-      const { deleteShader } = await import('../api/shaders');
-
-      // Delete shader via API
+      // Delete via API
       await deleteShader(slug, token);
-
       console.log('Shader deleted successfully!');
 
       // Navigate to home page
@@ -459,7 +335,7 @@ function EditorPage() {
 
   const handleSaveShader = useCallback(async (shaderName: string) => {
     try {
-      console.log('Saving shader:', shaderName);
+      console.log('Saving new shader:', shaderName);
 
       // Trigger compilation if not already compiled or if code has changed
       // This ensures we have accurate compilation status before saving
@@ -469,41 +345,27 @@ function EditorPage() {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
 
-      // Determine compilation status
-      let status: 'SUCCESS' | 'ERROR' | 'WARNING' | 'PENDING' = 'PENDING';
-      if (compilationSuccess === true) {
-        status = compilationErrors.length > 0 ? 'WARNING' : 'SUCCESS';
-      } else if (compilationSuccess === false) {
-        status = 'ERROR';
-      }
-
-      // Prepare shader data structure
-      const shaderData = {
-        name: shaderName,
-        tabs: tabs.map(tab => ({
-          id: tab.id,
-          name: tab.name,
-          code: tab.code
-        })),
-        isPublic: true, // Default to public
-        compilationStatus: status,
-        compilationErrors: compilationErrors.length > 0 ? compilationErrors : undefined
-      };
-
-      console.log('Shader data to save:', shaderData);
-
-      // Import saveShader dynamically to avoid circular dependencies
-      const { saveShader } = await import('../api/shaders');
-
       // Check if user is authenticated
       if (!token) {
         throw new Error('No authentication token found');
       }
 
-      // Save shader to backend
-      const response = await saveShader(shaderData, token);
+      // Determine compilation status
+      const status = determineCompilationStatus(compilationSuccess, compilationErrors);
 
-      console.log('Shader saved successfully!', response);
+      // Prepare shader data
+      const tabsData = tabsToTabData(tabs);
+      const shaderData = {
+        name: shaderName,
+        tabs: tabsData,
+        isPublic: true,
+        compilationStatus: status,
+        compilationErrors: compilationErrors.length > 0 ? compilationErrors : undefined
+      };
+
+      // Save new shader via API
+      const response = await saveShader(shaderData, token);
+      console.log('New shader created successfully!', response);
 
       // Navigate to the saved shader's URL
       const newSlug = response.shader.slug;
@@ -511,13 +373,7 @@ function EditorPage() {
 
     } catch (error) {
       console.error('Failed to save shader:', error);
-
-      // Show user-friendly error message
-      if (error instanceof Error) {
-        alert(`Failed to save shader: ${error.message}`);
-      } else {
-        alert('Failed to save shader. Please try again.');
-      }
+      showErrorAlert(error, 'save shader');
     }
   }, [compilationSuccess, handleCompile, compilationErrors, tabs, token, navigate]);
 
