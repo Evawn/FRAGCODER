@@ -147,9 +147,9 @@ export default function ShaderPlayer({
             }
         }
       >
-        <div className="border border-gray-600 rounded-md overflow-hidden flex flex-col h-full">
+        <div className="border border-border rounded-md overflow-hidden flex flex-col h-full">
           {/* WebGL Canvas Container */}
-          <div className="flex-1 bg-black relative flex items-center justify-center min-h-0">
+          <div className="flex-1 bg-player-bg relative flex items-center justify-center min-h-0">
             <div
               className="relative w-full h-full"
               style={
@@ -168,12 +168,12 @@ export default function ShaderPlayer({
               />
               {!compilationSuccess && !error && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <p className="text-gray-400">No shader compiled yet</p>
+                  <p className="text-muted-foreground">No shader compiled yet</p>
                 </div>
               )}
               {error && (
                 <div className="absolute inset-0 flex items-center justify-center p-4">
-                  <div className="bg-red-900/80 text-red-200 p-4 rounded-lg max-w-md">
+                  <div className="bg-error/80 text-error-foreground p-4 rounded-lg max-w-md">
                     <p className="font-semibold mb-2">WebGL Error</p>
                     <p className="text-sm">{error}</p>
                   </div>
@@ -183,7 +183,7 @@ export default function ShaderPlayer({
           </div>
 
           {/* Footer Control Bar */}
-          <div className="bg-gray-900 border-t border-gray-700 px-1 gap-x-1 py-2 flex items-center justify-between" style={{ height: '30px' }}>
+          <div className="bg-player-controls border-t border-border px-1 gap-x-1 py-2 flex items-center justify-between" style={{ height: '30px' }}>
             <div className="flex items-center gap-4">
               {/* Control Buttons */}
               <div className="flex items-center gap-2">
@@ -191,7 +191,7 @@ export default function ShaderPlayer({
                   variant="ghost"
                   size="icon"
                   onClick={onReset}
-                  className="bg-transparent h-6 w-6 text-gray-400 focus:outline-none hover:text-white hover:bg-transparent"
+                  className="bg-transparent h-6 w-6 text-player-controls-fg focus:outline-none hover:text-foreground hover:bg-transparent"
                   title="Reset"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -204,7 +204,7 @@ export default function ShaderPlayer({
                   size="icon"
                   onClick={onPlayPause}
                   disabled={!compilationSuccess}
-                  className="bg-transparent h-6 w-6 text-gray-400 focus:outline-none hover:text-white hover:bg-transparent disabled:opacity-50"
+                  className="bg-transparent h-6 w-6 text-player-controls-fg focus:outline-none hover:text-foreground hover:bg-transparent disabled:opacity-50"
                   title={isPlaying ? 'Pause' : 'Play'}
                 >
                   {isPlaying ? (
@@ -222,19 +222,19 @@ export default function ShaderPlayer({
 
               {/* Real-time Information */}
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="bg-transparent border-transparent text-gray-400 font-mono text-xs px-2 py-0">
+                <Badge variant="outline" className="bg-transparent border-transparent text-player-controls-fg font-mono text-xs px-2 py-0">
                   {uTime.toFixed(2)}s
                 </Badge>
-                <Badge variant="outline" className="bg-transparent border-transparent text-gray-400 font-mono text-xs px-2 py-0">
+                <Badge variant="outline" className="bg-transparent border-transparent text-player-controls-fg font-mono text-xs px-2 py-0">
                   {fps.toFixed(1)} fps
                 </Badge>
                 <Badge
                   variant="outline"
                   className={`bg-transparent font-mono text-xs px-2 py-0 flex items-center gap-1.5 ${isFullscreen
-                    ? 'border-gray-400 text-gray-400'
+                    ? 'border-muted-foreground text-player-controls-fg'
                     : isResolutionLocked
-                      ? 'border-gray-400 text-gray-400 cursor-pointer hover:text-gray-300 transition-colors'
-                      : 'border-transparent text-gray-400 cursor-pointer hover:text-gray-300 transition-colors'
+                      ? 'border-muted-foreground text-player-controls-fg cursor-pointer hover:text-foreground transition-colors'
+                      : 'border-transparent text-player-controls-fg cursor-pointer hover:text-foreground transition-colors'
                     }`}
                   onClick={isFullscreen ? undefined : toggleResolutionLock}
                 >
@@ -262,7 +262,7 @@ export default function ShaderPlayer({
                 variant="ghost"
                 size="icon"
                 onClick={handleFullscreenToggle}
-                className="bg-transparent h-6 w-6 text-gray-400 focus:outline-none hover:text-white hover:bg-transparent"
+                className="bg-transparent h-6 w-6 text-player-controls-fg focus:outline-none hover:text-foreground hover:bg-transparent"
                 title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
               >
                 {isFullscreen ? (

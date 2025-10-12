@@ -37,7 +37,7 @@ export function EditorHeader({
   onSignOut,
 }: EditorHeaderProps) {
   return (
-    <div className="bg-gray-800 border-b border-gray-700 flex items-center justify-between px-2" style={{ height: '30px' }}>
+    <div className="bg-editor-header border-b border-border flex items-center justify-between px-2" style={{ height: '30px' }}>
       {/* Title Button with Options Dropdown */}
       <TitleDropdown
         title={localShaderTitle}

@@ -143,7 +143,7 @@ function ShaderEditor({
       <UniformsPanel />
 
       {/* Code Editor Area */}
-      <div className="flex-1 bg-gray-900 flex flex-col p-0 overflow-hidden min-h-0">
+      <div className="flex-1 bg-code-editor-bg flex flex-col p-0 overflow-hidden min-h-0">
         <CodeMirrorEditor
           value={activeTab?.code || ''}
           onChange={handleCodeChangeInternal}

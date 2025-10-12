@@ -385,14 +385,14 @@ function EditorPage() {
   }, [isPlaying, compilationSuccess, rendererPlay, rendererPause]);
 
   return (
-    <div className="h-screen bg-gray-900 text-white flex flex-col relative">
+    <div className="h-screen bg-editor-bg text-foreground flex flex-col relative">
       {/* Loading Overlay */}
       {loading && (
-        <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 px-6 py-4 rounded-lg border border-gray-700">
+        <div className="absolute inset-0 bg-surface-overlay/50 flex items-center justify-center z-50">
+          <div className="bg-card px-6 py-4 rounded-lg border border-border">
             <div className="flex items-center space-x-3">
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              <span className="text-white">Loading shader...</span>
+              <div className="w-5 h-5 border-2 border-foreground border-t-transparent rounded-full animate-spin" />
+              <span className="text-foreground">Loading shader...</span>
             </div>
           </div>
         </div>
@@ -403,10 +403,10 @@ function EditorPage() {
         <ResizablePanel defaultSize={50} minSize={leftPanelMinSize}>
           <div className="h-full flex flex-col gap-0 p-0">
             {/* Header */}
-            <div className="w-full flex items-center px-1 bg-gray-800 border-b border-gray-700" style={{ height: '30px' }}>
+            <div className="w-full flex items-center px-1 bg-editor-header border-b border-border" style={{ height: '30px' }}>
               <button
                 onClick={() => navigate('/')}
-                className="text-lg font-bold bg-transparent"
+                className="text-lg font-bold bg-transparent text-foreground"
                 style={{ outline: 'none', border: 'none' }}
               >
                 FRAGCODER
@@ -436,7 +436,7 @@ function EditorPage() {
         </ResizablePanel>
 
         {/* Resize Handle */}
-        <ResizableHandle className="w-px bg-gray-600" />
+        <ResizableHandle className="w-px bg-border" />
 
         {/* Shader Editor - Right Panel */}
         <ResizablePanel defaultSize={50} minSize={30}>
