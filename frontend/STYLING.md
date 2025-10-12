@@ -4,18 +4,15 @@ This document explains the styling system for FRAGCODER, including how to use th
 
 ## Overview
 
-FRAGCODER uses a **centralized theme system** with three main components:
+FRAGCODER uses a **centralized theme system** with two main components:
 
-1. **[theme.ts](src/styles/theme.ts)** - Single source of truth for all design tokens (colors, spacing, typography, etc.)
-2. **[index.css](src/index.css)** - CSS variables that map theme values and enable dark mode switching
-3. **[tailwind.config.js](tailwind.config.js)** - Tailwind configuration that exposes CSS variables as utility classes
+1. **[index.css](src/index.css)** - Single source of truth for all design tokens via CSS variables, enabling dark mode switching
+2. **[tailwind.config.js](tailwind.config.js)** - Tailwind configuration that exposes CSS variables as utility classes
 
 ## Architecture
 
 ```
-theme.ts (Design Tokens)
-    ↓
-index.css (CSS Variables)
+index.css (CSS Variables - Design Tokens)
     ↓
 tailwind.config.js (Tailwind Utilities)
     ↓
@@ -382,18 +379,15 @@ Use Tailwind's opacity syntax for transparency:
 
 ## Z-Index Scale
 
-Use consistent z-index values defined in [theme.ts](src/styles/theme.ts):
+Use consistent z-index values with Tailwind arbitrary values:
 
 ```tsx
-// Inline styles (when needed)
-<div style={{ zIndex: theme.zIndex.modal }}>Modal</div>
-
-// Or use Tailwind arbitrary values
 <div className="z-[1400]">Modal</div>
 <div className="z-[1500]">Popover</div>
+<div className="z-[1600]">Tooltip</div>
 ```
 
-**Defined Z-Index Layers:**
+**Recommended Z-Index Layers:**
 - `base`: 0
 - `dropdown`: 1000
 - `sticky`: 1100
@@ -409,32 +403,23 @@ Use consistent z-index values defined in [theme.ts](src/styles/theme.ts):
 
 ### Adding a New Color
 
-1. **Add to theme.ts**:
-```typescript
-// In src/styles/theme.ts
-colors: {
-  light: {
-    newColor: '200 50% 50%',
-  },
-  dark: {
-    newColor: '200 80% 30%',
-  },
-}
-```
-
-2. **Add CSS variable to index.css**:
+1. **Add CSS variable to index.css**:
 ```css
 /* In src/index.css */
-:root {
-  --new-color: 200 50% 50%;
-}
+@layer base {
+  :root {
+    /* Light mode */
+    --new-color: 200 50% 50%;
+  }
 
-.dark {
-  --new-color: 200 80% 30%;
+  .dark {
+    /* Dark mode */
+    --new-color: 200 80% 30%;
+  }
 }
 ```
 
-3. **Map to Tailwind (if needed)**:
+2. **Map to Tailwind (optional - for dedicated utility classes)**:
 ```javascript
 // In tailwind.config.js
 colors: {
@@ -442,7 +427,7 @@ colors: {
 }
 ```
 
-4. **Use in components**:
+3. **Use in components**:
 ```tsx
 <div className="bg-new-color">Content</div>
 ```
@@ -530,9 +515,9 @@ Use tools like:
 
 ## Resources
 
-- **Theme Definition**: [src/styles/theme.ts](src/styles/theme.ts)
-- **CSS Variables**: [src/index.css](src/index.css)
+- **CSS Variables (Design Tokens)**: [src/index.css](src/index.css)
 - **Tailwind Config**: [tailwind.config.js](tailwind.config.js)
+- **Theme Context**: [src/contexts/ThemeContext.tsx](src/contexts/ThemeContext.tsx)
 - **Tailwind Docs**: https://tailwindcss.com/docs
 - **shadcn/ui**: https://ui.shadcn.com/
 
@@ -542,8 +527,8 @@ Use tools like:
 
 For questions or issues with the styling system:
 1. Check this documentation first
-2. Review [theme.ts](src/styles/theme.ts) for available tokens
-3. Inspect [index.css](src/index.css) for CSS variable definitions
-4. Consult [tailwind.config.js](tailwind.config.js) for utility mappings
+2. Review [index.css](src/index.css) for available CSS variables and design tokens
+3. Consult [tailwind.config.js](tailwind.config.js) for utility mappings
+4. Check [ThemeContext](src/contexts/ThemeContext.tsx) for theme switching implementation
 
 **Last Updated**: October 2025
