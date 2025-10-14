@@ -92,6 +92,10 @@ export function TabBar({
               )}
               {activeTabId === tab.id && (
                 <>
+                  {/* Connecting rectangle under tab */}
+                  <div
+                    className="absolute -bottom-1 left-0 right-0 h-1 bg-background-editor"
+                  ></div>
                   {/* Left flare - inverted corner */}
                   <div
                     className="absolute -bottom-1 left-0 w-2 h-2 -translate-x-full bg-background-editor"
