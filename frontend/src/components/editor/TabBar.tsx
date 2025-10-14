@@ -62,9 +62,9 @@ export function TabBar({
           {tabs.map(tab => (
             <div
               key={tab.id}
-              className={`h-auto w-32 px-2 z-10 rounded font-light text-large transition-colors group relative cursor-pointer inline-flex items-center ${activeTabId === tab.id
-                ? 'bg-background-editor rounded-b-none text-foreground-highlighted hover:bg-background-editor hover:text-foreground-highlighted py-1 pb-1'
-                : 'bg-transparent text-foreground hover:bg-background-highlighted hover:text-foreground-highlighted py-1'
+              className={`h-auto w-32 px-2  rounded font-light text-large transition-colors group relative cursor-pointer inline-flex items-center ${activeTabId === tab.id
+                ? 'bg-background-editor z-0 rounded-b-none text-foreground-highlighted hover:bg-background-editor hover:text-foreground-highlighted py-1 pb-1'
+                : 'bg-transparent text-foreground z-10 hover:bg-background-highlighted hover:text-foreground-highlighted py-1'
                 }`}
 
               onClick={() => onTabChange(tab.id)}
@@ -94,7 +94,7 @@ export function TabBar({
                 <>
                   {/* Left flare - inverted corner */}
                   <div
-                    className="absolute z-0 -bottom-1 left-0 w-2 h-2 -translate-x-full bg-background-editor"
+                    className="absolute -bottom-1 left-0 w-2 h-2 -translate-x-full bg-background-editor"
                   >
                     <div
                       className="w-full h-full"
@@ -105,7 +105,7 @@ export function TabBar({
                   </div>
                   {/* Right flare - inverted corner */}
                   <div
-                    className="absolute z-0 -bottom-1 right-0 w-2 h-2 translate-x-full bg-background-editor"
+                    className="absolute -bottom-1 right-0 w-2 h-2 translate-x-full bg-background-editor"
                   >
                     <div
                       className="w-full h-full"
