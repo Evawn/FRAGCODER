@@ -1,3 +1,5 @@
+import { BACKGROUND_EDITOR } from './src/styles/editor_theme.ts';
+
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: ["class"],
@@ -27,8 +29,8 @@ export default {
         // Background Colors (Dark theme only)
         background: {
           DEFAULT: 'hsl(38 4% 19%)',
-          header: 'hsl(38 5% 9%)',
-          editor: 'hsl(38 5% 9%)',
+          header: BACKGROUND_EDITOR,
+          editor: BACKGROUND_EDITOR,
           highlighted: 'hsl(38 3% 26%)',
         },
         lines: 'hsl(38 3% 26%)',

@@ -10,6 +10,7 @@ import type { Transaction, Extension } from '@codemirror/state';
 import { glsl } from '../../utils/GLSLLanguage';
 import type { CompilationError } from '../../types';
 import { createErrorDecorationExtensions, setErrorsEffect } from './ErrorDecorations';
+import { BACKGROUND_EDITOR } from '../../styles/editor_theme';
 
 interface CodeMirrorEditorProps {
   value: string;
@@ -91,24 +92,39 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           fontSize: '14px',
           fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
           height: '100%',
-          maxHeight: '100%'
+          maxHeight: '100%',
+          paddingY: '0px',
+          backgroundColor: 'transparent'
+
         },
         '.cm-content': {
-          padding: '16px',
-          minHeight: 'auto'
+          paddingX: '16px',
+          paddingY: '0px',
+          minHeight: 'auto',
+          backgroundColor: 'transparent'
+
         },
         '.cm-focused': {
-          outline: 'none'
+          outline: 'none',
+          backgroundColor: 'transparent'
         },
         '.cm-editor': {
           height: '100%',
-          maxHeight: '100%'
+          maxHeight: '100%',
+          backgroundColor: 'transparent'
         },
         '.cm-scroller': {
           height: '100%',
           maxHeight: '100%',
-          overflow: 'auto'
+          overflow: 'auto',
+          backgroundColor: BACKGROUND_EDITOR
         },
+        '.cm-gutter': {
+          backgroundColor: BACKGROUND_EDITOR,
+        },
+        '.cm-selection': {
+          backgroundColor: '#FFFFFF'
+        }
       }),
       EditorView.lineWrapping
     ];
