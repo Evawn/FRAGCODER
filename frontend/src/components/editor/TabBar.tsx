@@ -54,17 +54,17 @@ export function TabBar({
 
   return (
     <>
-      <div className="bg-transparent flex items-center py-1 px-2">
+      <div className="bg-transparent flex items-center pt-1 pb-1 px-2">
 
 
         {/* Tabs */}
-        <div className="flex-1 flex items-center overflow-x-auto gap-1">
+        <div className="flex-1 flex items-center gap-1 relative">
           {tabs.map(tab => (
             <div
               key={tab.id}
-              className={`h-auto w-32 px-2 py-1 rounded font-light text-large transition-colors group relative cursor-pointer inline-flex items-center ${activeTabId === tab.id
-                ? 'bg-background-editor text-foreground-highlighted hover:bg-background-editor hover:text-foreground-highlighted'
-                : 'bg-transparent text-foreground hover:bg-background-highlighted hover:text-foreground-highlighted'
+              className={`h-auto w-32 px-2 z-10 rounded font-light text-large transition-colors group relative cursor-pointer inline-flex items-center ${activeTabId === tab.id
+                ? 'bg-background-editor rounded-b-none text-foreground-highlighted hover:bg-background-editor hover:text-foreground-highlighted py-1 pb-1'
+                : 'bg-transparent text-foreground hover:bg-background-highlighted hover:text-foreground-highlighted py-1'
                 }`}
 
               onClick={() => onTabChange(tab.id)}
@@ -89,6 +89,32 @@ export function TabBar({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
+              )}
+              {activeTabId === tab.id && (
+                <>
+                  {/* Left flare - inverted corner */}
+                  <div
+                    className="absolute z-0 -bottom-1 left-0 w-2 h-2 -translate-x-full bg-background-editor"
+                  >
+                    <div
+                      className="w-full h-full"
+                      style={{
+                        background: 'radial-gradient(circle at 0% 0%, hsl(38 4% 19%) 8px, transparent 8px)'
+                      }}
+                    ></div>
+                  </div>
+                  {/* Right flare - inverted corner */}
+                  <div
+                    className="absolute z-0 -bottom-1 right-0 w-2 h-2 translate-x-full bg-background-editor"
+                  >
+                    <div
+                      className="w-full h-full"
+                      style={{
+                        background: 'radial-gradient(circle at 100% 0%, hsl(38 4% 19%) 8px, transparent 8px)'
+                      }}
+                    ></div>
+                  </div>
+                </>
               )}
             </div>
           ))}
