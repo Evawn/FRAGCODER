@@ -54,7 +54,46 @@ export function TabBar({
 
   return (
     <>
-      <div className="bg-header-bg border-b border-lines flex items-center px-1" style={{ height: '30px' }}>
+      <div className="bg-transparent flex items-center py-1 px-2">
+
+
+        {/* Tabs */}
+        <div className="flex-1 flex items-center overflow-x-auto gap-1">
+          {tabs.map(tab => (
+            <div
+              key={tab.id}
+              className={`h-auto w-32 px-2 py-1 rounded font-light text-large transition-colors group relative cursor-pointer inline-flex items-center ${activeTabId === tab.id
+                ? 'bg-background-editor text-foreground-highlighted hover:bg-background-editor hover:text-foreground-highlighted'
+                : 'bg-transparent text-foreground hover:bg-background-highlighted hover:text-foreground-highlighted'
+                }`}
+
+              onClick={() => onTabChange(tab.id)}
+            >
+              {/* Error indicator dot */}
+              {tabHasErrors(tab) && (
+                <span
+                  className="rounded-full bg-error mr-1 flex-shrink-0"
+                  style={{ width: '6px', height: '6px' }}
+                  title={`${tab.name} has compilation errors`}
+                />
+              )}
+              <span className="whitespace-nowrap" style={{ fontSize: '14px', lineHeight: '20px' }}>{tab.name}</span>
+              <div className="w-full" />
+              {tab.isDeletable && (
+                <button
+                  onClick={(e) => handleDeleteTabClick(tab, e)}
+                  className={`ml-1 rounded  transition-colors ${activeTabId == tab.id ? 'hover:bg-background-highlighted' : 'hover:bg-background'} p-1 opacity-0 group-hover:opacity-100`}
+                  style={{ padding: '1px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <svg className="text-muted-foreground group-hover:text-foreground-highlighted" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: '16px', height: '16px' }}>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+
         {/* Add Tab Button with Dropdown */}
         <div className="mr-1">
           <Dropdown options={addTabDropdownOptions} align="start" sideOffset={4}>
@@ -70,42 +109,6 @@ export function TabBar({
               </svg>
             </Button>
           </Dropdown>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex-1 flex items-center overflow-x-auto" style={{ gap: '2px' }}>
-          {tabs.map(tab => (
-            <div
-              key={tab.id}
-              className={`h-auto px-2 rounded-t transition-colors group relative cursor-pointer inline-flex items-center ${activeTabId === tab.id
-                ? 'bg-editor-bg text-foreground hover:bg-editor-bg'
-                : 'bg-editor-bg text-muted-foreground hover:bg-background hover:text-foreground-highlighted'
-                }`}
-              style={{ height: '30px', minWidth: 'fit-content' }}
-              onClick={() => onTabChange(tab.id)}
-            >
-              {/* Error indicator dot */}
-              {tabHasErrors(tab) && (
-                <span
-                  className="rounded-full bg-error mr-1 flex-shrink-0"
-                  style={{ width: '4px', height: '4px' }}
-                  title={`${tab.name} has compilation errors`}
-                />
-              )}
-              <span className="whitespace-nowrap" style={{ fontSize: '14px', lineHeight: '20px' }}>{tab.name}</span>
-              {tab.isDeletable && (
-                <button
-                  onClick={(e) => handleDeleteTabClick(tab, e)}
-                  className="ml-1 rounded hover:bg-lines transition-colors"
-                  style={{ padding: '1px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                >
-                  <svg className="text-muted-foreground group-hover:text-foreground-highlighted" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: '10px', height: '10px' }}>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          ))}
         </div>
       </div>
 

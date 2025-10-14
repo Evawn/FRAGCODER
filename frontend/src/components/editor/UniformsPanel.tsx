@@ -19,12 +19,10 @@ export function UniformsPanel() {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <div className="bg-header-bg border-b border-lines">
+    <div className="bg-background-editor p-0 gap-0">
       <Button
-        variant="ghost"
-        size="sm"
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full h-auto px-3 py-0 text-muted-foreground bg-transparent hover:text-foreground-highlighted hover:bg-background focus:outline-none justify-start"
+        className="w-full rounded-none h-6 px-3 py-0 text-small font-light text-foreground-muted bg-transparent hover:text-foreground-highlighted  hover:bg-background-highlighted focus:outline-none justify-start"
         style={{ outline: 'none', border: 'none' }}
       >
         <svg
@@ -34,12 +32,13 @@ export function UniformsPanel() {
         >
           <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
         </svg>
-        <span className="text-sm font-medium">Uniform Inputs</span>
+        <span className='text-small'>Uniform Inputs</span>
       </Button>
+
       <div className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
         }`}>
         <div className="p-0">
-          <pre className="text-sm text-muted-foreground font-mono bg-editor-bg px-14 overflow-x-auto leading-relaxed">
+          <pre className="text-small font-light text-foreground-muted font-mono bg-transparent px-14 overflow-x-auto leading-snug">
             {uniformHeader}
           </pre>
         </div>
