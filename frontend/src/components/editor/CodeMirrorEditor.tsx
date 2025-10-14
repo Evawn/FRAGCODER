@@ -10,7 +10,7 @@ import type { Transaction, Extension } from '@codemirror/state';
 import { glsl } from '../../utils/GLSLLanguage';
 import type { CompilationError } from '../../types';
 import { createErrorDecorationExtensions, setErrorsEffect } from './ErrorDecorations';
-import { BACKGROUND_EDITOR } from '../../styles/editor_theme';
+import { BACKGROUND_EDITOR, BACKGROUND_GUTTER } from '../../styles/editor_theme';
 
 interface CodeMirrorEditorProps {
   value: string;
@@ -80,7 +80,7 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       ]),
       glsl(),
       lineNumbers(),
-      highlightActiveLineGutter(),
+      //highlightActiveLineGutter(),
       indentOnInput(),
       bracketMatching(),
       codeFolding(),
@@ -105,8 +105,7 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
 
         },
         '.cm-focused': {
-          outline: 'none',
-          backgroundColor: 'transparent'
+          outline: 'none'
         },
         '.cm-editor': {
           height: '100%',
@@ -120,12 +119,26 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           backgroundColor: BACKGROUND_EDITOR
         },
         '.cm-gutter': {
-          backgroundColor: BACKGROUND_EDITOR,
+          backgroundColor: BACKGROUND_GUTTER,
         },
-        '.cm-selection': {
-          backgroundColor: '#FFFFFF'
-        }
-      }),
+        '.cm-gutterElement': {
+
+        },
+        '.cm-activeLine': {
+          backgroundColor: '#FFFFFF06',
+        },
+        '.cm-activeLineGutter': {
+          backgroundColor: '#FFFFFF06',
+          color: 'white'
+        },
+        '.cm-selectionBackground': {
+
+        },
+        '.cm-line': {
+          fontWeight: '100',
+        },
+      }, { dark: true }),
+      oneDark,
       EditorView.lineWrapping
     ];
 
@@ -183,7 +196,6 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         onChange={onChange}
         placeholder={placeholder}
         readOnly={readOnly}
-        theme={oneDark}
         extensions={extensions}
         indentWithTab={false}
         basicSetup={{
