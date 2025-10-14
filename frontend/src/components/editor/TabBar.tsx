@@ -143,24 +143,25 @@ export function TabBar({
               </div>
             );
           })}
+          {/* Add Tab Button with Dropdown */}
+          <div className="px-1">
+            <Dropdown options={addTabDropdownOptions} align="start" sideOffset={4}>
+              <Button
+                //variant="ghost"
+                size="sm"
+                className="h-auto p-2 stroke-foreground bg-transparent hover:stroke-foreground-highlighted hover:text-foreground-highlighted hover:bg-background-highlighted focus:outline-none"
+                style={{ width: '24px', height: '24px' }}
+                title="Add new tab"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </Button>
+            </Dropdown>
+          </div>
         </div>
 
-        {/* Add Tab Button with Dropdown */}
-        <div className="mr-1">
-          <Dropdown options={addTabDropdownOptions} align="start" sideOffset={4}>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-auto p-1 text-muted-foreground bg-transparent hover:text-foreground-highlighted hover:bg-background focus:outline-none"
-              style={{ width: '18px', height: '18px' }}
-              title="Add new tab"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-            </Button>
-          </Dropdown>
-        </div>
+
       </div>
 
       {/* Delete Tab Confirmation Dialog */}
