@@ -19,7 +19,7 @@ export function EditorFooter({
   charCount,
 }: EditorFooterProps) {
   return (
-    <div className="relative bg-editor-footer border-t border-border flex items-center px-2 gap-2" style={{ height: '30px' }}>
+    <div className="relative bg-header-bg border-t border-lines flex items-center px-2 gap-2" style={{ height: '30px' }}>
       <Button
         variant="outline"
         size="icon"

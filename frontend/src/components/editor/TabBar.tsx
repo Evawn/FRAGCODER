@@ -54,14 +54,14 @@ export function TabBar({
 
   return (
     <>
-      <div className="bg-editor-header border-b border-tab-border flex items-center px-1" style={{ height: '30px' }}>
+      <div className="bg-header-bg border-b border-lines flex items-center px-1" style={{ height: '30px' }}>
         {/* Add Tab Button with Dropdown */}
         <div className="mr-1">
           <Dropdown options={addTabDropdownOptions} align="start" sideOffset={4}>
             <Button
               variant="ghost"
               size="sm"
-              className="h-auto p-1 text-muted-foreground bg-transparent hover:text-foreground hover:bg-tab-hover focus:outline-none"
+              className="h-auto p-1 text-muted-foreground bg-transparent hover:text-foreground-highlighted hover:bg-background focus:outline-none"
               style={{ width: '18px', height: '18px' }}
               title="Add new tab"
             >
@@ -78,8 +78,8 @@ export function TabBar({
             <div
               key={tab.id}
               className={`h-auto px-2 rounded-t transition-colors group relative cursor-pointer inline-flex items-center ${activeTabId === tab.id
-                ? 'bg-tab-active text-foreground hover:bg-tab-active'
-                : 'bg-tab text-muted-foreground hover:bg-tab-hover hover:text-foreground'
+                ? 'bg-editor-bg text-foreground hover:bg-editor-bg'
+                : 'bg-editor-bg text-muted-foreground hover:bg-background hover:text-foreground-highlighted'
                 }`}
               style={{ height: '30px', minWidth: 'fit-content' }}
               onClick={() => onTabChange(tab.id)}
@@ -96,10 +96,10 @@ export function TabBar({
               {tab.isDeletable && (
                 <button
                   onClick={(e) => handleDeleteTabClick(tab, e)}
-                  className="ml-1 rounded hover:bg-muted transition-colors"
+                  className="ml-1 rounded hover:bg-lines transition-colors"
                   style={{ padding: '1px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 >
-                  <svg className="text-muted-foreground group-hover:text-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: '10px', height: '10px' }}>
+                  <svg className="text-muted-foreground group-hover:text-foreground-highlighted" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: '10px', height: '10px' }}>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>

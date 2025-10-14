@@ -12,7 +12,6 @@ import { SaveAsDialog } from '../components/editor/SaveAsDialog';
 import { RenameDialog } from '../components/editor/RenameDialog';
 import { DeleteShaderDialog } from '../components/editor/DeleteShaderDialog';
 import { CloneDialog } from '../components/editor/CloneDialog';
-import { ThemeToggle } from '../components/ThemeToggle';
 import { DEFAULT_SHADER_CODES, getDefaultCode } from '../utils/defaultShaderCode';
 import {
   getShaderBySlug,
@@ -386,11 +385,11 @@ function EditorPage() {
   }, [isPlaying, compilationSuccess, rendererPlay, rendererPause]);
 
   return (
-    <div className="h-screen bg-editor-bg text-foreground flex flex-col relative">
+    <div className="h-screen bg-background text-foreground flex flex-col relative">
       {/* Loading Overlay */}
       {loading && (
-        <div className="absolute inset-0 bg-surface-overlay/50 flex items-center justify-center z-50">
-          <div className="bg-card px-6 py-4 rounded-lg border border-border">
+        <div className="absolute inset-0 bg-background-editor/50 flex items-center justify-center z-50">
+          <div className="bg-background px-6 py-4 rounded-lg border border-border">
             <div className="flex items-center space-x-3">
               <div className="w-5 h-5 border-2 border-foreground border-t-transparent rounded-full animate-spin" />
               <span className="text-foreground">Loading shader...</span>
@@ -401,21 +400,19 @@ function EditorPage() {
 
       <ResizablePanelGroup direction="horizontal" className="flex-1" onLayout={handlePanelResize}>
         {/* Shader Viewer - Left Panel */}
-        <ResizablePanel defaultSize={50} minSize={leftPanelMinSize}>
+        <ResizablePanel defaultSize={30} minSize={leftPanelMinSize}>
           <div className="h-full flex flex-col gap-0 p-0">
             {/* Header */}
-            <div className="w-full flex items-center justify-between px-1 bg-editor-header border-b border-border" style={{ height: '30px' }}>
+            <div className="w-full flex items-center justify-between px-2 py-0.5 bg-background-header border-b border-lines">
               <button
                 onClick={() => navigate('/')}
-                className="text-lg font-bold bg-transparent text-foreground"
+                className="text-title font-regular bg-transparent text-foreground hover:text-accent px-1"
                 style={{ outline: 'none', border: 'none' }}
               >
                 FRAGCODER
               </button>
-              <ThemeToggle />
             </div>
             <div className="flex-1 w-full p-2">
-
               <ShaderPlayer
                 canvasRef={canvasRef}
                 isPlaying={isPlaying}
@@ -438,10 +435,10 @@ function EditorPage() {
         </ResizablePanel>
 
         {/* Resize Handle */}
-        <ResizableHandle className="w-px bg-border" />
+        <ResizableHandle className="w-px bg-lines" />
 
         {/* Shader Editor - Right Panel */}
-        <ResizablePanel defaultSize={50} minSize={30}>
+        <ResizablePanel defaultSize={70} minSize={30}>
           <div className="h-full flex flex-col">
             <ShaderEditor
               // Display data

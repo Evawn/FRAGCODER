@@ -10,7 +10,6 @@ import type { Transaction, Extension } from '@codemirror/state';
 import { glsl } from '../../utils/GLSLLanguage';
 import type { CompilationError } from '../../types';
 import { createErrorDecorationExtensions, setErrorsEffect } from './ErrorDecorations';
-import { useTheme } from '../../contexts/ThemeContext';
 
 interface CodeMirrorEditorProps {
   value: string;
@@ -34,7 +33,6 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   onCompile,
   onDocumentChange
 }) => {
-  const { resolvedTheme } = useTheme();
   const extensions = useMemo(() => {
     const baseExtensions: Extension[] = [
       keymap.of([
@@ -169,7 +167,7 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         onChange={onChange}
         placeholder={placeholder}
         readOnly={readOnly}
-        theme={resolvedTheme === 'dark' ? oneDark : 'light'}
+        theme={oneDark}
         extensions={extensions}
         indentWithTab={false}
         basicSetup={{

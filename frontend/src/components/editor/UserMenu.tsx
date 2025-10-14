@@ -23,7 +23,7 @@ export function UserMenu({
       <Button
         variant="ghost"
         size="sm"
-        className="h-auto px-2 py-1 text-gray-400 bg-transparent hover:text-gray-200 hover:bg-transparent focus:outline-none"
+        className="h-auto px-2 py-1 text-large font-light text-foreground bg-transparent hover:text-accent hover:bg-transparent focus:outline-none"
         style={{ outline: 'none', border: 'none' }}
         onClick={onSignIn}
       >
@@ -56,7 +56,7 @@ export function UserMenu({
       <Button
         variant="ghost"
         size="sm"
-        className="h-auto px-2 py-1 text-gray-400 bg-transparent hover:text-gray-200 hover:bg-transparent focus:outline-none"
+        className="h-auto px-2 py-1 text-large font-light text-foreground bg-transparent hover:text-accent hover:bg-transparent focus:outline-none"
         style={{ outline: 'none', border: 'none' }}
       >
         <div className="flex items-center gap-2">

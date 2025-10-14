@@ -19,12 +19,12 @@ export function UniformsPanel() {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <div className="bg-editor-header border-b border-border">
+    <div className="bg-header-bg border-b border-lines">
       <Button
         variant="ghost"
         size="sm"
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full h-auto px-3 py-0 text-muted-foreground bg-transparent hover:text-foreground hover:bg-tab-hover focus:outline-none justify-start"
+        className="w-full h-auto px-3 py-0 text-muted-foreground bg-transparent hover:text-foreground-highlighted hover:bg-background focus:outline-none justify-start"
         style={{ outline: 'none', border: 'none' }}
       >
         <svg
@@ -39,7 +39,7 @@ export function UniformsPanel() {
       <div className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
         }`}>
         <div className="p-0">
-          <pre className="text-sm text-muted-foreground font-mono bg-code-editor-bg px-14 overflow-x-auto leading-relaxed">
+          <pre className="text-sm text-muted-foreground font-mono bg-editor-bg px-14 overflow-x-auto leading-relaxed">
             {uniformHeader}
           </pre>
         </div>

@@ -147,9 +147,9 @@ export default function ShaderPlayer({
             }
         }
       >
-        <div className="border border-border rounded-md overflow-hidden flex flex-col h-full">
+        <div className="border border-lines overflow-hidden flex flex-col h-full shadow-xl">
           {/* WebGL Canvas Container */}
-          <div className="flex-1 bg-player-bg relative flex items-center justify-center min-h-0">
+          <div className="flex-1 bg-black relative flex items-center justify-center min-h-0">
             <div
               className="relative w-full h-full"
               style={
@@ -183,15 +183,15 @@ export default function ShaderPlayer({
           </div>
 
           {/* Footer Control Bar */}
-          <div className="bg-player-controls border-t border-border px-1 gap-x-1 py-2 flex items-center justify-between" style={{ height: '30px' }}>
+          <div className="bg-background-header border-t border-lines px-1 gap-x-2 py-1 flex items-center justify-between">
             <div className="flex items-center gap-4">
               {/* Control Buttons */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 font-normal">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={onReset}
-                  className="bg-transparent h-6 w-6 text-player-controls-fg focus:outline-none hover:text-foreground hover:bg-transparent"
+                  className="bg-transparent h-6 w-6 text-foreground focus:outline-none hover:text-foreground-highlighted hover:bg-transparent"
                   title="Reset"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -204,7 +204,7 @@ export default function ShaderPlayer({
                   size="icon"
                   onClick={onPlayPause}
                   disabled={!compilationSuccess}
-                  className="bg-transparent h-6 w-6 text-player-controls-fg focus:outline-none hover:text-foreground hover:bg-transparent disabled:opacity-50"
+                  className="bg-transparent h-6 w-6 text-player-controls-fg focus:outline-none hover:text-foreground-highlighted hover:bg-transparent disabled:opacity-50"
                   title={isPlaying ? 'Pause' : 'Play'}
                 >
                   {isPlaying ? (
@@ -221,20 +221,20 @@ export default function ShaderPlayer({
               </div>
 
               {/* Real-time Information */}
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="bg-transparent border-transparent text-player-controls-fg font-mono text-xs px-2 py-0">
+              <div className="flex items-center gap-1">
+                <Badge variant="outline" className="bg-transparent font-light border-transparent text-foreground font-mono text-xs px-2 py-0">
                   {uTime.toFixed(2)}s
                 </Badge>
-                <Badge variant="outline" className="bg-transparent border-transparent text-player-controls-fg font-mono text-xs px-2 py-0">
+                <Badge variant="outline" className="bg-transparent font-light border-transparent text-foreground font-mono text-xs px-2 py-0">
                   {fps.toFixed(1)} fps
                 </Badge>
                 <Badge
                   variant="outline"
-                  className={`bg-transparent font-mono text-xs px-2 py-0 flex items-center gap-1.5 ${isFullscreen
-                    ? 'border-muted-foreground text-player-controls-fg'
+                  className={`bg-transparent font-mono rounded-sm font-light text-xs px-2 py-0 flex items-center gap-1.5 ${isFullscreen
+                    ? 'border-muted-foreground text-foreground'
                     : isResolutionLocked
-                      ? 'border-muted-foreground text-player-controls-fg cursor-pointer hover:text-foreground transition-colors'
-                      : 'border-transparent text-player-controls-fg cursor-pointer hover:text-foreground transition-colors'
+                      ? 'border-muted-foreground text-foreground cursor-pointer hover:text-foreground-highlighted transition-colors'
+                      : 'border-transparent text-foreground cursor-pointer hover:text-foreground-highlighted transition-colors'
                     }`}
                   onClick={isFullscreen ? undefined : toggleResolutionLock}
                 >
@@ -262,7 +262,7 @@ export default function ShaderPlayer({
                 variant="ghost"
                 size="icon"
                 onClick={handleFullscreenToggle}
-                className="bg-transparent h-6 w-6 text-player-controls-fg focus:outline-none hover:text-foreground hover:bg-transparent"
+                className="bg-transparent h-6 w-6 text-player-controls-fg focus:outline-none hover:text-foreground-highlighted hover:bg-transparent"
                 title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
               >
                 {isFullscreen ? (

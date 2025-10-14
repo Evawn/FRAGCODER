@@ -6,111 +6,106 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
+    fontFamily: {
+      'sans': ['Roboto Mono', 'monospace'],
+      'serif': ['Roboto Mono', 'monospace'],
+      'mono': ['Roboto Mono', 'monospace'],
+    },
     extend: {
+      fontSize: {
+        'small': '12px',
+        'editor': '14px',
+        'large': '16px',
+        'title': '24px',
+      },
       borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
+        lg: '0.5rem',
+        md: 'calc(0.5rem - 2px)',
+        sm: 'calc(0.5rem - 4px)',
       },
       colors: {
-        // shadcn/ui base colors
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
-        card: {
-          DEFAULT: 'hsl(var(--card))',
-          foreground: 'hsl(var(--card-foreground))',
-          bg: 'hsl(var(--card-bg))',
-          border: 'hsl(var(--card-border))',
-          hover: 'hsl(var(--card-hover))',
+        // Background Colors (Dark theme only)
+        background: {
+          DEFAULT: 'hsl(38 4% 19%)',
+          header: 'hsl(38 5% 9%)',
+          editor: 'hsl(38 5% 9%)',
+          highlighted: 'hsl(38 3% 26%)',
         },
-        popover: {
-          DEFAULT: 'hsl(var(--popover))',
-          foreground: 'hsl(var(--popover-foreground))',
+        lines: 'hsl(38 3% 26%)',
+
+        // Foreground/Text Colors
+        foreground: {
+          DEFAULT: 'hsl(218 10% 85%)',
+          highlighted: 'hsl(218 10% 100%)',
+          muted: 'hsl(218 10% 55%)',
         },
-        primary: {
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))',
-        },
-        secondary: {
-          DEFAULT: 'hsl(var(--secondary))',
-          foreground: 'hsl(var(--secondary-foreground))',
-        },
-        muted: {
-          DEFAULT: 'hsl(var(--muted))',
-          foreground: 'hsl(var(--muted-foreground))',
-        },
+
+        // Accent Colors
         accent: {
-          DEFAULT: 'hsl(var(--accent))',
-          foreground: 'hsl(var(--accent-foreground))',
-        },
-        destructive: {
-          DEFAULT: 'hsl(var(--destructive))',
-          foreground: 'hsl(var(--destructive-foreground))',
-        },
-        border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
-        ring: 'hsl(var(--ring))',
-        chart: {
-          '1': 'hsl(var(--chart-1))',
-          '2': 'hsl(var(--chart-2))',
-          '3': 'hsl(var(--chart-3))',
-          '4': 'hsl(var(--chart-4))',
-          '5': 'hsl(var(--chart-5))',
+          DEFAULT: 'hsl(38 92% 50%)',
+          highlighted: 'hsl(38 92% 70%)',
+          shadow: 'hsl(38 92% 40%)',
+          foreground: 'hsl(38 10% 9%)',
         },
 
-        // Editor chrome colors
-        editor: {
-          bg: 'hsl(var(--editor-bg))',
-          header: 'hsl(var(--editor-header))',
-          footer: 'hsl(var(--editor-footer))',
-        },
-
-        // Tab colors
-        tab: {
-          DEFAULT: 'hsl(var(--tab-default))',
-          hover: 'hsl(var(--tab-hover))',
-          active: 'hsl(var(--tab-active))',
-          border: 'hsl(var(--tab-border))',
-        },
-
-        // Code editor colors
-        'code-editor': {
-          bg: 'hsl(var(--code-editor-bg))',
-          gutter: 'hsl(var(--code-editor-gutter))',
-          selection: 'hsl(var(--code-editor-selection))',
-        },
-
-        // Shader player colors
-        player: {
-          bg: 'hsl(var(--player-bg))',
-          controls: 'hsl(var(--player-controls))',
-          'controls-fg': 'hsl(var(--player-controls-fg))',
-        },
-
-        // Status colors
+        // Semantic Colors
         success: {
-          DEFAULT: 'hsl(var(--success))',
-          foreground: 'hsl(var(--success-foreground))',
-        },
-        warning: {
-          DEFAULT: 'hsl(var(--warning))',
-          foreground: 'hsl(var(--warning-foreground))',
+          DEFAULT: 'hsl(142 50% 40%)',
+          highlighted: 'hsl(142 50% 50%)',
+          foreground: 'hsl(0 0% 100%)',
         },
         error: {
-          DEFAULT: 'hsl(var(--error))',
-          foreground: 'hsl(var(--error-foreground))',
+          DEFAULT: 'hsl(9 70% 40%)',
+          highlighted: 'hsl(9 70% 30%)',
+          foreground: 'hsl(218 10% 96%)',
+        },
+        warning: {
+          DEFAULT: 'hsl(48 80% 50%)',
+          highlighted: 'hsl(48 80% 70%)',
+          foreground: 'hsl(0 0% 100%)',
         },
         info: {
-          DEFAULT: 'hsl(var(--info))',
-          foreground: 'hsl(var(--info-foreground))',
+          DEFAULT: 'hsl(199 89% 48%)',
+          foreground: 'hsl(0 0% 100%)',
         },
 
-        // Surface variants
-        surface: {
-          raised: 'hsl(var(--surface-raised))',
-          sunken: 'hsl(var(--surface-sunken))',
-          overlay: 'hsl(var(--overlay))',
-        },
+        // UI Component Colors (shadcn/ui compatibility)
+        // border: 'hsl(38 5% 26%)',
+        // input: 'hsl(38 5% 26%)',
+        // ring: 'hsl(38 92% 50%)',
+        // card: {
+        //   DEFAULT: 'hsl(38 5% 19%)',
+        //   foreground: 'hsl(218 10% 85%)',
+        //   border: 'hsl(38 5% 26%)',
+        //   hover: 'hsl(38 5% 22%)',
+        // },
+        // popover: {
+        //   DEFAULT: 'hsl(38 5% 19%)',
+        //   foreground: 'hsl(218 10% 85%)',
+        // },
+        // primary: {
+        //   DEFAULT: 'hsl(38 92% 50%)',
+        //   foreground: 'hsl(38 10% 9%)',
+        // },
+        // secondary: {
+        //   DEFAULT: 'hsl(38 5% 26%)',
+        //   foreground: 'hsl(218 10% 96%)',
+        // },
+        // muted: {
+        //   DEFAULT: 'hsl(38 5% 26%)',
+        //   foreground: 'hsl(218 10% 55%)',
+        // },
+        // destructive: {
+        //   DEFAULT: 'hsl(9 70% 40%)',
+        //   foreground: 'hsl(218 10% 96%)',
+        // },
+
+        // // Surface variants
+        // surface: {
+        //   raised: 'hsl(38 5% 22%)',
+        //   sunken: 'hsl(38 10% 9%)',
+        //   overlay: 'hsl(0 0% 0%)',
+        // },
       },
       boxShadow: {
         'sm': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
