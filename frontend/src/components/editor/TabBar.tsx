@@ -60,66 +60,66 @@ export function TabBar({
         {/* Tabs */}
         <div className="flex-1 flex items-center gap-1 relative">
           {tabs.map(tab => (
-            <div
-              key={tab.id}
-              className={`h-auto w-32 px-2  rounded font-light text-large transition-colors group relative cursor-pointer inline-flex items-center ${activeTabId === tab.id
-                ? 'bg-background-editor z-0 rounded-b-none text-foreground-highlighted hover:bg-background-editor hover:text-foreground-highlighted py-1 pb-1'
-                : 'bg-transparent text-foreground z-10 hover:bg-background-highlighted hover:text-foreground-highlighted py-1'
-                }`}
+            <div className='h-auto w-32'>
+              <div
+                key={tab.id}
+                className={`w-full px-2 z-10 rounded font-light text-large group relative cursor-pointer inline-flex items-center ${activeTabId === tab.id
+                  ? 'bg-background-editor text-foreground-highlighted hover:bg-background-editor hover:text-foreground-highlighted py-1 pb-1'
+                  : 'bg-transparent text-foreground hover:bg-background-highlighted hover:text-foreground-highlighted py-1'
+                  }`}
 
-              onClick={() => onTabChange(tab.id)}
-            >
-              {/* Error indicator dot */}
-              {tabHasErrors(tab) && (
-                <span
-                  className="rounded-full bg-error mr-1 flex-shrink-0"
-                  style={{ width: '6px', height: '6px' }}
-                  title={`${tab.name} has compilation errors`}
-                />
-              )}
-              <span className="whitespace-nowrap" style={{ fontSize: '14px', lineHeight: '20px' }}>{tab.name}</span>
-              <div className="w-full" />
-              {tab.isDeletable && (
-                <button
-                  onClick={(e) => handleDeleteTabClick(tab, e)}
-                  className={`ml-1 rounded  transition-colors ${activeTabId == tab.id ? 'hover:bg-background-highlighted' : 'hover:bg-background'} p-1 opacity-0 group-hover:opacity-100`}
-                  style={{ padding: '1px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                onClick={() => onTabChange(tab.id)}
+              >
+                {/* Error indicator dot */}
+                {tabHasErrors(tab) && (
+                  <span
+                    className="rounded-full bg-error mr-1 flex-shrink-0"
+                    style={{ width: '6px', height: '6px' }}
+                    title={`${tab.name} has compilation errors`}
+                  />
+                )}
+                <span className="whitespace-nowrap" style={{ fontSize: '14px', lineHeight: '20px' }}>{tab.name}</span>
+                <div className="w-full" />
+                {tab.isDeletable && (
+                  <button
+                    onClick={(e) => handleDeleteTabClick(tab, e)}
+                    className={`ml-1 rounded ${activeTabId == tab.id ? 'hover:bg-background-highlighted' : 'hover:bg-background'} p-1 opacity-0 group-hover:opacity-100`}
+                    style={{ padding: '1px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <svg className="text-muted-foreground group-hover:text-foreground-highlighted" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: '16px', height: '16px' }}>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              <div className="w-full relative">
+                {/* Connecting rectangle under tab - always rendered, fades with opacity */}
+                <div
+                  className={`absolute z-20 -bottom-1 left-0 right-0 h-2 bg-background-editor ${activeTabId === tab.id ? 'opacity-100' : 'opacity-0'}`}
+                ></div>
+                {/* Left flare - inverted corner - always rendered, fades with opacity */}
+                <div
+                  className={`absolute z-0 -bottom-1 left-0 w-2 h-2 -translate-x-full bg-background-editor  ${activeTabId === tab.id ? 'opacity-100' : 'opacity-0'}`}
                 >
-                  <svg className="text-muted-foreground group-hover:text-foreground-highlighted" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: '16px', height: '16px' }}>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-              {activeTabId === tab.id && (
-                <>
-                  {/* Connecting rectangle under tab */}
                   <div
-                    className="absolute -bottom-1 left-0 right-0 h-1 bg-background-editor"
+                    className="w-full h-full"
+                    style={{
+                      background: 'radial-gradient(circle at 0% 0%, hsl(38 4% 19%) 8px, transparent 8px)'
+                    }}
                   ></div>
-                  {/* Left flare - inverted corner */}
+                </div>
+                {/* Right flare - inverted corner - always rendered, fades with opacity */}
+                <div
+                  className={`absolute z-0 -bottom-1 right-0 w-2 h-2 translate-x-full bg-background-editor ${activeTabId === tab.id ? 'opacity-100' : 'opacity-0'}`}
+                >
                   <div
-                    className="absolute -bottom-1 left-0 w-2 h-2 -translate-x-full bg-background-editor"
-                  >
-                    <div
-                      className="w-full h-full"
-                      style={{
-                        background: 'radial-gradient(circle at 0% 0%, hsl(38 4% 19%) 8px, transparent 8px)'
-                      }}
-                    ></div>
-                  </div>
-                  {/* Right flare - inverted corner */}
-                  <div
-                    className="absolute -bottom-1 right-0 w-2 h-2 translate-x-full bg-background-editor"
-                  >
-                    <div
-                      className="w-full h-full"
-                      style={{
-                        background: 'radial-gradient(circle at 100% 0%, hsl(38 4% 19%) 8px, transparent 8px)'
-                      }}
-                    ></div>
-                  </div>
-                </>
-              )}
+                    className="w-full h-full"
+                    style={{
+                      background: 'radial-gradient(circle at 100% 0%, hsl(38 4% 19%) 8px, transparent 8px)'
+                    }}
+                  ></div>
+                </div>
+              </div>
             </div>
           ))}
         </div>
