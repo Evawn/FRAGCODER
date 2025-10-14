@@ -22,8 +22,8 @@ export function UniformsPanel() {
     <div className="bg-background-editor p-0 gap-0">
       <Button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full rounded-none h-6 px-3 py-0 text-small font-light text-foreground-muted bg-transparent hover:text-foreground-highlighted  hover:bg-background-editorfocus:outline-none justify-start"
-        style={{ outline: 'none', border: 'none' }}
+        className="w-full rounded-none h-6 px-3 py-0 text-small font-light text-foreground-muted bg-transparent hover:text-foreground-highlighted  hover:bg-background-editorfocus:outline-none justify-start shadow-none"
+        style={{ outline: 'none', border: 'none', boxShadow: 'none' }}
       >
         <svg
           className={`w-3 h-3 mr-2 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
@@ -37,11 +37,9 @@ export function UniformsPanel() {
 
       <div className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
         }`}>
-        <div className="p-0">
-          <pre className="text-small font-light text-foreground-muted font-mono bg-transparent px-14 overflow-x-auto leading-snug">
-            {uniformHeader}
-          </pre>
-        </div>
+        <pre className="text-small font-light text-foreground-muted font-mono bg-transparent px-14 overflow-x-auto leading-snug">
+          {uniformHeader}
+        </pre>
       </div>
     </div>
   );

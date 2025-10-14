@@ -4,6 +4,7 @@ import { Dropdown } from '../ui/Dropdown';
 import type { DropdownOption } from '../ui/Dropdown';
 import { DeleteTabDialog } from './DeleteTabDialog';
 import type { Tab } from '../../types';
+import { BACKGROUND_EDITOR } from '@/styles/editor_theme';
 
 interface TabBarProps {
   tabs: Tab[];
@@ -99,23 +100,23 @@ export function TabBar({
                 ></div>
                 {/* Left flare - inverted corner - always rendered, fades with opacity */}
                 <div
-                  className={`absolute z-0 -bottom-1 left-0 w-2 h-2 -translate-x-full bg-background-editor  ${activeTabId === tab.id ? 'opacity-100' : 'opacity-0'}`}
+                  className={`absolute z-0 -bottom-1 left-0 w-2 h-2 -translate-x-full bg-background  ${activeTabId === tab.id ? 'opacity-100' : 'opacity-0'}`}
                 >
                   <div
                     className="w-full h-full"
                     style={{
-                      background: 'radial-gradient(circle at 0% 0%, hsl(38 4% 19%) 8px, transparent 8px)'
+                      background: 'radial-gradient(circle at 0% 0%, transparent 8px, ' + BACKGROUND_EDITOR + ' 8px)'
                     }}
                   ></div>
                 </div>
                 {/* Right flare - inverted corner - always rendered, fades with opacity */}
                 <div
-                  className={`absolute z-0 -bottom-1 right-0 w-2 h-2 translate-x-full bg-background-editor ${activeTabId === tab.id ? 'opacity-100' : 'opacity-0'}`}
+                  className={`absolute z-0 -bottom-1 right-0 w-2 h-2 translate-x-full bg-background ${activeTabId === tab.id ? 'opacity-100' : 'opacity-0'}`}
                 >
                   <div
                     className="w-full h-full"
                     style={{
-                      background: 'radial-gradient(circle at 100% 0%, hsl(38 4% 19%) 8px, transparent 8px)'
+                      background: 'radial-gradient(circle at 100% 0%,transparent 8px, ' + BACKGROUND_EDITOR + ' 8px)'
                     }}
                   ></div>
                 </div>

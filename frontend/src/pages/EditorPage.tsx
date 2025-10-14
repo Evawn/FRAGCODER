@@ -403,7 +403,7 @@ function EditorPage() {
         <ResizablePanel defaultSize={30} minSize={leftPanelMinSize}>
           <div className="h-full flex flex-col gap-0 p-0">
             {/* Header */}
-            <div className="w-full flex items-center justify-between px-2 py-0.5 bg-background-header border-b border-lines">
+            <div className="w-full flex items-center justify-between px-2 py-0.5 bg-background-header border-b-2 border-accent-shadow">
               <button
                 onClick={() => navigate('/')}
                 className="text-title font-regular bg-transparent text-foreground hover:text-accent px-1"
@@ -439,7 +439,7 @@ function EditorPage() {
 
         {/* Shader Editor - Right Panel */}
         <ResizablePanel defaultSize={70} minSize={30}>
-          <div className="h-full flex flex-col">
+          <div className="h-full flex flex-col bg-background">
             <ShaderEditor
               // Display data
               tabs={tabs}

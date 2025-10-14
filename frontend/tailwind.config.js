@@ -28,12 +28,12 @@ export default {
       colors: {
         // Background Colors (Dark theme only)
         background: {
-          DEFAULT: 'hsl(38 4% 19%)',
-          header: BACKGROUND_EDITOR,
+          DEFAULT: 'hsl(38 5% 11%)',
+          header: 'hsl(38 5% 17%)',
           editor: BACKGROUND_EDITOR,
-          highlighted: 'hsl(38 3% 26%)',
+          highlighted: 'hsl(38 3% 30%)',
         },
-        lines: 'hsl(38 3% 26%)',
+        lines: 'hsl(38 4% 17%)',
 
         // Foreground/Text Colors
         foreground: {
@@ -46,7 +46,7 @@ export default {
         accent: {
           DEFAULT: 'hsl(38 92% 50%)',
           highlighted: 'hsl(38 92% 70%)',
-          shadow: 'hsl(38 92% 40%)',
+          shadow: 'hsl(38 92% 30%)',
           foreground: 'hsl(38 10% 9%)',
         },
 
