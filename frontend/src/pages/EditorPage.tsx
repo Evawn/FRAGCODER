@@ -28,6 +28,7 @@ import {
   distributeErrorsToTabs,
   calculatePanelMinSize,
   showErrorAlert,
+  sortTabsByCanonicalOrder,
 } from '../utils/editorPageHelpers';
 
 function EditorPage() {
@@ -112,9 +113,9 @@ function EditorPage() {
       // Convert API Shader format to ShaderData format for ShaderEditor
       setShader(apiShaderToShaderData(apiShader));
 
-      // Load tabs from shader data
+      // Load tabs from shader data and sort them in canonical order
       const loadedTabs = apiTabsToLocalTabs(apiShader.tabs);
-      setTabs(loadedTabs);
+      setTabs(sortTabsByCanonicalOrder(loadedTabs));
 
       // Trigger compilation after loading (using imperative method)
       const tabsData = tabsToTabData(loadedTabs);
@@ -153,9 +154,9 @@ function EditorPage() {
     }
   }, [shader?.title]);
 
-  // Update tabs with incoming compilation errors
+  // Update tabs with incoming compilation errors and maintain sort order
   useEffect(() => {
-    setTabs(prevTabs => distributeErrorsToTabs(prevTabs, compilationErrors));
+    setTabs(prevTabs => sortTabsByCanonicalOrder(distributeErrorsToTabs(prevTabs, compilationErrors)));
   }, [compilationErrors]);
 
   // Tab management handlers (moved from ShaderEditor)
@@ -174,7 +175,7 @@ function EditorPage() {
       isDeletable: true,
       errors: []
     };
-    setTabs(prev => [...prev, newTab]);
+    setTabs(prev => sortTabsByCanonicalOrder([...prev, newTab]));
     setActiveTabId(newTab.id);
   }, [tabs]);
 

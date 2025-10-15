@@ -90,6 +90,21 @@ export function calculatePanelMinSize(
 }
 
 /**
+ * Sorts tabs in canonical order: Image → Buffer A → B → C → D → Common
+ * Maintains consistent tab ordering regardless of creation/deletion sequence
+ */
+export function sortTabsByCanonicalOrder(tabs: Tab[]): Tab[] {
+  const tabOrder = ['Image', 'Buffer A', 'Buffer B', 'Buffer C', 'Buffer D', 'Common'];
+  const orderMap = new Map(tabOrder.map((name, index) => [name, index]));
+
+  return [...tabs].sort((a, b) => {
+    const orderA = orderMap.get(a.name) ?? 999;
+    const orderB = orderMap.get(b.name) ?? 999;
+    return orderA - orderB;
+  });
+}
+
+/**
  * Displays a standardized error alert message
  * Formats error messages consistently across all operations
  */
