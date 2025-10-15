@@ -31,14 +31,14 @@ export function Dropdown({ children, options, align = 'start', sideOffset = 8 }:
         align={align}
         sideOffset={sideOffset}
         className={cn(
-          "w-auto p-0 bg-gray-700 border-gray-600",
+          "w-auto p-0 bg-background border-accent",
           "rounded-md shadow-lg",
-          "min-w-[160px]"
+          "min-w-[128px]"
         )}
       >
         {/* Triangle arrow at top */}
-        <div className="absolute -top-2 left-4 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[8px] border-b-gray-600" />
-        <div className="absolute -top-[7px] left-4 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[8px] border-b-gray-700" />
+        <div className="absolute -top-2 left-4 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[8px] border-b-accent" />
+        <div className="absolute -top-[7px] left-4 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[8px] border-b-accent" />
 
         {/* Menu options */}
         <div className="py-1">
@@ -46,7 +46,7 @@ export function Dropdown({ children, options, align = 'start', sideOffset = 8 }:
             <button
               key={index}
               onClick={() => handleOptionClick(option.callback)}
-              className="w-full px-4 py-2 text-left text-sm text-gray-200 hover:bg-gray-600 transition-colors duration-150"
+              className="w-full px-4 py-2 text-left text-sm text-foreground hover:text-foreground-highlighted hover:bg-background-highlighted transition-colors duration-150"
             >
               {option.text}
             </button>
