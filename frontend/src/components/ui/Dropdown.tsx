@@ -12,9 +12,10 @@ interface DropdownProps {
   options: DropdownOption[];
   align?: 'start' | 'center' | 'end';
   sideOffset?: number;
+  collisionPadding?: number;
 }
 
-export function Dropdown({ children, options, align = 'center', sideOffset = 8 }: DropdownProps) {
+export function Dropdown({ children, options, align = 'center', sideOffset = 8, collisionPadding = 4 }: DropdownProps) {
   const [open, setOpen] = useState(false);
 
   const handleOptionClick = (callback: () => void) => {
@@ -30,6 +31,7 @@ export function Dropdown({ children, options, align = 'center', sideOffset = 8 }
       <PopoverContent
         align={align}
         sideOffset={sideOffset}
+        collisionPadding={collisionPadding}
         className={cn(
           "w-auto p-0 bg-background border-accent",
           "rounded-none shadow-lg",
