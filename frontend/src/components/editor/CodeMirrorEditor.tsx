@@ -7,6 +7,7 @@ import { lineNumbers, highlightActiveLineGutter } from '@codemirror/view';
 import { acceptCompletion, completionStatus, closeCompletion } from '@codemirror/autocomplete';
 import { indentMore, insertNewlineAndIndent, selectAll, cursorDocStart, cursorDocEnd, cursorLineStart, cursorLineEnd, deleteCharBackward, deleteCharForward } from '@codemirror/commands';
 import type { Transaction, Extension } from '@codemirror/state';
+import { showMinimap } from '@replit/codemirror-minimap';
 import { glsl } from '../../utils/GLSLLanguage';
 import type { CompilationError } from '../../types';
 import { createErrorDecorationExtensions, setErrorsEffect } from './ErrorDecorations';
@@ -87,6 +88,16 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       foldGutter(),
       indentUnit.of("    "), // 4 spaces
       ...createErrorDecorationExtensions(),
+      showMinimap.compute(['doc'], (state) => {
+        return {
+          create: (view: EditorView) => {
+            const dom = document.createElement('div');
+            return { dom };
+          },
+          displayText: 'blocks',
+          showOverlay: 'always'
+        };
+      }),
       EditorView.theme({
         '&': {
           fontSize: '14px',
@@ -116,7 +127,11 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           height: '100%',
           maxHeight: '100%',
           overflow: 'auto',
-          backgroundColor: BACKGROUND_EDITOR
+          backgroundColor: BACKGROUND_EDITOR,
+          scrollbarWidth: 'none', // Firefox
+          '&::-webkit-scrollbar': {
+            display: 'none' // Chrome, Safari, Edge
+          }
         },
         '.cm-gutter': {
           backgroundColor: BACKGROUND_GUTTER,
@@ -136,6 +151,26 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         },
         '.cm-line': {
           fontWeight: '100',
+        },
+        // Minimap styling
+        '.cm-minimap-gutter': {
+          backgroundColor: BACKGROUND_GUTTER,
+          borderLeft: '1px solid rgba(255, 255, 255, 0.05)',
+        },
+        '.cm-minimap-inner': {
+          backgroundColor: 'transparent',
+          '& canvas': {
+            filter: 'brightness(0.8)',
+          }
+        },
+        '.cm-minimap-overlay': {
+          background: 'rgba(200, 200, 200, 0.3)',
+          '&:hover': {
+            background: 'rgba(220, 220, 220, 0.4)',
+          }
+        },
+        '.cm-minimap-box-shadow': {
+          boxShadow: '-8px 0px 12px 3px rgba(0, 0, 0, 0.4)',
         },
       }, { dark: true }),
       oneDark,

@@ -19,10 +19,10 @@ export function UniformsPanel() {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <div className="bg-background-editor p-0 gap-0">
+    <div className="bg-background-editor border-b border-background p-0 gap-0">
       <Button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full rounded-none h-6 px-3 py-0 text-small font-light text-foreground-muted bg-transparent hover:text-foreground-highlighted  hover:bg-background-editorfocus:outline-none justify-start shadow-none"
+        className="w-full  rounded-none h-6 px-3 py-0 text-small font-light text-foreground-muted bg-transparent hover:text-foreground-highlighted  hover:bg-background-editor focus:outline-none justify-start shadow-none"
         style={{ outline: 'none', border: 'none', boxShadow: 'none' }}
       >
         <svg

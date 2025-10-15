@@ -148,7 +148,7 @@ export default function ShaderPlayer({
             }
         }
       >
-        <div className="border border-lines overflow-hidden flex flex-col h-full shadow-xl">
+        <div className="border-0 rounded-sm overflow-hidden flex flex-col h-full shadow-xl">
           {/* WebGL Canvas Container */}
           <div className="flex-1 bg-black relative flex items-center justify-center min-h-0">
             <div
@@ -184,7 +184,7 @@ export default function ShaderPlayer({
           </div>
 
           {/* Footer Control Bar */}
-          <div className="bg-background-header border-t border-lines px-1 gap-x-2 py-1 flex items-center justify-between">
+          <div className="bg-background-header px-1 gap-x-2 py-1 flex items-center justify-between">
             <div className="flex items-center gap-4">
               {/* Control Buttons */}
               <div className="flex items-center gap-1 font-normal">
