@@ -72,7 +72,7 @@ export function TitleDropdown({
       <Button
         variant="ghost"
         size="sm"
-        className="h-auto px-2 py-1 text-title tracking-tighter text-foreground bg-transparent hover:text-accent hover:bg-transparent focus:outline-none"
+        className="h-auto justify-start min-w-[128px] px-2 py-1 text-title tracking-tighter text-foreground bg-transparent hover:text-accent hover:bg-transparent focus:outline-none"
         style={{ outline: 'none', border: 'none' }}
       >
         <span className="text-lg italic">{title}</span>

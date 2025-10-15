@@ -78,12 +78,12 @@ export function ActionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-80 bg-gray-800 border-gray-700 text-white p-6">
+      <DialogContent className="w-80 bg-background border-accent text-foreground p-6">
         <DialogHeader>
-          <DialogTitle className="text-lg font-semibold text-white">
+          <DialogTitle className="text-large font-semibold text-foreground">
             {title}
           </DialogTitle>
-          <DialogDescription className="text-sm text-gray-400">
+          <DialogDescription className="text-small text-foreground">
             {description}
           </DialogDescription>
         </DialogHeader>
@@ -91,8 +91,8 @@ export function ActionDialog({
         <div className="space-y-4">
           {/* Error Message */}
           {error && (
-            <div className="bg-red-500/10 border border-red-500/50 rounded-md p-3">
-              <p className="text-sm text-red-400">{error}</p>
+            <div className="bg-error/10 border border-error rounded-md p-3">
+              <p className="text-sm text-foreground-highlighted">{error}</p>
             </div>
           )}
 
@@ -111,7 +111,7 @@ export function ActionDialog({
             <Button
               onClick={handleCancel}
               variant="outline"
-              className="flex-1 bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600 hover:text-white"
+              className="flex-1 bg-background border-background-highlighted text-foreground hover:bg-background-highlighted hover:text-foreground-highlighted"
               disabled={loading}
             >
               {cancelText}
@@ -123,7 +123,7 @@ export function ActionDialog({
             >
               {loading ? (
                 <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-accent bg-accent-shadow text-foreground hover:bg-accent hover:text-foreground-highlighted border-t-transparent rounded-full animate-spin" />
                   <span>{loadingText}</span>
                 </div>
               ) : (
