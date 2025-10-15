@@ -73,7 +73,8 @@ export function TabBar({
     .filter(tabName => !existingTabNames.has(tabName))
     .map(tabName => ({
       text: tabName,
-      callback: () => onAddTab(tabName)
+      callback: () => onAddTab(tabName),
+      icon: tabName.startsWith('Buffer') ? Layers : FileText
     }));
 
   return (
