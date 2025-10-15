@@ -146,7 +146,7 @@ export function TabBar({
           })}
           {/* Add Tab Button with Dropdown */}
           <div className="px-1">
-            <Dropdown options={addTabDropdownOptions} align="start" sideOffset={4}>
+            <Dropdown options={addTabDropdownOptions} sideOffset={4}>
               <Button
                 //variant="ghost"
                 size="sm"
