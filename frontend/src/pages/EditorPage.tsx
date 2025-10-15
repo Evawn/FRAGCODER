@@ -406,12 +406,18 @@ function EditorPage() {
         </div>
       )}
 
+      {/* Full-width header background layer - sits above resize handle but below header content */}
+      <div
+        className="absolute top-0 left-0 right-0 h-[32px] bg-background-header border-b-2 border-accent-shadow"
+        style={{ zIndex: 10 }}
+      />
+
       <ResizablePanelGroup direction="horizontal" className="flex-1" onLayout={handlePanelResize}>
         {/* Shader Viewer - Left Panel */}
         <ResizablePanel defaultSize={30} minSize={leftPanelMinSize}>
           <div className="h-full flex flex-col gap-0 p-0">
             {/* Header */}
-            <div className="w-full flex items-center justify-between px-2 py-0.5 bg-background-header border-b-2 border-accent-shadow">
+            <div className="w-full flex items-center justify-between px-2 py-0.5 relative" style={{ zIndex: 20 }}>
               <button
                 onClick={() => navigate('/')}
                 className="text-title font-regular bg-transparent text-foreground hover:text-accent px-1"
