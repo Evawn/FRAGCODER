@@ -5,6 +5,7 @@ import type { DropdownOption } from '../ui/Dropdown';
 import { DeleteTabDialog } from './DeleteTabDialog';
 import type { Tab } from '../../types';
 import { BACKGROUND_EDITOR } from '@/styles/editor_theme';
+import { Monitor, Layers, FileText } from 'lucide-react';
 
 interface TabBarProps {
   tabs: Tab[];
@@ -25,6 +26,25 @@ export function TabBar({
   const [tabToDelete, setTabToDelete] = useState<Tab | null>(null);
   const [hoveredTabId, setHoveredTabId] = useState<string | null>(null);
   const [isNewTabButtonHovered, setIsNewTabButtonHovered] = useState(false);
+
+  // Tab icon styling
+  const tabIconProps = {
+    size: 14,
+    strokeWidth: 1.2,
+    className: "mr-1.5 flex-shrink-0"
+  };
+
+  // Get icon for tab based on tab name
+  const getTabIcon = (tabName: string) => {
+    if (tabName === 'Image') {
+      return <Monitor {...tabIconProps} />;
+    } else if (tabName.startsWith('Buffer')) {
+      return <Layers {...tabIconProps} />;
+    } else if (tabName === 'Common') {
+      return <FileText {...tabIconProps} />;
+    }
+    return null;
+  };
 
   // Check if a tab has errors
   const tabHasErrors = (tab: Tab): boolean => {
@@ -98,6 +118,8 @@ export function TabBar({
                       title={`${tab.name} has compilation errors`}
                     />
                   )}
+                  {/* Tab icon */}
+                  {getTabIcon(tab.name)}
                   <span className="whitespace-nowrap" style={{ fontSize: '14px', lineHeight: '20px' }}>{tab.name}</span>
                   <div className="w-full" />
                   {tab.isDeletable && (
@@ -114,7 +136,7 @@ export function TabBar({
 
                   {/* Vertical separator line */}
                   <div
-                    className="absolute -right-[3px] top-1/2 -translate-y-1/2 w-0.5 bg-lines transition-opacity duration-200"
+                    className="absolute -right-[3px] top-1/2 -translate-y-1/2 w-0.5 bg-lines transition-opacity duration-150"
                     style={{ height: '60%', opacity: showSeparator ? 1 : 0 }}
                   />
                 </div>
