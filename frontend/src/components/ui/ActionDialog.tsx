@@ -78,12 +78,12 @@ export function ActionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-80 bg-background border-accent border-2 sm:rounded-none text-foreground p-4">
+      <DialogContent className="w-80 p-4">
         <DialogHeader>
-          <DialogTitle className="text-large font-semibold text-foreground">
+          <DialogTitle>
             {title}
           </DialogTitle>
-          <DialogDescription className="tracking-tighter text-small font-light italic text-foreground-muted">
+          <DialogDescription>
             {description}
           </DialogDescription>
         </DialogHeader>

@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from '../ui/dialog';
 import { Button } from '../ui/button';
+import { Input } from '../ui/input';
 import { useAuth } from '../../AuthContext';
 import { checkGoogleAuth, registerUser } from '../../api/auth';
 
@@ -131,12 +132,12 @@ export function SignInDialog({ open, onOpenChange, onSignInSuccess }: SignInDial
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="w-80 bg-gray-800 border-gray-700 text-white p-6">
+      <DialogContent className="w-80 p-6">
         <DialogHeader>
-          <DialogTitle className="text-lg font-semibold text-white">
+          <DialogTitle>
             {title}
           </DialogTitle>
-          <DialogDescription className="text-sm text-gray-400">
+          <DialogDescription>
             {description}
           </DialogDescription>
         </DialogHeader>
@@ -144,8 +145,8 @@ export function SignInDialog({ open, onOpenChange, onSignInSuccess }: SignInDial
         <div className="space-y-4">
           {/* Error Message */}
           {error && (
-            <div className="bg-red-500/10 border border-red-500/50 rounded-md p-3">
-              <p className="text-sm text-red-400">{error}</p>
+            <div className="bg-error/10 border border-error rounded-none p-3">
+              <p className="text-sm text-foreground-highlighted">{error}</p>
             </div>
           )}
 
@@ -161,8 +162,8 @@ export function SignInDialog({ open, onOpenChange, onSignInSuccess }: SignInDial
                 width="280"
               />
               {loading && (
-                <div className="flex items-center space-x-2 text-gray-400">
-                  <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                <div className="flex items-center space-x-2 text-foreground-muted">
+                  <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
                   <span className="text-sm">Signing in...</span>
                 </div>
               )}
@@ -170,12 +171,11 @@ export function SignInDialog({ open, onOpenChange, onSignInSuccess }: SignInDial
           ) : (
             <div className="space-y-4">
               <div className="space-y-2">
-                <label htmlFor="username" className="text-sm font-medium text-gray-300">
+                <label htmlFor="username" className="text-small font-medium text-foreground-highlighted">
                   Username
                 </label>
-                <input
+                <Input
                   id="username"
-                  type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   onKeyDown={(e) => {
@@ -185,10 +185,9 @@ export function SignInDialog({ open, onOpenChange, onSignInSuccess }: SignInDial
                   }}
                   placeholder="Enter your username"
                   disabled={loading}
-                  className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                   autoFocus
                 />
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-foreground-muted">
                   This will be your public display name
                 </p>
               </div>
@@ -201,19 +200,19 @@ export function SignInDialog({ open, onOpenChange, onSignInSuccess }: SignInDial
                     setError(null);
                   }}
                   variant="outline"
-                  className="flex-1 bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600 hover:text-white"
+                  className="flex-1 bg-background text-large font-light border-background-highlighted text-foreground hover:bg-background-highlighted hover:text-foreground-highlighted"
                   disabled={loading}
                 >
                   Back
                 </Button>
                 <Button
                   onClick={handleCreateAccount}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                  className="flex-1 text-large font-light bg-accent-shadow border-accent hover:bg-accent text-foreground-highlighted"
                   disabled={loading || !username.trim()}
                 >
                   {loading ? (
                     <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
                       <span>Creating...</span>
                     </div>
                   ) : (
@@ -225,8 +224,8 @@ export function SignInDialog({ open, onOpenChange, onSignInSuccess }: SignInDial
           )}
 
           {/* Footer */}
-          <div className="pt-4 border-t border-gray-700">
-            <p className="text-xs text-gray-500 text-center">
+          <div className="pt-4 border-t border-background-highlighted">
+            <p className="text-xs text-foreground-muted text-center">
               By signing in, you agree to our Terms of Service and Privacy Policy
             </p>
           </div>
