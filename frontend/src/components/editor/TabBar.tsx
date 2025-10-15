@@ -24,6 +24,7 @@ export function TabBar({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [tabToDelete, setTabToDelete] = useState<Tab | null>(null);
   const [hoveredTabId, setHoveredTabId] = useState<string | null>(null);
+  const [isNewTabButtonHovered, setIsNewTabButtonHovered] = useState(false);
 
   // Check if a tab has errors
   const tabHasErrors = (tab: Tab): boolean => {
@@ -66,11 +67,17 @@ export function TabBar({
             const isActive = activeTabId === tab.id;
             const isHovered = hoveredTabId === tab.id;
             const nextTab = tabs[index + 1];
+            const isLastTab = index === tabs.length - 1;
             const nextTabIsActive = nextTab && activeTabId === nextTab.id;
             const nextTabIsHovered = nextTab && hoveredTabId === nextTab.id;
 
-            // Show separator if both current and next tab are inactive and not hovered
-            const showSeparator = !isActive && !isHovered && nextTab && !nextTabIsActive && !nextTabIsHovered;
+            // Show separator if both current and next tab/button are inactive and not hovered
+            // For the last tab, the "next" element is the new tab button
+            const showSeparator = !isActive && !isHovered && (
+              isLastTab
+                ? !isNewTabButtonHovered
+                : (nextTab && !nextTabIsActive && !nextTabIsHovered)
+            );
 
             return (
               <div key={tab.id} className='h-auto w-32'>
@@ -106,12 +113,10 @@ export function TabBar({
                   )}
 
                   {/* Vertical separator line */}
-                  {showSeparator && (
-                    <div
-                      className="absolute -right-0.5 top-1/2 -translate-y-1/2 w-0.5 bg-lines"
-                      style={{ height: '60%' }}
-                    />
-                  )}
+                  <div
+                    className="absolute -right-[3px] top-1/2 -translate-y-1/2 w-0.5 bg-lines transition-opacity duration-200"
+                    style={{ height: '60%', opacity: showSeparator ? 1 : 0 }}
+                  />
                 </div>
                 <div className="w-full relative">
                   {/* Connecting rectangle under tab - always rendered, fades with opacity */}
@@ -145,16 +150,20 @@ export function TabBar({
             );
           })}
           {/* Add Tab Button with Dropdown */}
-          <div className="px-1">
+          <div
+            className="z-10"
+            onMouseEnter={() => setIsNewTabButtonHovered(true)}
+            onMouseLeave={() => setIsNewTabButtonHovered(false)}
+          >
             <Dropdown options={addTabDropdownOptions} sideOffset={4}>
               <Button
                 //variant="ghost"
                 size="sm"
-                className="h-auto p-2 stroke-foreground bg-transparent hover:stroke-foreground-highlighted hover:text-foreground-highlighted hover:bg-background-highlighted focus:outline-none"
-                style={{ width: '24px', height: '24px' }}
+                className="h-auto stroke-foreground bg-transparent hover:stroke-foreground-highlighted hover:text-foreground-highlighted hover:bg-background-highlighted focus:outline-none shadow-none rounded"
+                style={{ width: '28px', height: '28px', padding: '4px' }}
                 title="Add new tab"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
               </Button>
