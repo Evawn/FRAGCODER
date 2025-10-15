@@ -160,6 +160,13 @@ function EditorPage() {
 
   // Tab management handlers (moved from ShaderEditor)
   const handleAddTab = useCallback((name: string) => {
+    // Prevent duplicate tabs - check if tab with this name already exists
+    const tabExists = tabs.some(tab => tab.name === name);
+    if (tabExists) {
+      console.warn(`Tab "${name}" already exists. Skipping creation.`);
+      return;
+    }
+
     const newTab: Tab = {
       id: Date.now().toString(),
       name,
@@ -169,7 +176,7 @@ function EditorPage() {
     };
     setTabs(prev => [...prev, newTab]);
     setActiveTabId(newTab.id);
-  }, []);
+  }, [tabs]);
 
   const handleDeleteTab = useCallback((tabId: string) => {
     setTabs(prev => {

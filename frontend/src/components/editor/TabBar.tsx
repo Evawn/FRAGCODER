@@ -45,14 +45,15 @@ export function TabBar({
     setTabToDelete(null);
   };
 
-  // Add tab dropdown options
-  const addTabDropdownOptions: DropdownOption[] = [
-    { text: 'Buffer A', callback: () => onAddTab('Buffer A') },
-    { text: 'Buffer B', callback: () => onAddTab('Buffer B') },
-    { text: 'Buffer C', callback: () => onAddTab('Buffer C') },
-    { text: 'Buffer D', callback: () => onAddTab('Buffer D') },
-    { text: 'Common', callback: () => onAddTab('Common') }
-  ];
+  // Add tab dropdown options - filtered to show only tabs that don't exist yet
+  const allPossibleTabs = ['Buffer A', 'Buffer B', 'Buffer C', 'Buffer D', 'Common'];
+  const existingTabNames = new Set(tabs.map(tab => tab.name));
+  const addTabDropdownOptions: DropdownOption[] = allPossibleTabs
+    .filter(tabName => !existingTabNames.has(tabName))
+    .map(tabName => ({
+      text: tabName,
+      callback: () => onAddTab(tabName)
+    }));
 
   return (
     <>
