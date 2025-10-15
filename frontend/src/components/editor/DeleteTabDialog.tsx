@@ -1,4 +1,5 @@
 import { ActionDialog } from '../ui/ActionDialog';
+import { Trash2 } from 'lucide-react';
 
 interface DeleteTabDialogProps {
   tabName?: string;
@@ -19,6 +20,7 @@ export function DeleteTabDialog({ tabName, onDelete, open, onOpenChange }: Delet
       onOpenChange={onOpenChange}
       title={`Delete Tab ${tabName ? `"${tabName}"` : ''}?`}
       description="This action cannot be undone"
+      icon={<Trash2 size={18} strokeWidth={2} />}
       onConfirm={handleDelete}
       confirmText="Delete"
       confirmClassName="bg-red-600 hover:bg-red-700 text-white"

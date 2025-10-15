@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { ActionDialog } from '../ui/ActionDialog';
 import { useDialogState } from '../../hooks/useDialogState';
+import { GitBranchPlus } from 'lucide-react';
 
 interface CloneDialogProps {
   shaderName?: string;
@@ -41,6 +42,7 @@ export function CloneDialog({ shaderName, onClone, open, onOpenChange }: CloneDi
       onOpenChange={onOpenChange}
       title={`Clone ${'"' + shaderName + '"'}?`}
       description={`This shader will be cloned to your account and you'll be redirected to it`}
+      icon={<GitBranchPlus size={18} strokeWidth={2} />}
       error={error}
       onConfirm={handleClone}
       confirmText="Clone"

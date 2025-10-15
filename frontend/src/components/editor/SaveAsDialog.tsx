@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ActionDialog } from '../ui/ActionDialog';
 import { Input } from '../ui/input';
 import { useDialogState } from '../../hooks/useDialogState';
+import { Save } from 'lucide-react';
 
 interface SaveAsDialogProps {
   onSave: (shaderName: string) => void;
@@ -54,6 +55,7 @@ export function SaveAsDialog({ onSave, open, onOpenChange }: SaveAsDialogProps) 
       onOpenChange={onOpenChange}
       title="Save Shader"
       description="Choose a name for your shader"
+      icon={<Save size={18} strokeWidth={2} />}
       error={error}
       onConfirm={handleSave}
       confirmText="Save"

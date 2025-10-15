@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { ActionDialog } from '../ui/ActionDialog';
 import { useDialogState } from '../../hooks/useDialogState';
+import { Trash2 } from 'lucide-react';
 
 interface DeleteShaderDialogProps {
   shaderName?: string;
@@ -41,6 +42,7 @@ export function DeleteShaderDialog({ shaderName, onDelete, open, onOpenChange }:
       onOpenChange={onOpenChange}
       title="Delete Shader?"
       description="This action cannot be undone"
+      icon={<Trash2 size={18} strokeWidth={2} />}
       error={error}
       onConfirm={handleDelete}
       confirmText="Delete"

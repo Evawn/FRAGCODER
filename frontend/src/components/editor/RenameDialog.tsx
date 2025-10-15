@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ActionDialog } from '../ui/ActionDialog';
 import { Input } from '../ui/input';
 import { useDialogState } from '../../hooks/useDialogState';
+import { PencilLine } from 'lucide-react';
 
 interface RenameDialogProps {
   currentName?: string;
@@ -61,6 +62,7 @@ export function RenameDialog({ currentName, onRename, open, onOpenChange }: Rena
       onOpenChange={onOpenChange}
       title="Rename Shader"
       description="Choose a new name for your shader"
+      icon={<PencilLine size={18} strokeWidth={2} />}
       error={error}
       onConfirm={handleRename}
       confirmText="Rename"

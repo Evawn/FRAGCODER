@@ -12,6 +12,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { useAuth } from '../../AuthContext';
 import { checkGoogleAuth, registerUser } from '../../api/auth';
+import { LogIn } from 'lucide-react';
 
 interface SignInDialogProps {
   open: boolean;
@@ -132,9 +133,9 @@ export function SignInDialog({ open, onOpenChange, onSignInSuccess }: SignInDial
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="w-80 p-6">
+      <DialogContent className="w-80 p-4">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle icon={<LogIn size={18} strokeWidth={2} />}>
             {title}
           </DialogTitle>
           <DialogDescription>

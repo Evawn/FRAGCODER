@@ -15,6 +15,7 @@ interface ActionDialogProps {
   onOpenChange: (open: boolean) => void;
   title: string;
   description?: string;
+  icon?: ReactNode;
 
   // Content
   children?: ReactNode;
@@ -44,6 +45,7 @@ export function ActionDialog({
   onOpenChange,
   title,
   description,
+  icon,
   children,
   message,
   error,
@@ -80,7 +82,7 @@ export function ActionDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-80 p-4">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle icon={icon}>
             {title}
           </DialogTitle>
           <DialogDescription>
