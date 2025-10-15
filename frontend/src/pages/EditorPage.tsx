@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '../components/ui/resizable';
 import ShaderEditor from '../components/editor/ShaderEditor';
@@ -44,6 +44,10 @@ function EditorPage() {
   const [compilationTime, setCompilationTime] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [leftPanelMinSize, setLeftPanelMinSize] = useState(30);
+
+  // Ref to measure player panel header height
+  const playerHeaderRef = useRef<HTMLDivElement>(null);
+  const [headerHeight, setHeaderHeight] = useState(32);
 
   // Tab management state (moved from ShaderEditor)
   const [tabs, setTabs] = useState<Tab[]>([
@@ -392,6 +396,21 @@ function EditorPage() {
     }
   }, [isPlaying, compilationSuccess, rendererPlay, rendererPause]);
 
+  // Measure player header height for background layer
+  useEffect(() => {
+    const measureHeight = () => {
+      if (playerHeaderRef.current) {
+        const height = playerHeaderRef.current.offsetHeight;
+        setHeaderHeight(height);
+      }
+    };
+
+    // Measure on mount and when window resizes
+    measureHeight();
+    window.addEventListener('resize', measureHeight);
+    return () => window.removeEventListener('resize', measureHeight);
+  }, []);
+
   return (
     <div className="h-screen bg-background text-foreground flex flex-col relative">
       {/* Loading Overlay */}
@@ -408,8 +427,8 @@ function EditorPage() {
 
       {/* Full-width header background layer - sits above resize handle but below header content */}
       <div
-        className="absolute top-0 left-0 right-0 h-[32px] bg-background-header border-b-2 border-accent-shadow"
-        style={{ zIndex: 10 }}
+        className="absolute top-0 left-0 right-0 bg-background-header border-b-2 border-accent-shadow"
+        style={{ zIndex: 10, height: `${headerHeight}px` }}
       />
 
       <ResizablePanelGroup direction="horizontal" className="flex-1" onLayout={handlePanelResize}>
@@ -417,7 +436,7 @@ function EditorPage() {
         <ResizablePanel defaultSize={30} minSize={leftPanelMinSize}>
           <div className="h-full flex flex-col gap-0 p-0">
             {/* Header */}
-            <div className="w-full flex items-center justify-between px-2 py-0.5 relative" style={{ zIndex: 20 }}>
+            <div ref={playerHeaderRef} className="w-full flex items-center justify-between px-2 py-0.5 relative" style={{ zIndex: 20 }}>
               <button
                 onClick={() => navigate('/')}
                 className="text-title font-regular bg-transparent text-foreground hover:text-accent px-1"

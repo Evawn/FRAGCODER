@@ -33,7 +33,7 @@ export default {
           editor: BACKGROUND_EDITOR,
           highlighted: 'hsl(38 3% 30%)',
         },
-        lines: 'hsl(38 100% 50%)',
+        lines: 'hsl(38 3% 30%)',
 
         // Foreground/Text Colors
         foreground: {
