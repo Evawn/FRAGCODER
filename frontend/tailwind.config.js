@@ -29,7 +29,7 @@ export default {
         // Background Colors (Dark theme only)
         background: {
           DEFAULT: 'hsl(38 5% 11%)',
-          header: 'hsl(38 5% 17%)',
+          header: 'hsl(38 4% 17%)',
           editor: BACKGROUND_EDITOR,
           highlighted: 'hsl(38 3% 30%)',
         },
