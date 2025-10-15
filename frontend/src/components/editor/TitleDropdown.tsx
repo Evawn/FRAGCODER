@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Button } from '../ui/button';
 import { Dropdown } from '../ui/Dropdown';
 import type { DropdownOption } from '../ui/Dropdown';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Save, GitBranchPlus, Trash2, PencilLine } from 'lucide-react';
 
 interface TitleDropdownProps {
   title: string;
@@ -32,7 +32,8 @@ export function TitleDropdown({
       return [
         {
           text: 'Save as...',
-          callback: onSaveAs
+          callback: onSaveAs,
+          icon: Save
         }
       ];
     }
@@ -42,19 +43,23 @@ export function TitleDropdown({
       return [
         {
           text: 'Save',
-          callback: onSave
+          callback: onSave,
+          icon: Save
         },
         {
           text: 'Rename',
-          callback: onRename
+          callback: onRename,
+          icon: PencilLine
         },
         {
           text: 'Clone',
-          callback: onClone
+          callback: onClone,
+          icon: GitBranchPlus
         },
         {
           text: 'Delete',
-          callback: onDelete
+          callback: onDelete,
+          icon: Trash2
         }
       ];
     }
@@ -63,7 +68,8 @@ export function TitleDropdown({
     return [
       {
         text: 'Clone',
-        callback: onClone
+        callback: onClone,
+        icon: GitBranchPlus
       }
     ];
   }, [isSavedShader, isOwner, onSave, onSaveAs, onRename, onClone, onDelete]);
