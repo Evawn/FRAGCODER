@@ -39,7 +39,7 @@ export function DeleteShaderDialog({ shaderName, onDelete, open, onOpenChange }:
     <ActionDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Delete Shader"
+      title="Delete Shader?"
       description="This action cannot be undone"
       error={error}
       onConfirm={handleDelete}

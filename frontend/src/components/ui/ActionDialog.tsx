@@ -14,7 +14,7 @@ interface ActionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
-  description: string;
+  description?: string;
 
   // Content
   children?: ReactNode;
@@ -67,23 +67,23 @@ export function ActionDialog({
   const getMessageStyles = (type: MessageType) => {
     switch (type) {
       case 'warning':
-        return 'bg-yellow-500/10 border-yellow-500/50 text-yellow-300';
+        return 'bg-warning/10 border-warning/50 text-foreground-highlighted';
       case 'error':
-        return 'bg-red-500/10 border-red-500/50 text-red-400';
+        return 'bg-error/10 border-error/50 text-foreground-highlighted';
       case 'info':
       default:
-        return 'bg-blue-500/10 border-blue-500/50 text-blue-300';
+        return 'bg-accent/10 border-accent/50 text-foreground-highlighted rounded-none';
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-80 bg-background border-accent text-foreground p-6">
+      <DialogContent className="w-80 bg-background border-accent border-2 sm:rounded-none text-foreground p-4">
         <DialogHeader>
           <DialogTitle className="text-large font-semibold text-foreground">
             {title}
           </DialogTitle>
-          <DialogDescription className="text-small text-foreground">
+          <DialogDescription className="tracking-tighter text-small font-light italic text-foreground-muted">
             {description}
           </DialogDescription>
         </DialogHeader>
@@ -91,14 +91,14 @@ export function ActionDialog({
         <div className="space-y-4">
           {/* Error Message */}
           {error && (
-            <div className="bg-error/10 border border-error rounded-md p-3">
+            <div className="bg-error/10 border border-error rounded-none p-3">
               <p className="text-sm text-foreground-highlighted">{error}</p>
             </div>
           )}
 
           {/* Optional Message Box */}
           {message && (
-            <div className={`border rounded-md p-3 ${getMessageStyles(message.type)}`}>
+            <div className={`border rounded-none p-3 ${getMessageStyles(message.type)}`}>
               <div className="text-sm">{message.content}</div>
             </div>
           )}
@@ -111,14 +111,14 @@ export function ActionDialog({
             <Button
               onClick={handleCancel}
               variant="outline"
-              className="flex-1 bg-background border-background-highlighted text-foreground hover:bg-background-highlighted hover:text-foreground-highlighted"
+              className="flex-1 bg-background text-large font-light border-background-highlighted text-foreground hover:bg-background-highlighted hover:text-foreground-highlighted"
               disabled={loading}
             >
               {cancelText}
             </Button>
             <Button
               onClick={onConfirm}
-              className={`flex-1 ${confirmClassName}`}
+              className={`flex-1 ${confirmClassName} text-large font-light bg-accent-shadow border-accent hover:bg-accent text-foreground-highlighted`}
               disabled={loading || confirmDisabled}
             >
               {loading ? (

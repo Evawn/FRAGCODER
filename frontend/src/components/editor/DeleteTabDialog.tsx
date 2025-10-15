@@ -17,7 +17,7 @@ export function DeleteTabDialog({ tabName, onDelete, open, onOpenChange }: Delet
     <ActionDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Delete Tab?"
+      title={`Delete Tab ${tabName ? `"${tabName}"` : ''}?`}
       description="This action cannot be undone"
       onConfirm={handleDelete}
       confirmText="Delete"

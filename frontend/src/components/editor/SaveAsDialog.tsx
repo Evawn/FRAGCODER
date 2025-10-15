@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ActionDialog } from '../ui/ActionDialog';
+import { Input } from '../ui/input';
 import { useDialogState } from '../../hooks/useDialogState';
 
 interface SaveAsDialogProps {
@@ -61,12 +62,8 @@ export function SaveAsDialog({ onSave, open, onOpenChange }: SaveAsDialogProps) 
       confirmDisabled={!shaderName.trim()}
     >
       <div className="space-y-2">
-        <label htmlFor="shaderName" className="text-sm font-medium text-gray-300">
-          Shader Name
-        </label>
-        <input
+        <Input
           id="shaderName"
-          type="text"
           value={shaderName}
           onChange={(e) => setShaderName(e.target.value)}
           onKeyDown={(e) => {
@@ -76,10 +73,9 @@ export function SaveAsDialog({ onSave, open, onOpenChange }: SaveAsDialogProps) 
           }}
           placeholder="My Awesome Shader"
           disabled={loading}
-          className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
           autoFocus
         />
-        <p className="text-xs text-gray-500">
+        <p className="text-xs italic font-light tracking-tighter text-foreground-muted">
           This will be displayed in the shader gallery
         </p>
       </div>

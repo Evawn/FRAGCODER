@@ -62,8 +62,8 @@ export default {
           foreground: 'hsl(218 10% 96%)',
         },
         warning: {
-          DEFAULT: 'hsl(48 80% 50%)',
-          highlighted: 'hsl(48 80% 70%)',
+          DEFAULT: 'hsl(48 80% 40%)',
+          highlighted: 'hsl(48 80% 80%)',
           foreground: 'hsl(0 0% 100%)',
         },
         info: {

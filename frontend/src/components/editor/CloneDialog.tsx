@@ -39,27 +39,27 @@ export function CloneDialog({ shaderName, onClone, open, onOpenChange }: CloneDi
     <ActionDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Clone Shader"
-      description="Create a copy of this shader"
+      title={`Clone ${'"' + shaderName + '"'}?`}
+      description={`This shader will be cloned to your account and you'll be redirected to it`}
       error={error}
       onConfirm={handleClone}
       confirmText="Clone"
       loading={loading}
       loadingText="Cloning..."
-      message={{
-        type: 'info',
-        content: (
-          <>
-            <p className="text-sm text-blue-300">
-              Clone{' '}
-              <span className="font-semibold">{shaderName || 'this shader'}</span>?
-            </p>
-            <p className="text-xs text-blue-400 mt-2">
-              A new shader named <span className="font-semibold">"{shaderName || 'Shader'} (Clone)"</span> will be created and you'll be redirected to it.
-            </p>
-          </>
-        ),
-      }}
+    // message={{
+    //   type: 'info',
+    //   content: (
+    //     <>
+    //       <p className="text-small text-accent">
+    //         Clone{' '}
+    //         <span className="font-semibold">{shaderName || 'this shader'}</span>?
+    //       </p>
+    //       <p className="text-xs text-foreground-highlighted mt-2">
+    //         A new shader named <span className="font-semibold">"{shaderName || 'Shader'} (Clone)"</span> will be created and you'll be redirected to it.
+    //       </p>
+    //     </>
+    //   ),
+    // }}
     />
   );
 }
