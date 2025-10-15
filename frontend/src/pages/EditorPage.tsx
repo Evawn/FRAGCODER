@@ -468,7 +468,7 @@ function EditorPage() {
         </ResizablePanel>
 
         {/* Resize Handle */}
-        <ResizableHandle className="w-px bg-lines" />
+        <ResizableHandle className="w-0.5 bg-lines hover:bg-accent-shadow" />
 
         {/* Shader Editor - Right Panel */}
         <ResizablePanel defaultSize={70} minSize={30}>

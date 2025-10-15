@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Button } from '../ui/button';
 import { Dropdown } from '../ui/Dropdown';
 import type { DropdownOption } from '../ui/Dropdown';
+import { ChevronDown } from 'lucide-react';
 
 interface TitleDropdownProps {
   title: string;
@@ -72,17 +73,11 @@ export function TitleDropdown({
       <Button
         variant="ghost"
         size="sm"
-        className="h-auto justify-start min-w-[128px] px-2 py-1 text-title tracking-tighter text-foreground bg-transparent hover:text-accent hover:bg-transparent focus:outline-none"
+        className="h-auto justify-start min-w-[128px] px-0 py-1 text-title tracking-tighter text-foreground bg-transparent hover:text-accent hover:bg-transparent focus:outline-none"
         style={{ outline: 'none', border: 'none' }}
       >
         <span className="text-lg italic">{title}</span>
-        <svg
-          className="w-3 h-3"
-          fill="currentColor"
-          viewBox="0 0 20 20"
-        >
-          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-        </svg>
+        <ChevronDown className="w-3 h-3 ml-1" />
       </Button>
     </Dropdown>
   );

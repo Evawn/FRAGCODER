@@ -1,6 +1,7 @@
 import { Button } from '../ui/button';
 import { Dropdown } from '../ui/Dropdown';
 import type { DropdownOption } from '../ui/Dropdown';
+import { UserCircle } from 'lucide-react';
 
 interface UserMenuProps {
   isSignedIn: boolean;
@@ -27,6 +28,7 @@ export function UserMenu({
         style={{ outline: 'none', border: 'none' }}
         onClick={onSignIn}
       >
+        <UserCircle className="w-4 h-4 mr-1" />
         <span className="text-lg">Sign In</span>
       </Button>
     );
@@ -60,14 +62,17 @@ export function UserMenu({
         style={{ outline: 'none', border: 'none' }}
       >
         <div className="flex items-center gap-2">
-          {userPicture && (
+          <span className="text-lg">{username}</span>
+          {userPicture ? (
             <img
               src={userPicture}
               alt={username}
               className="w-6 h-6 rounded-full"
             />
+          ) : (
+            <UserCircle className="w-5 h-5" />
           )}
-          <span className="text-lg">{username}</span>
+
         </div>
       </Button>
     </Dropdown>
