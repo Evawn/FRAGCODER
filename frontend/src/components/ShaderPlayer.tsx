@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { RotateCcw, Play, Pause, Lock, Unlock, Maximize2, Minimize2 } from 'lucide-react';
 
 interface ShaderPlayerProps {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -191,46 +192,39 @@ export default function ShaderPlayer({
                   variant="ghost"
                   size="icon"
                   onClick={onReset}
-                  className="bg-transparent h-6 w-6 text-foreground focus:outline-none hover:text-foreground-highlighted hover:bg-transparent"
+                  className="bg-transparent h-6 w-6 text-foreground focus:outline-none hover:text-foreground-highlighted hover:bg-background-highlighted"
                   title="Reset"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polygon points="11 19 2 12 11 5 11 19"></polygon>
-                    <polygon points="22 19 13 12 22 5 22 19"></polygon>
-                  </svg>
+                  <RotateCcw size={16} strokeWidth={1.5} />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={onPlayPause}
                   disabled={!compilationSuccess}
-                  className="bg-transparent h-6 w-6 text-player-controls-fg focus:outline-none hover:text-foreground-highlighted hover:bg-transparent disabled:opacity-50"
+                  className="bg-transparent h-6 w-6 text-accent focus:outline-none hover:text-foreground-highlighted hover:bg-accent disabled:opacity-50"
                   title={isPlaying ? 'Pause' : 'Play'}
                 >
                   {isPlaying ? (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="6" y="4" width="4" height="16"></rect>
-                      <rect x="14" y="4" width="4" height="16"></rect>
-                    </svg>
+                    <Pause size={16} strokeWidth={2} />
                   ) : (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                    </svg>
+                    <Play size={16} strokeWidth={2} />
                   )}
                 </Button>
               </div>
 
               {/* Real-time Information */}
-              <div className="flex items-center gap-1">
-                <Badge variant="outline" className="bg-transparent font-light border-transparent text-foreground font-mono text-xs px-2 py-0">
-                  {uTime.toFixed(2)}s
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="bg-transparent justify-end font-light border-transparent text-foreground font-mono text-xs px-0 py-0 text-right min-w-[48px]">
+                  {uTime.toFixed(1)}s
                 </Badge>
-                <Badge variant="outline" className="bg-transparent font-light border-transparent text-foreground font-mono text-xs px-2 py-0">
-                  {fps.toFixed(1)} fps
+                <Badge variant="outline" className="bg-transparent font-light border-transparent text-foreground font-mono text-xs px-0 py-0 flex items-center">
+                  <span className="inline-block text-right w-[40px]">{fps.toFixed(1)}</span>
+                  <span className="ml-2">fps</span>
                 </Badge>
                 <Badge
                   variant="outline"
-                  className={`bg-transparent font-mono rounded-sm font-light text-xs px-2 py-0 flex items-center gap-1.5 ${isFullscreen
+                  className={`bg-transparent font-mono hover:bg-background-highlighted rounded-lg font-light text-xs px-2 py-0.5 flex items-center gap-1.5 ${isFullscreen
                     ? 'border-muted-foreground text-foreground'
                     : isResolutionLocked
                       ? 'border-muted-foreground text-foreground cursor-pointer hover:text-foreground-highlighted transition-colors'
@@ -238,19 +232,11 @@ export default function ShaderPlayer({
                     }`}
                   onClick={isFullscreen ? undefined : toggleResolutionLock}
                 >
-                  <span>{resolution.width} × {resolution.height}</span>
+                  <span className="flex-1 text-right">{resolution.width} × {resolution.height}</span>
                   {(isResolutionLocked || isFullscreen) ? (
-                    // Locked icon
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                    </svg>
+                    <Lock size={12} strokeWidth={2} />
                   ) : (
-                    // Unlocked icon
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                      <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
-                    </svg>
+                    <Unlock size={12} strokeWidth={2} />
                   )}
                 </Badge>
               </div>
@@ -262,19 +248,13 @@ export default function ShaderPlayer({
                 variant="ghost"
                 size="icon"
                 onClick={handleFullscreenToggle}
-                className="bg-transparent h-6 w-6 text-player-controls-fg focus:outline-none hover:text-foreground-highlighted hover:bg-transparent"
+                className="bg-transparent h-6 w-6 text-player-controls-fg focus:outline-none hover:text-foreground-highlighted hover:bg-background-highlighted"
                 title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
               >
                 {isFullscreen ? (
-                  // Exit fullscreen icon (compress arrows)
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path>
-                  </svg>
+                  <Minimize2 size={16} strokeWidth={2} />
                 ) : (
-                  // Enter fullscreen icon (expand arrows)
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
-                  </svg>
+                  <Maximize2 size={16} strokeWidth={1.5} />
                 )}
               </Button>
             </div>
