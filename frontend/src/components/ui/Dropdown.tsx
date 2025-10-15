@@ -32,7 +32,7 @@ export function Dropdown({ children, options, align = 'center', sideOffset = 8 }
         sideOffset={sideOffset}
         className={cn(
           "w-auto p-0 bg-background border-accent",
-          "rounded-md shadow-lg",
+          "rounded-none shadow-lg",
           "min-w-[40px]"
         )}
       >
