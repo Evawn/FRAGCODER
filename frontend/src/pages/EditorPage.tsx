@@ -45,6 +45,11 @@ function EditorPage() {
   const [loading, setLoading] = useState(false);
   const [leftPanelMinSize, setLeftPanelMinSize] = useState(30);
 
+  // Resize state tracking for optimization
+  const [isResizing, setIsResizing] = useState(false);
+  const playStateBeforeResizeRef = useRef<boolean>(false);
+  const resizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Ref to measure player panel header height
   const playerHeaderRef = useRef<HTMLDivElement>(null);
   const [headerHeight, setHeaderHeight] = useState(32);
@@ -139,9 +144,33 @@ function EditorPage() {
   };
 
   const handlePanelResize = useCallback(() => {
-    // Directly update viewport when panels are resized
-    rendererUpdateViewport();
-  }, [rendererUpdateViewport]);
+    // Clear any existing timeout
+    if (resizeTimeoutRef.current) {
+      clearTimeout(resizeTimeoutRef.current);
+    }
+
+    // If this is the first resize event, pause the shader
+    if (!isResizing) {
+      setIsResizing(true);
+      // Save current play state
+      playStateBeforeResizeRef.current = isPlaying;
+      // Pause rendering during resize
+      rendererPause();
+    }
+
+    // Set a timeout to detect when resize has finished
+    // If no more resize events occur within 150ms, we consider resize complete
+    resizeTimeoutRef.current = setTimeout(() => {
+      setIsResizing(false);
+      // Recreate WebGL pipeline with new resolution
+      rendererUpdateViewport();
+      // Resume rendering if it was playing before
+      if (playStateBeforeResizeRef.current && compilationSuccess) {
+        rendererPlay();
+        setIsPlaying(true);
+      }
+    }, 150);
+  }, [isResizing, isPlaying, rendererPause, rendererUpdateViewport, rendererPlay, compilationSuccess]);
 
   const handleResolutionLockChange = useCallback((locked: boolean, resolution?: { width: number; height: number }, minWidth?: number) => {
     // Update renderer resolution lock
@@ -409,6 +438,15 @@ function EditorPage() {
     measureHeight();
     window.addEventListener('resize', measureHeight);
     return () => window.removeEventListener('resize', measureHeight);
+  }, []);
+
+  // Cleanup resize timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+      }
+    };
   }, []);
 
   return (
