@@ -79,7 +79,7 @@ export const LoadingScreen = ({ isLoading }: LoadingScreenProps) => {
 
       // Entrance is complete, ensure minimum loading time before exiting
       const elapsed = loadingStartTimeRef.current ? Date.now() - loadingStartTimeRef.current : 0;
-      const remainingTime = Math.max(0, 200 - elapsed);
+      const remainingTime = Math.max(0, 100 - elapsed);
 
       // Mark that exit sequence has started
       exitSequenceStartedRef.current = true;
@@ -177,9 +177,8 @@ export const LoadingScreen = ({ isLoading }: LoadingScreenProps) => {
 
   return (
     <div
-      className={`fixed inset-0 flex items-center justify-center z-50 ${backdropClasses}`}
+      className={`fixed inset-0 flex items-center bg-background justify-center z-50 ${backdropClasses}`}
       style={{
-        backgroundColor: 'hsl(38, 10%, 9%)',
         pointerEvents: stage === 'exiting' ? 'none' : 'auto'
       }}
     >
@@ -200,7 +199,7 @@ export const LoadingScreen = ({ isLoading }: LoadingScreenProps) => {
           style={{
             background: 'radial-gradient(circle, hsla(38, 92%, 50%, 0.4) 0%, transparent 70%)',
             filter: 'blur(40px)',
-            animation: stage === 'loading' ? 'pulseBeam 2s ease-in-out infinite' : 'none',
+            animation: 'pulseBeam 2s ease-in-out infinite',
           }}
         />
       </div>
