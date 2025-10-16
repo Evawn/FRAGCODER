@@ -29,6 +29,7 @@ export function apiShaderToShaderData(apiShader: Shader): ShaderData {
     isPublic: apiShader.isPublic,
     userId: apiShader.userId,
     forkedFrom: apiShader.forkedFrom || undefined,
+    creatorUsername: apiShader.user.username,
   };
 }
 

@@ -12,6 +12,7 @@ interface ShaderEditorProps {
   tabs: Tab[];
   activeTabId: string;
   localShaderTitle: string;
+  creatorUsername?: string;
 
   // Compilation state
   compilationSuccess?: boolean;
@@ -45,6 +46,7 @@ function ShaderEditor({
   tabs,
   activeTabId,
   localShaderTitle,
+  creatorUsername,
   compilationSuccess,
   compilationTime,
   isSavedShader,
@@ -116,6 +118,7 @@ function ShaderEditor({
       {/* Header */}
       <EditorHeader
         localShaderTitle={localShaderTitle}
+        creatorUsername={creatorUsername}
         isSavedShader={isSavedShader}
         isOwner={isOwner}
         onSave={() => onSave()}

@@ -5,6 +5,7 @@ import { UserMenu } from './UserMenu';
 interface EditorHeaderProps {
   // Title dropdown props
   localShaderTitle: string;
+  creatorUsername?: string;
   isSavedShader: boolean;
   isOwner: boolean;
   onSave: () => void;
@@ -23,6 +24,7 @@ interface EditorHeaderProps {
 
 export function EditorHeader({
   localShaderTitle,
+  creatorUsername,
   isSavedShader,
   isOwner,
   onSave,
@@ -41,6 +43,7 @@ export function EditorHeader({
       {/* Title Button with Options Dropdown */}
       <TitleDropdown
         title={localShaderTitle}
+        creatorUsername={creatorUsername}
         isSavedShader={isSavedShader}
         isOwner={isOwner}
         onSave={onSave}

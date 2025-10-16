@@ -38,6 +38,7 @@ export interface ShaderData {
   isPublic: boolean;
   userId: string;
   forkedFrom?: string;
+  creatorUsername?: string;
 }
 
 export interface TabData {

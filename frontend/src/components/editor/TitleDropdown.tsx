@@ -6,6 +6,7 @@ import { ChevronDown, Save, GitBranchPlus, Trash2, PencilLine } from 'lucide-rea
 
 interface TitleDropdownProps {
   title: string;
+  creatorUsername?: string;
   isSavedShader: boolean;
   isOwner: boolean;
   onSave: () => void;
@@ -17,6 +18,7 @@ interface TitleDropdownProps {
 
 export function TitleDropdown({
   title,
+  creatorUsername,
   isSavedShader,
   isOwner,
   onSave,
@@ -25,6 +27,8 @@ export function TitleDropdown({
   onClone,
   onDelete,
 }: TitleDropdownProps) {
+  // Compute display title with creator name if available
+  const displayTitle = creatorUsername ? `${title} - by ${creatorUsername}` : title;
   // Dynamic dropdown options based on shader state and ownership
   const dropdownOptions: DropdownOption[] = useMemo(() => {
     // New shader - show "Save as..."
@@ -82,7 +86,7 @@ export function TitleDropdown({
         className="h-auto justify-start min-w-[128px] px-0 py-1 text-title tracking-tighter text-foreground bg-transparent hover:text-accent hover:bg-transparent focus:outline-none"
         style={{ outline: 'none', border: 'none' }}
       >
-        <span className="text-lg italic">{title}</span>
+        <span className="text-lg italic">{displayTitle}</span>
         <ChevronDown className="w-3 h-3 ml-1" />
       </Button>
     </Dropdown>

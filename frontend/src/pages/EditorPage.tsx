@@ -516,6 +516,7 @@ function EditorPage() {
               tabs={tabs}
               activeTabId={activeTabId}
               localShaderTitle={localShaderTitle}
+              creatorUsername={shader?.creatorUsername}
 
               // Compilation state
               compilationSuccess={compilationSuccess}
