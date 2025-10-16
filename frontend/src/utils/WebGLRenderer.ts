@@ -466,6 +466,9 @@ export class WebGLRenderer {
     this.lastFrameTime = 0;
     this.frameRate = 60;
     this.frameRateHistory = [];
+
+    // Render a single frame at time=0 to show the initial state
+    this.renderSingleFrame();
   }
 
   /**
