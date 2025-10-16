@@ -11,7 +11,19 @@ import { showMinimap } from '@replit/codemirror-minimap';
 import { glsl } from '../../utils/GLSLLanguage';
 import type { CompilationError } from '../../types';
 import { createErrorDecorationExtensions, setErrorsEffect } from './ErrorDecorations';
-import { BACKGROUND_EDITOR, BACKGROUND_GUTTER } from '../../styles/editor_theme';
+import {
+  BACKGROUND_EDITOR,
+  BACKGROUND_GUTTER,
+  AUTOCOMPLETE_BACKGROUND,
+  AUTOCOMPLETE_SELECTED_BACKGROUND,
+  AUTOCOMPLETE_BORDER,
+  AUTOCOMPLETE_LABEL_TEXT,
+  AUTOCOMPLETE_LABEL_SELECTED_TEXT,
+  AUTOCOMPLETE_DETAIL_TEXT,
+  AUTOCOMPLETE_DETAIL_SELECTED_TEXT,
+  AUTOCOMPLETE_INFO_TEXT,
+  AUTOCOMPLETE_MATCH_TEXT
+} from '../../styles/editor_theme';
 
 interface CodeMirrorEditorProps {
   value: string;
@@ -171,6 +183,62 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         },
         '.cm-minimap-box-shadow': {
           boxShadow: '-8px 0px 12px 3px rgba(0, 0, 0, 0.4)',
+        },
+        // Autocomplete tooltip styling
+        '.cm-tooltip-autocomplete': {
+          backgroundColor: AUTOCOMPLETE_BACKGROUND,
+          border: `1px solid ${AUTOCOMPLETE_BORDER}`,
+          borderRadius: '6px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+          padding: '4px',
+          fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
+        },
+        '.cm-tooltip-autocomplete ul': {
+          listStyle: 'none',
+          margin: '0',
+          padding: '0',
+          colorScheme: 'dark',
+        },
+        '.cm-tooltip-autocomplete ul li': {
+          padding: '4px 8px',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+        },
+        '.cm-tooltip-autocomplete ul li[aria-selected]': {
+          backgroundColor: AUTOCOMPLETE_SELECTED_BACKGROUND,
+        },
+        '.cm-completionLabel': {
+          color: AUTOCOMPLETE_LABEL_TEXT,
+          fontWeight: '400',
+        },
+        '.cm-tooltip-autocomplete ul li[aria-selected] .cm-completionLabel': {
+          color: AUTOCOMPLETE_LABEL_SELECTED_TEXT,
+          fontWeight: '500',
+        },
+        '.cm-completionDetail': {
+          color: AUTOCOMPLETE_DETAIL_TEXT,
+          fontSize: '0.9em',
+          fontStyle: 'italic',
+          marginLeft: 'auto',
+        },
+        '.cm-tooltip-autocomplete ul li[aria-selected] .cm-completionDetail': {
+          color: AUTOCOMPLETE_DETAIL_SELECTED_TEXT,
+        },
+        '.cm-completionInfo': {
+          backgroundColor: AUTOCOMPLETE_BACKGROUND,
+          border: `1px solid ${AUTOCOMPLETE_BORDER}`,
+          borderRadius: '6px',
+          padding: '8px',
+          color: AUTOCOMPLETE_INFO_TEXT,
+          maxWidth: '400px',
+        },
+        '.cm-completionMatchedText': {
+          color: AUTOCOMPLETE_MATCH_TEXT,
+          fontWeight: '600',
+          textDecoration: 'none',
         },
       }, { dark: true }),
       oneDark,

@@ -3,3 +3,16 @@
 
 export const BACKGROUND_EDITOR = 'hsl(38 5% 7%)';
 export const BACKGROUND_GUTTER = 'hsl(38 4% 8%)';
+
+// Autocomplete tooltip colors
+export const AUTOCOMPLETE_BACKGROUND = 'hsl(38 5% 12%)';
+export const AUTOCOMPLETE_SELECTED_BACKGROUND = 'hsl(38 4% 24%)';
+export const AUTOCOMPLETE_BORDER = 'hsl(38 5% 20%)';
+
+// Autocomplete text colors
+export const AUTOCOMPLETE_LABEL_TEXT = 'hsl(218 10% 85%)';
+export const AUTOCOMPLETE_LABEL_SELECTED_TEXT = 'hsl(38 10% 100%)';
+export const AUTOCOMPLETE_DETAIL_TEXT = 'transparent';
+export const AUTOCOMPLETE_DETAIL_SELECTED_TEXT = 'hsl(38 10% 90%)';
+export const AUTOCOMPLETE_INFO_TEXT = 'hsl(218 10% 70%)';
+export const AUTOCOMPLETE_MATCH_TEXT = 'hsl(38 92% 70%)';
