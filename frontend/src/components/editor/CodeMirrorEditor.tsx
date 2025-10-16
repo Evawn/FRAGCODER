@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { EditorView, keymap } from '@codemirror/view';
@@ -37,7 +37,7 @@ interface CodeMirrorEditorProps {
 }
 
 
-const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
+const CodeMirrorEditorComponent: React.FC<CodeMirrorEditorProps> = ({
   value,
   onChange,
   placeholder = "// Write your GLSL fragment shader here...",
@@ -48,6 +48,7 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   onDocumentChange
 }) => {
   const extensions = useMemo(() => {
+    console.log('[CodeMirror] Recreating extensions (expensive!)');
     const baseExtensions: Extension[] = [
       keymap.of([
         {
@@ -257,7 +258,7 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     }
 
     return baseExtensions;
-  }, [onCompile, onDocumentChange]);
+  }, [onDocumentChange]); // onCompile removed - it's used in keymap but doesn't need to trigger recreation
 
   const editorRef = React.useRef<any>(null);
   const [isEditorReady, setIsEditorReady] = useState(false);
@@ -279,17 +280,20 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
 
   // Update error decorations when errors change or when switching tabs
   useEffect(() => {
+    console.log('[CodeMirror] Updating error decorations');
     if (isEditorReady && editorRef.current?.view) {
       editorRef.current.view.dispatch({
         effects: setErrorsEffect.of(errors)
       });
     }
-  }, [errors, isEditorReady, value]); // Include value to ensure rebuild on tab switch
+  }, [errors, isEditorReady]); // Removed value dependency to prevent rebuilding on every keystroke
 
   const getBorderColor = () => {
     if (compilationSuccess === undefined) return 'border-gray-600';
     return compilationSuccess ? 'border-green-500' : 'border-red-500';
   };
+
+  console.log('[CodeMirror] Rendering component');
 
   return (
     <div className={`border-1 h-full rounded transition-colors duration-200 ${getBorderColor()}`}>
@@ -323,5 +327,22 @@ const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     </div>
   );
 };
+
+// Memoize component to prevent re-renders when only callback references change
+// This is critical for performance during shader playback (uTime/fps updates)
+const CodeMirrorEditor = React.memo(CodeMirrorEditorComponent, (prevProps, nextProps) => {
+  // Only re-render if these props actually change
+  return (
+    prevProps.value === nextProps.value &&
+    prevProps.placeholder === nextProps.placeholder &&
+    prevProps.readOnly === nextProps.readOnly &&
+    prevProps.errors === nextProps.errors &&
+    prevProps.compilationSuccess === nextProps.compilationSuccess &&
+    prevProps.onDocumentChange === nextProps.onDocumentChange
+    // Note: onChange and onCompile are deliberately excluded
+    // They may change reference but don't need to trigger re-render
+    // The extensions capture them via closure
+  );
+});
 
 export default CodeMirrorEditor;

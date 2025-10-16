@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import CodeMirrorEditor from './CodeMirrorEditor';
 import { EditorHeader } from './EditorHeader';
 import { TabBar } from './TabBar';
@@ -74,7 +74,8 @@ function ShaderEditor({
   const activeTab = tabs.find(tab => tab.id === activeTabId);
 
   // Handle document changes - placeholder for error line tracking
-  const handleDocumentChange = () => {
+  // Memoized to prevent CodeMirrorEditor extensions from recreating on every render
+  const handleDocumentChange = useCallback(() => {
     // Ignore document changes during tab switches
     if (isSwitchingTabsRef.current) {
       return;
@@ -82,7 +83,7 @@ function ShaderEditor({
 
     // Note: Error line tracking is now handled in the parent (EditorPage)
     // This is just a placeholder to maintain the interface with CodeMirrorEditor
-  };
+  }, []); // No dependencies - this function doesn't need to change
 
   // Handle tab switch - prevent error line tracking during switch
   useEffect(() => {

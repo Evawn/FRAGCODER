@@ -270,31 +270,39 @@ export function useWebGLRenderer({
     }
   }, []);
 
-  return useMemo(() => ({
-    canvasRef,
-    compilationSuccess,
-    error,
-    compile,
-    play,
-    pause,
-    reset,
-    updateViewport,
-    setResolutionLock,
-    uTime,
-    fps,
-    resolution
-  }), [
-    canvasRef,
-    compilationSuccess,
-    error,
-    compile,
-    play,
-    pause,
-    reset,
-    updateViewport,
-    setResolutionLock,
-    uTime,
-    fps,
-    resolution
-  ]);
+  // Create a stable return object reference
+  // Methods are memoized with useCallback, so we create the object once
+  // and only update it when methods change (which should be never or rarely)
+  const methodsRef = useRef<any>(null);
+
+  if (!methodsRef.current) {
+    methodsRef.current = {
+      canvasRef,
+      compile,
+      play,
+      pause,
+      reset,
+      updateViewport,
+      setResolutionLock
+    };
+  }
+
+  // Update method references if they change (rare, only on certain re-mounts)
+  methodsRef.current.compile = compile;
+  methodsRef.current.play = play;
+  methodsRef.current.pause = pause;
+  methodsRef.current.reset = reset;
+  methodsRef.current.updateViewport = updateViewport;
+  methodsRef.current.setResolutionLock = setResolutionLock;
+
+  // Update reactive state values
+  methodsRef.current.compilationSuccess = compilationSuccess;
+  methodsRef.current.error = error;
+  methodsRef.current.uTime = uTime;
+  methodsRef.current.fps = fps;
+  methodsRef.current.resolution = resolution;
+
+  // Return the same object reference every time
+  // This prevents downstream components from re-rendering unnecessarily
+  return methodsRef.current;
 }

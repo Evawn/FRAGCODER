@@ -131,6 +131,7 @@ export const errorDecorations = StateField.define<DecorationSet>({
       // Rebuild decorations whenever errors are updated
       for (let effect of tr.effects) {
         if (effect.is(setErrorsEffect)) {
+          console.log('[ErrorDecorations] Rebuilding decorations (DOM manipulation)');
           const errors = effect.value;
           const newDecorations = buildDecorationsFromErrors(errors, tr.state.doc);
           return Decoration.set(newDecorations);
