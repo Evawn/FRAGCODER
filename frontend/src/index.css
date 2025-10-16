@@ -12,4 +12,12 @@
   .animate-spin-slow {
     animation: spin 20s linear infinite;
   }
+
+  .logo-rotate {
+    transition: transform 0.2s ease-in-out;
+  }
+
+  .home-button:hover .logo-rotate {
+    transform: rotate(180deg);
+  }
 }

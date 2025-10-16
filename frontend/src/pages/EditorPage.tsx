@@ -30,6 +30,7 @@ import {
   showErrorAlert,
   sortTabsByCanonicalOrder,
 } from '../utils/editorPageHelpers';
+import { Logo } from '../components/Logo';
 
 function EditorPage() {
   const navigate = useNavigate();
@@ -477,10 +478,11 @@ function EditorPage() {
             <div ref={playerHeaderRef} className="w-full flex items-center justify-between px-2 py-0.5 relative" style={{ zIndex: 20 }}>
               <button
                 onClick={() => navigate('/')}
-                className="text-title font-regular bg-transparent text-foreground hover:text-accent px-1"
+                className="home-button text-title font-regular bg-transparent text-foreground hover:text-accent px-1 flex items-center gap-1"
                 style={{ outline: 'none', border: 'none' }}
               >
-                FRAGCODER
+                <Logo width={24} height={24} className="logo-rotate" />
+                <span>FRAGCODER</span>
               </button>
             </div>
             <div className="flex-1 w-full p-2">
