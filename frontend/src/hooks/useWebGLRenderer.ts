@@ -253,20 +253,28 @@ export function useWebGLRenderer({
   // Imperative viewport update method
   const updateViewport = useCallback(() => {
     const renderer = rendererRef.current;
-    if (renderer) {
+    const canvas = canvasRef.current;
+    if (renderer && canvas) {
       renderer.updateViewport();
+      // Immediately update resolution state to reflect new canvas dimensions
+      setResolution({ width: canvas.width, height: canvas.height });
     }
   }, []);
 
   // Imperative resolution lock method
   const setResolutionLock = useCallback((locked: boolean, resolution?: { width: number; height: number }) => {
     const renderer = rendererRef.current;
-    if (!renderer) return;
+    const canvas = canvasRef.current;
+    if (!renderer || !canvas) return;
 
     if (locked && resolution) {
       renderer.setLockedResolution(resolution.width, resolution.height);
+      // Immediately update resolution state to reflect locked dimensions
+      setResolution({ width: resolution.width, height: resolution.height });
     } else {
       renderer.updateViewport();
+      // Immediately update resolution state to reflect new canvas dimensions
+      setResolution({ width: canvas.width, height: canvas.height });
     }
   }, []);
 
