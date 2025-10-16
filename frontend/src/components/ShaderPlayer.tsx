@@ -50,10 +50,10 @@ export default function ShaderPlayer({
         const locked = { width: resolution.width, height: resolution.height };
         setLockedResolution(locked);
 
-        // Calculate minimum panel width needed (canvas width + padding + border)
+        // Calculate minimum panel width needed (canvas width + padding)
         // Canvas width in CSS pixels = resolution.width / devicePixelRatio
-        // Add padding (2 * 8px = 16px) and border (2 * 1px = 2px) and some extra margin
-        const minWidth = (locked.width / window.devicePixelRatio) + 20;
+        // Add parent padding from EditorPage (p-2 = 2 * 8px = 16px)
+        const minWidth = (locked.width / window.devicePixelRatio) + 16;
         onResolutionLockChange?.(true, locked, minWidth);
       } else {
         // Unlocking: clear locked resolution
@@ -110,7 +110,7 @@ export default function ShaderPlayer({
         setLockedResolution(preFullscreenLockedState.resolution);
 
         if (preFullscreenLockedState.isLocked && preFullscreenLockedState.resolution) {
-          const minWidth = (preFullscreenLockedState.resolution.width / window.devicePixelRatio) + 20;
+          const minWidth = (preFullscreenLockedState.resolution.width / window.devicePixelRatio) + 16;
           onResolutionLockChange?.(true, preFullscreenLockedState.resolution, minWidth);
         } else {
           onResolutionLockChange?.(false, undefined, undefined);
@@ -135,8 +135,8 @@ export default function ShaderPlayer({
         style={
           isResolutionLocked && lockedResolution
             ? {
-              // Locked: fixed size to match canvas
-              width: `${lockedResolution.width / window.devicePixelRatio}px`,
+              // Locked: container shrinks to fit locked canvas, preventing black borders
+              width: 'fit-content',
               maxHeight: '100%'
             }
             : {
@@ -152,14 +152,17 @@ export default function ShaderPlayer({
           {/* WebGL Canvas Container */}
           <div className="flex-1 bg-black relative flex items-center justify-center min-h-0">
             <div
-              className="relative w-full h-full"
+              className="relative"
               style={
                 isResolutionLocked && lockedResolution
                   ? {
                     width: `${lockedResolution.width / window.devicePixelRatio}px`,
                     height: `${lockedResolution.height / window.devicePixelRatio}px`
                   }
-                  : undefined
+                  : {
+                    width: '100%',
+                    height: '100%'
+                  }
               }
             >
               <canvas
@@ -227,14 +230,14 @@ export default function ShaderPlayer({
                   className={`bg-transparent font-mono hover:bg-background-highlighted rounded-lg font-light text-xs px-2 py-0.5 flex items-center gap-1.5 ${isFullscreen
                     ? 'border-muted-foreground text-foreground'
                     : isResolutionLocked
-                      ? 'border-muted-foreground text-foreground cursor-pointer hover:text-foreground-highlighted transition-colors'
+                      ? 'border-accent-shadow text-accent cursor-pointer hover:text-foreground-highlighted transition-colors'
                       : 'border-transparent text-foreground cursor-pointer hover:text-foreground-highlighted transition-colors'
                     }`}
                   onClick={isFullscreen ? undefined : toggleResolutionLock}
                 >
                   <span className="flex-1 text-right">{resolution.width} × {resolution.height}</span>
                   {(isResolutionLocked || isFullscreen) ? (
-                    <Lock size={12} strokeWidth={2} />
+                    <Lock size={12} strokeWidth={2} className='text-accent' />
                   ) : (
                     <Unlock size={12} strokeWidth={2} />
                   )}

@@ -543,8 +543,9 @@ export class WebGLRenderer {
 
     const gl = this.gl;
     const rect = this.canvas.getBoundingClientRect();
-    this.canvas.width = rect.width * window.devicePixelRatio;
-    this.canvas.height = rect.height * window.devicePixelRatio;
+    // Round rect dimensions to avoid sub-pixel inconsistencies
+    this.canvas.width = Math.round(rect.width * window.devicePixelRatio);
+    this.canvas.height = Math.round(rect.height * window.devicePixelRatio);
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
 
     // Resize all framebuffer textures to match new canvas size
