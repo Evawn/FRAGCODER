@@ -55,6 +55,9 @@ function EditorPage() {
   const playerHeaderRef = useRef<HTMLDivElement>(null);
   const [headerHeight, setHeaderHeight] = useState(32);
 
+  // Ref to store Logo rotation function
+  const logoRotateRef = useRef<((targetOffset: number) => void) | null>(null);
+
   // Tab management state (moved from ShaderEditor)
   const [tabs, setTabs] = useState<Tab[]>([
     { id: '1', name: 'Image', code: DEFAULT_SHADER_CODES.Image, isDeletable: false, errors: [] }
@@ -417,6 +420,19 @@ function EditorPage() {
     }
   }, [compilationSuccess, handleCompile, compilationErrors, tabs, token, navigate]);
 
+  // Handle Logo rotation on mouse enter/leave
+  const handleLogoMouseEnter = useCallback(() => {
+    if (logoRotateRef.current) {
+      logoRotateRef.current(180); // Set target to 180°
+    }
+  }, []);
+
+  const handleLogoMouseLeave = useCallback(() => {
+    if (logoRotateRef.current) {
+      logoRotateRef.current(0); // Set target to 0°
+    }
+  }, []);
+
   // Handle play/pause with imperative controls
   useEffect(() => {
     if (isPlaying && compilationSuccess) {
@@ -478,10 +494,20 @@ function EditorPage() {
             <div ref={playerHeaderRef} className="w-full flex items-center justify-between px-2 py-0.5 relative" style={{ zIndex: 20 }}>
               <button
                 onClick={() => navigate('/')}
+                onMouseEnter={handleLogoMouseEnter}
+                onMouseLeave={handleLogoMouseLeave}
                 className="home-button text-title font-regular bg-transparent text-foreground hover:text-accent px-1 flex items-center gap-1"
                 style={{ outline: 'none', border: 'none' }}
               >
-                <Logo width={24} height={24} className="logo-rotate" />
+                <Logo
+                  width={32}
+                  height={32}
+                  className=""
+                  topLayerOpacity={0.85}
+                  duration={300}
+                  easingIntensity={3}
+                  onRotate={(setTargetAngle) => { logoRotateRef.current = setTargetAngle; }}
+                />
                 <span>FRAGCODER</span>
               </button>
             </div>
