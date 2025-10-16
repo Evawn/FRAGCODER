@@ -95,11 +95,11 @@ const renderBaseLayer = (centerX: number, centerY: number, outerRadius: number, 
     const pinwheelColorKeyframes = [
         "hsl(38, 75%, 45%)",  // 0° - medium (rotated from 90°)
         "hsl(38, 70%, 30%)",  // 45° - dark (rotated from 135°)
-        "hsl(38, 68%, 20%)",  // 90° - darkest (rotated from 180°)
-        "hsl(38, 70%, 30%)",  // 135° - dark (rotated from 225°)
-        "hsl(38, 75%, 45%)",  // 180° - medium (rotated from 270°)
+        "hsl(38, 68%, 10%)",  // 90° - darkest (rotated from 180°)
+        "hsl(38, 70%, 20%)",  // 135° - dark (rotated from 225°)
+        "hsl(38, 75%, 30%)",  // 180° - medium (rotated from 270°)
         "hsl(38, 80%, 70%)",  // 225° - bright falloff (rotated from 315°)
-        "hsl(38, 90%, 90%)",  // 270° - BRIGHT spectral highlight (rotated from 0°)
+        "hsl(38, 90%, 100%)",  // 270° - BRIGHT spectral highlight (rotated from 0°)
         "hsl(38, 80%, 70%)"   // 315° - bright falloff (rotated from 45°)
     ];
 
@@ -164,10 +164,10 @@ const renderTopLayer = (centerX: number, centerY: number, outerRadius: number, c
         "hsl(38, 100%, 100%)",  // 0°
         "hsl(38, 70%, 70%)",    // 45°
         "hsl(38, 92%, 40%)",    // 90°
-        "hsl(38, 60%, 50.5%)",  // 135°
-        "hsl(38, 65%, 30.5%)",  // 180°
+        "hsl(38, 60%, 30.5%)",  // 135°
+        "hsl(38, 65%, 20.5%)",  // 180°
         "hsl(38, 40%, 35%)",     // 225°
-        "hsl(38, 50%, 60.5%)",  // 270°
+        "hsl(38, 50%, 50.5%)",  // 270°
         "hsl(38, 70%, 80%)"     // 315°
     ];
 
@@ -195,7 +195,7 @@ const renderTopLayer = (centerX: number, centerY: number, outerRadius: number, c
     return (
         <g transform={`rotate(${rotationAngle} ${centerX} ${centerY})`}>
             {/* Central square - static color */}
-            <rect x={square.x} y={square.y} width={square.size} height={square.size} fill="hsl(38, 100%, 80.5%)" />
+            <rect x={square.x} y={square.y} width={square.size} height={square.size} fill="hsl(38, 100%, 75.5%)" />
 
             {/* Side triangles - interpolated colors */}
             <polygon points={`${squareCorners.topLeft.join(',')} ${squareCorners.topRight.join(',')} ${octagonPoints[0].join(',')}`} fill={sideColors[0]} />

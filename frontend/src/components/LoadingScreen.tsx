@@ -209,7 +209,7 @@ export const LoadingScreen = ({ isLoading }: LoadingScreenProps) => {
         <Logo
           width={128}
           height={128}
-          topLayerOpacity={0.95}
+          topLayerOpacity={0.9}
           duration={400}
           easingIntensity={2}
           onRotate={(setTargetAngle) => { logoRotateRef.current = setTargetAngle; }}
