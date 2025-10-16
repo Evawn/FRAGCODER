@@ -5,6 +5,7 @@ import { Logo, LogoBase, LogoTop } from '../components/Logo';
 
 export default function LogoTestPage() {
     const [isHovered, setIsHovered] = useState(false);
+    const [topLayerOpacity, setTopLayerOpacity] = useState(0.6);
 
     return (
         <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8">
@@ -31,6 +32,7 @@ export default function LogoTestPage() {
                         width={200}
                         height={200}
                         className={`logo-rotate ${isHovered ? 'rotate-180' : ''}`}
+                        topLayerOpacity={topLayerOpacity}
                     />
                     <p className="text-sm text-muted-foreground font-medium">Top Layer</p>
                 </div>
@@ -41,14 +43,36 @@ export default function LogoTestPage() {
                         width={200}
                         height={200}
                         className={`logo-rotate ${isHovered ? 'rotate-180' : ''}`}
+                        topLayerOpacity={topLayerOpacity}
                     />
                     <p className="text-sm text-muted-foreground font-medium">Combined</p>
                 </div>
             </div>
 
-            <p className="mt-12 text-sm text-muted-foreground italic">
-                Hover over any logo to see synchronized 180° rotation
-            </p>
+            <div className="mt-12 flex flex-col items-center gap-4">
+                <div className="flex items-center gap-4">
+                    <label htmlFor="opacity-slider" className="text-sm text-foreground font-medium">
+                        Top Layer Opacity:
+                    </label>
+                    <input
+                        id="opacity-slider"
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        value={topLayerOpacity}
+                        onChange={(e) => setTopLayerOpacity(parseFloat(e.target.value))}
+                        className="w-64"
+                    />
+                    <span className="text-sm text-muted-foreground font-mono w-12">
+                        {topLayerOpacity.toFixed(2)}
+                    </span>
+                </div>
+
+                <p className="text-sm text-muted-foreground italic">
+                    Hover over any logo to see synchronized 180° rotation
+                </p>
+            </div>
         </div>
     );
 }
