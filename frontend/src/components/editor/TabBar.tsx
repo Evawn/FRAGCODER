@@ -83,7 +83,7 @@ export function TabBar({
 
 
         {/* Tabs */}
-        <div className="flex-1 flex items-center gap-1 relative">
+        <div className="flex-1 flex items-center min-w-0 gap-1 relative">
           {tabs.map((tab, index) => {
             const isActive = activeTabId === tab.id;
             const isHovered = hoveredTabId === tab.id;
@@ -101,9 +101,9 @@ export function TabBar({
             );
 
             return (
-              <div key={tab.id} className='h-auto w-32'>
+              <div key={tab.id} className='h-auto min-w-0 flex-1 max-w-32 relative'>
                 <div
-                  className={`w-full select-none px-2 z-10 rounded-md font-light text-large group relative cursor-pointer inline-flex items-center ${isActive
+                  className={`w-full min-w-0 select-none px-2 z-10 rounded-md font-light text-large group relative cursor-pointer inline-flex items-center ${isActive
                     ? 'bg-background-editor text-foreground-highlighted hover:bg-background-editor hover:text-foreground-highlighted py-1 pb-1'
                     : 'bg-transparent text-foreground hover:bg-background-highlighted hover:text-foreground-highlighted py-1'
                     }`}
@@ -121,8 +121,8 @@ export function TabBar({
                   )}
                   {/* Tab icon */}
                   {getTabIcon(tab.name)}
-                  <span className="whitespace-nowrap" style={{ fontSize: '14px', lineHeight: '20px' }}>{tab.name}</span>
-                  <div className="w-full" />
+                  <span className="text-[14px] font-light w-full min-w-3 truncate block">{tab.name}</span>
+
                   {tab.isDeletable && (
                     <button
                       onClick={(e) => handleDeleteTabClick(tab, e)}
@@ -141,33 +141,32 @@ export function TabBar({
                     style={{ height: '60%', opacity: showSeparator ? 1 : 0 }}
                   />
                 </div>
-                <div className="w-full relative">
-                  {/* Connecting rectangle under tab - always rendered, fades with opacity */}
+
+                {/* Connecting rectangle under tab - always rendered, fades with opacity */}
+                <div
+                  className={`absolute z-20 -bottom-1 left-0 right-0 h-2 bg-background-editor ${activeTabId === tab.id ? 'opacity-100' : 'opacity-0'}`}
+                ></div>
+                {/* Left flare - inverted corner - always rendered, fades with opacity */}
+                <div
+                  className={`absolute z-0 -bottom-1 left-0 w-2 h-2 -translate-x-full bg-background  ${activeTabId === tab.id ? 'opacity-100' : 'opacity-0'}`}
+                >
                   <div
-                    className={`absolute z-20 -bottom-1 left-0 right-0 h-2 bg-background-editor ${activeTabId === tab.id ? 'opacity-100' : 'opacity-0'}`}
+                    className="w-full h-full"
+                    style={{
+                      background: 'radial-gradient(circle at 0% 0%, transparent 8px, ' + BACKGROUND_EDITOR + ' 8px)'
+                    }}
                   ></div>
-                  {/* Left flare - inverted corner - always rendered, fades with opacity */}
+                </div>
+                {/* Right flare - inverted corner - always rendered, fades with opacity */}
+                <div
+                  className={`absolute z-0 -bottom-1 right-0 w-2 h-2 translate-x-full bg-background ${activeTabId === tab.id ? 'opacity-100' : 'opacity-0'}`}
+                >
                   <div
-                    className={`absolute z-0 -bottom-1 left-0 w-2 h-2 -translate-x-full bg-background  ${activeTabId === tab.id ? 'opacity-100' : 'opacity-0'}`}
-                  >
-                    <div
-                      className="w-full h-full"
-                      style={{
-                        background: 'radial-gradient(circle at 0% 0%, transparent 8px, ' + BACKGROUND_EDITOR + ' 8px)'
-                      }}
-                    ></div>
-                  </div>
-                  {/* Right flare - inverted corner - always rendered, fades with opacity */}
-                  <div
-                    className={`absolute z-0 -bottom-1 right-0 w-2 h-2 translate-x-full bg-background ${activeTabId === tab.id ? 'opacity-100' : 'opacity-0'}`}
-                  >
-                    <div
-                      className="w-full h-full"
-                      style={{
-                        background: 'radial-gradient(circle at 100% 0%,transparent 8px, ' + BACKGROUND_EDITOR + ' 8px)'
-                      }}
-                    ></div>
-                  </div>
+                    className="w-full h-full"
+                    style={{
+                      background: 'radial-gradient(circle at 100% 0%,transparent 8px, ' + BACKGROUND_EDITOR + ' 8px)'
+                    }}
+                  ></div>
                 </div>
               </div>
             );
