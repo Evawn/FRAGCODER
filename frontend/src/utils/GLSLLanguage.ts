@@ -1,4 +1,4 @@
-import { LRLanguage, LanguageSupport } from "@codemirror/language"
+import { LRLanguage, LanguageSupport, foldNodeProp, foldInside } from "@codemirror/language"
 import { styleTags, tags as t } from "@lezer/highlight"
 import { parser } from "lezer-glsl"
 import { completeFromList } from "@codemirror/autocomplete"
@@ -9,6 +9,16 @@ export const glslLanguage = LRLanguage.define({
   name: "glsl",
   parser: parser.configure({
     props: [
+      foldNodeProp.add({
+        CompoundStatement: foldInside,
+        FunctionDefinition: foldInside,
+        IfStatement: foldInside,
+        ForStatement: foldInside,
+        WhileStatement: foldInside,
+        DoStatement: foldInside,
+        SwitchStatement: foldInside,
+        StructSpecifier: foldInside
+      }),
       // styleTags({
       //   // Keywords (using actual grammar tokens)
       //   "void bool int uint float": t.keyword,
