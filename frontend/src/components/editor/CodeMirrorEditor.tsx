@@ -49,6 +49,53 @@ const CodeMirrorEditorComponent: React.FC<CodeMirrorEditorProps> = ({
 }) => {
   const extensions = useMemo(() => {
     console.log('[CodeMirror] Recreating extensions (expensive!)');
+
+    // Custom fold marker using Lucide chevron icons
+    const createFoldMarker = (open: boolean): HTMLElement => {
+      const marker = document.createElement('span');
+      marker.style.cursor = 'pointer';
+      marker.style.display = 'inline-flex';
+      marker.style.alignItems = 'center';
+      marker.style.justifyContent = 'center';
+      marker.style.width = '16px';
+      marker.style.height = '16px';
+
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('width', '14');
+      svg.setAttribute('height', '14');
+      svg.setAttribute('viewBox', '0 0 24 24');
+      svg.setAttribute('fill', 'none');
+      svg.setAttribute('stroke', 'currentColor');
+      svg.setAttribute('stroke-width', '2');
+      svg.setAttribute('stroke-linecap', 'round');
+      svg.setAttribute('stroke-linejoin', 'round');
+      svg.style.opacity = '0.6';
+      svg.style.transition = 'opacity 0.2s';
+
+      // Chevron paths: ChevronDown when open (foldable), ChevronRight when closed (folded)
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      if (open) {
+        // ChevronDown path
+        path.setAttribute('d', 'M6 9l6 6 6-6');
+      } else {
+        // ChevronRight path
+        path.setAttribute('d', 'M9 18l6-6-6-6');
+      }
+
+      svg.appendChild(path);
+      marker.appendChild(svg);
+
+      // Hover effect
+      marker.addEventListener('mouseenter', () => {
+        svg.style.opacity = '1';
+      });
+      marker.addEventListener('mouseleave', () => {
+        svg.style.opacity = '0.6';
+      });
+
+      return marker;
+    };
+
     const baseExtensions: Extension[] = [
       keymap.of([
         {
@@ -98,7 +145,9 @@ const CodeMirrorEditorComponent: React.FC<CodeMirrorEditorProps> = ({
       indentOnInput(),
       bracketMatching(),
       codeFolding(),
-      foldGutter(),
+      foldGutter({
+        markerDOM: createFoldMarker
+      }),
       indentUnit.of("    "), // 4 spaces
       ...createErrorDecorationExtensions(),
       showMinimap.compute(['doc'], (state) => {
@@ -151,6 +200,19 @@ const CodeMirrorEditorComponent: React.FC<CodeMirrorEditorProps> = ({
         },
         '.cm-gutterElement': {
 
+        },
+        '.cm-foldGutter': {
+          minWidth: '20px',
+          paddingLeft: '2px',
+        },
+        '.cm-foldPlaceholder': {
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          borderRadius: '3px',
+          color: 'rgba(255, 255, 255, 0.6)',
+          padding: '0 4px',
+          margin: '0 2px',
+          fontSize: '0.85em',
         },
         '.cm-activeLine': {
           backgroundColor: '#FFFFFF06',
