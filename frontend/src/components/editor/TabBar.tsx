@@ -181,7 +181,7 @@ export function TabBar({
               <Button
                 //variant="ghost"
                 size="sm"
-                className="h-auto stroke-foreground bg-transparent hover:stroke-foreground-highlighted hover:text-foreground-highlighted hover:bg-background-highlighted focus:outline-none shadow-none rounded"
+                className="h-auto stroke-foreground bg-transparent hover:stroke-foreground-highlighted hover:text-foreground-highlighted hover:bg-background-highlighted focus:outline-none shadow-none rounded-md"
                 style={{ width: '28px', height: '28px', padding: '4px' }}
                 title="Add new tab"
               >
