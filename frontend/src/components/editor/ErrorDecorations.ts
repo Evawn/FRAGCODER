@@ -2,6 +2,7 @@ import { EditorView, Decoration, WidgetType } from '@codemirror/view';
 import { StateField, StateEffect } from '@codemirror/state';
 import type { CompilationError } from '../../types';
 import type { DecorationSet } from '@codemirror/view';
+import { ERROR_WIDGET_BACKGROUND, ERROR_LINE_BACKGROUND, ERROR_TEXT } from '../../styles/editor_theme';
 
 class ErrorWidget extends WidgetType {
   private error: CompilationError;
@@ -15,8 +16,8 @@ class ErrorWidget extends WidgetType {
     const wrap = document.createElement('div');
     wrap.className = 'cm-error-annotation';
     wrap.style.cssText = `
-      background-color: #dc2626;
-      color: white;
+      background-color: ${ERROR_WIDGET_BACKGROUND};
+      color: ${ERROR_TEXT};
       padding: 0 8px;
       margin: 0;
       border-radius: 2px;
@@ -148,7 +149,7 @@ export const errorDecorations = StateField.define<DecorationSet>({
 
 export const errorDecorationTheme = EditorView.theme({
   '.cm-error-line': {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)'
+    backgroundColor: ERROR_LINE_BACKGROUND
   },
   '.cm-error-annotation': {
     display: 'block',

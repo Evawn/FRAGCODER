@@ -16,3 +16,8 @@ export const AUTOCOMPLETE_DETAIL_TEXT = 'transparent';
 export const AUTOCOMPLETE_DETAIL_SELECTED_TEXT = 'hsl(38 10% 90%)';
 export const AUTOCOMPLETE_INFO_TEXT = 'hsl(218 10% 70%)';
 export const AUTOCOMPLETE_MATCH_TEXT = 'hsl(38 92% 70%)';
+
+// Error decoration colors
+export const ERROR_WIDGET_BACKGROUND = 'hsl(9 70% 40%)';
+export const ERROR_LINE_BACKGROUND = 'hsla(9 70% 40% / 0.12)';
+export const ERROR_TEXT = 'hsl(218 10% 96%)';
