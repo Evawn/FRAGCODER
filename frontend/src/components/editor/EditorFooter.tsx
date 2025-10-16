@@ -32,7 +32,7 @@ export function EditorFooter({
       </Button>
       <Badge
         variant="outline"
-        className={`bg-transparent  italic border-transparent font-light font-mono text-xs px-2 py-0 ${compilationSuccess === false
+        className={`bg-transparent select-none italic border-transparent font-light font-mono text-xs px-2 py-0 ${compilationSuccess === false
           ? 'text-error'
           : 'text-success'
           }`}

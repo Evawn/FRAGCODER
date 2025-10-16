@@ -103,7 +103,7 @@ export function TabBar({
             return (
               <div key={tab.id} className='h-auto w-32'>
                 <div
-                  className={`w-full px-2 z-10 rounded-md font-light text-large group relative cursor-pointer inline-flex items-center ${isActive
+                  className={`w-full select-none px-2 z-10 rounded-md font-light text-large group relative cursor-pointer inline-flex items-center ${isActive
                     ? 'bg-background-editor text-foreground-highlighted hover:bg-background-editor hover:text-foreground-highlighted py-1 pb-1'
                     : 'bg-transparent text-foreground hover:bg-background-highlighted hover:text-foreground-highlighted py-1'
                     }`}
