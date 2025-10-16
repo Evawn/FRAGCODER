@@ -137,7 +137,7 @@ export function TabBar({
 
                   {/* Vertical separator line */}
                   <div
-                    className="absolute -right-[3px] top-1/2 -translate-y-1/2 w-0.5 bg-lines transition-opacity duration-150"
+                    className="absolute -right-[3px] top-1/2 -translate-y-1/2 w-0.5 bg-lines transition-opacity duration-300"
                     style={{ height: '60%', opacity: showSeparator ? 1 : 0 }}
                   />
                 </div>

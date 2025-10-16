@@ -86,7 +86,7 @@ export function TitleDropdown({
         className="h-auto justify-start min-w-[128px] px-0 py-1 text-title tracking-tighter text-foreground bg-transparent hover:text-accent hover:bg-transparent focus:outline-none"
         style={{ outline: 'none', border: 'none' }}
       >
-        <span className="text-lg italic">{displayTitle}</span>
+        <span className="text-lg font-normal italic">{displayTitle}</span>
         <ChevronDown className="w-3 h-3 ml-1" />
       </Button>
     </Dropdown>
