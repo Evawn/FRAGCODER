@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import Gallery from './pages/GalleryPage'
 import EditorPage from './pages/EditorPage'
+import LogoTestPage from './pages/LogoTestPage'
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
         {/* <Route path="/editor" element={<ShaderEditor />} /> */}
         <Route path="/new" element={<EditorPage />} />
         <Route path="/shader/:slug" element={<EditorPage />} />
+        <Route path="/logo" element={<LogoTestPage />} />
       </Routes>
     </div>
   )

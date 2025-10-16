@@ -121,7 +121,7 @@ export function TabBar({
                   )}
                   {/* Tab icon */}
                   {getTabIcon(tab.name)}
-                  <span className="text-[14px] font-light w-full min-w-3 truncate block">{tab.name}</span>
+                  <span className="text-[14px] font-light w-full min-w-0 truncate block">{tab.name}</span>
 
                   {tab.isDeletable && (
                     <button
