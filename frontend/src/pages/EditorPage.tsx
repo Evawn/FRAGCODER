@@ -31,6 +31,7 @@ import {
   sortTabsByCanonicalOrder,
 } from '../utils/editorPageHelpers';
 import { Logo } from '../components/Logo';
+import { LoadingScreen } from '../components/LoadingScreen';
 
 function EditorPage() {
   const navigate = useNavigate();
@@ -468,17 +469,8 @@ function EditorPage() {
 
   return (
     <div className="h-screen bg-background text-foreground flex flex-col relative">
-      {/* Loading Overlay */}
-      {loading && (
-        <div className="absolute inset-0 bg-background-editor/50 flex items-center justify-center z-50">
-          <div className="bg-background px-6 py-4 rounded-lg border border-border">
-            <div className="flex items-center space-x-3">
-              <div className="w-5 h-5 border-2 border-foreground border-t-transparent rounded-full animate-spin" />
-              <span className="text-foreground">Loading shader...</span>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Professional Loading Screen */}
+      <LoadingScreen isLoading={loading} />
 
       {/* Full-width header background layer - sits above resize handle but below header content */}
       <div
@@ -500,12 +492,12 @@ function EditorPage() {
                 style={{ outline: 'none', border: 'none' }}
               >
                 <Logo
-                  width={32}
-                  height={32}
+                  width={30}
+                  height={30}
                   className=""
                   topLayerOpacity={0.85}
                   duration={300}
-                  easingIntensity={3}
+                  easingIntensity={2}
                   onRotate={(setTargetAngle) => { logoRotateRef.current = setTargetAngle; }}
                 />
                 <span>FRAGCODER</span>

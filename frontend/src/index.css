@@ -9,15 +9,64 @@
 }
 
 @layer utilities {
-  .animate-spin-slow {
-    animation: spin 20s linear infinite;
-  }
+  /* Intentionally empty - reserved for future custom utilities */
+}
 
-  .logo-rotate {
-    transition: transform 0.2s ease-in-out;
+/* Loading Screen Animations */
+@keyframes growFromCenter {
+  from {
+    transform: scale(0);
+    opacity: 0;
   }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
 
-  .home-button:hover .logo-rotate {
-    transform: rotate(180deg);
+@keyframes scaleAndFade {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+
+@keyframes rotateBeams {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulseBeam {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
   }
 }
