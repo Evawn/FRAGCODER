@@ -217,7 +217,7 @@ export default function ShaderPlayer({
               </div>
 
               {/* Real-time Information */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center select-none gap-2">
                 <Badge variant="outline" className="bg-transparent justify-end font-light border-transparent text-foreground font-mono text-xs px-0 py-0 text-right min-w-[48px]">
                   {uTime.toFixed(1)}s
                 </Badge>
