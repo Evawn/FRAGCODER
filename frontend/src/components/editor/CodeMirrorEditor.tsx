@@ -47,6 +47,15 @@ const CodeMirrorEditorComponent: React.FC<CodeMirrorEditorProps> = ({
   onCompile,
   onDocumentChange
 }) => {
+  // Use a ref to always capture the latest onCompile callback
+  // This prevents stale closures in the keymap which is memoized
+  const onCompileRef = React.useRef(onCompile);
+
+  // Update ref whenever onCompile changes
+  React.useEffect(() => {
+    onCompileRef.current = onCompile;
+  }, [onCompile]);
+
   const extensions = useMemo(() => {
     console.log('[CodeMirror] Recreating extensions (expensive!)');
 
@@ -106,7 +115,7 @@ const CodeMirrorEditorComponent: React.FC<CodeMirrorEditorProps> = ({
             if (completionStatus(view.state) === "active") {
               closeCompletion(view);
             }
-            onCompile?.();
+            onCompileRef.current?.();
             return true;
           }
         },
@@ -114,7 +123,7 @@ const CodeMirrorEditorComponent: React.FC<CodeMirrorEditorProps> = ({
           key: 'Ctrl-s',
           preventDefault: true,
           run: () => {
-            onCompile?.();
+            onCompileRef.current?.();
             return true;
           }
         },
