@@ -272,9 +272,15 @@ export function useWebGLRenderer({
       // Immediately update resolution state to reflect locked dimensions
       setResolution({ width: resolution.width, height: resolution.height });
     } else {
-      renderer.updateViewport();
-      // Immediately update resolution state to reflect new canvas dimensions
-      setResolution({ width: canvas.width, height: canvas.height });
+      // When unlocking, defer the viewport update to allow DOM to update first
+      // This ensures the canvas container has expanded before we measure its size
+      requestAnimationFrame(() => {
+        if (rendererRef.current && canvasRef.current) {
+          rendererRef.current.updateViewport();
+          // Update resolution state after DOM has updated
+          setResolution({ width: canvasRef.current.width, height: canvasRef.current.height });
+        }
+      });
     }
   }, []);
 

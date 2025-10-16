@@ -53,7 +53,7 @@ export default function ShaderPlayer({
         // Calculate minimum panel width needed (canvas width + padding)
         // Canvas width in CSS pixels = resolution.width / devicePixelRatio
         // Add parent padding from EditorPage (p-2 = 2 * 8px = 16px)
-        const minWidth = (locked.width / window.devicePixelRatio) + 16;
+        const minWidth = (locked.width / window.devicePixelRatio) + 18;
         onResolutionLockChange?.(true, locked, minWidth);
       } else {
         // Unlocking: clear locked resolution
@@ -148,7 +148,7 @@ export default function ShaderPlayer({
             }
         }
       >
-        <div className="border-0 rounded-sm overflow-hidden flex flex-col h-full shadow-xl">
+        <div className={`border rounded-sm overflow-hidden flex flex-col h-full shadow-xl ${isResolutionLocked ? 'border-accent-shadow' : 'border-transparent'}`}>
           {/* WebGL Canvas Container */}
           <div className="flex-1 bg-black relative flex items-center justify-center min-h-0">
             <div
@@ -228,7 +228,7 @@ export default function ShaderPlayer({
                 <Badge
                   variant="outline"
                   className={`bg-transparent font-mono hover:bg-background-highlighted rounded-lg font-light text-xs px-2 py-0.5 flex items-center gap-1.5 ${isFullscreen
-                    ? 'border-muted-foreground text-foreground'
+                    ? 'border-muted-foreground text-accent border-accent-shadow hover:bg-transparent'
                     : isResolutionLocked
                       ? 'border-accent-shadow text-accent cursor-pointer hover:text-foreground-highlighted transition-colors'
                       : 'border-transparent text-foreground cursor-pointer hover:text-foreground-highlighted transition-colors'
