@@ -40,23 +40,45 @@ export default function ShaderPlayer({
   } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Ref to measure actual panel width for min-width calculation
+  const panelRef = useRef<HTMLDivElement>(null);
+
   // Toggle resolution lock
   const toggleResolutionLock = () => {
     setIsResolutionLocked(prev => {
       const newLocked = !prev;
 
       if (newLocked) {
-        // Locking: capture current resolution
-        const locked = { width: resolution.width, height: resolution.height };
+        // Locking: capture current CSS pixel dimensions (with decimals)
+        // Store the true CSS size, not physical pixels, to avoid rounding issues
+        const locked = {
+          width: resolution.width / window.devicePixelRatio,
+          height: resolution.height / window.devicePixelRatio
+        };
         setLockedResolution(locked);
 
-        // Calculate minimum panel width needed (canvas width + padding)
-        // Canvas width in CSS pixels = resolution.width / devicePixelRatio
-        // Add parent padding from EditorPage (p-2 = 2 * 8px = 16px)
-        const minWidth = (locked.width / window.devicePixelRatio) + 18;
-        onResolutionLockChange?.(true, locked, minWidth);
+        // Get the actual current panel width at the moment of locking
+        // This ensures minWidth matches the exact current panel width (including all padding)
+        const minWidth = (panelRef.current?.getBoundingClientRect().width || 0) + 16.9;
+        console.log('Resolution locked:', {
+          cssResolution: locked,
+          physicalResolution: { width: resolution.width, height: resolution.height },
+          minWidth,
+          devicePixelRatio: window.devicePixelRatio
+        });
+
+        // Convert back to physical pixels for the callback
+        const physicalResolution = {
+          width: resolution.width,
+          height: resolution.height
+        };
+        onResolutionLockChange?.(true, physicalResolution, minWidth);
       } else {
         // Unlocking: clear locked resolution
+        console.log('Resolution unlocked:', {
+          wasLockedAt: lockedResolution,
+          currentResolution: { width: resolution.width, height: resolution.height }
+        });
         setLockedResolution(null);
         onResolutionLockChange?.(false);
       }
@@ -110,7 +132,8 @@ export default function ShaderPlayer({
         setLockedResolution(preFullscreenLockedState.resolution);
 
         if (preFullscreenLockedState.isLocked && preFullscreenLockedState.resolution) {
-          const minWidth = (preFullscreenLockedState.resolution.width / window.devicePixelRatio) + 16;
+          // Get the actual current panel width when restoring lock state
+          const minWidth = panelRef.current?.getBoundingClientRect().width || 0;
           onResolutionLockChange?.(true, preFullscreenLockedState.resolution, minWidth);
         } else {
           onResolutionLockChange?.(false, undefined, undefined);
@@ -128,7 +151,7 @@ export default function ShaderPlayer({
   }, [preFullscreenLockedState, onResolutionLockChange]);
 
   return (
-    <div className="h-full w-full flex items-start justify-center p-0">
+    <div ref={panelRef} className="h-full w-full flex items-start justify-center p-0">
       <div
         ref={containerRef}
         className="flex flex-col"
@@ -156,8 +179,8 @@ export default function ShaderPlayer({
               style={
                 isResolutionLocked && lockedResolution
                   ? {
-                    width: `${lockedResolution.width / window.devicePixelRatio}px`,
-                    height: `${lockedResolution.height / window.devicePixelRatio}px`
+                    width: `${lockedResolution.width}px`,
+                    height: `${lockedResolution.height}px`
                   }
                   : {
                     width: '100%',
@@ -235,7 +258,7 @@ export default function ShaderPlayer({
                     }`}
                   onClick={isFullscreen ? undefined : toggleResolutionLock}
                 >
-                  <span className="flex-1 text-right">{resolution.width} × {resolution.height}</span>
+                  <span className="flex-1 text-right">{Math.round(resolution.width)} × {Math.round(resolution.height)}</span>
                   {(isResolutionLocked || isFullscreen) ? (
                     <Lock size={12} strokeWidth={2} className='text-accent' />
                   ) : (
