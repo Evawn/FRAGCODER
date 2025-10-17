@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom'
+import HomePage from './pages/HomePage'
 import Gallery from './pages/GalleryPage'
 import EditorPage from './pages/EditorPage'
 import LogoTestPage from './pages/LogoTestPage'
@@ -8,7 +9,8 @@ function App() {
     <div className="relative min-h-screen bg-background text-foreground w-full">
       {/* <Navigation /> */}
       <Routes>
-        <Route path="/" element={<Gallery />} />
+        <Route path="/" element={<HomePage />} />
+        <Route path="/gallery" element={<Gallery />} />
         {/* <Route path="/editor" element={<ShaderEditor />} /> */}
         <Route path="/new" element={<EditorPage />} />
         <Route path="/shader/:slug" element={<EditorPage />} />
