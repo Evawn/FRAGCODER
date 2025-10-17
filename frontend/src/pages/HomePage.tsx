@@ -15,8 +15,8 @@ const ANIMATION_BASE_DELAY = 600; // ms
 
 // Background logo positioning and sizing configuration
 const BACKGROUND_LOGO_CONFIG = {
-  size: '90vw',           // Width of the logo
-  topPosition: '-140vh',   // Vertical position (negative = above viewport)
+  size: '95vw',           // Width of the logo
+  topPosition: '-75vw',   // Vertical position (negative = above viewport)
   glowOpacity: 0.9,       // Opacity of the glow effect
   glowBlur: '200px',       // Blur amount for glow
   pulseDuration: '0s',    // Duration of pulse animation
@@ -58,10 +58,15 @@ function HomePage() {
       {/* Professional Loading Screen */}
       <LoadingScreen isLoading={loading} />
 
-      {/* Background Logo with Glow Effect */}
+      {/* Background Logo with Glow Effect - Group 4 Animation */}
       <div
-        className="fixed inset-0 overflow-hidden pointer-events-none"
-        style={{ zIndex: 0 }}
+        className="fixed inset-0 pointer-events-none overflow-visible"
+        style={{
+          zIndex: 0,
+          animation: 'fadeInDownLarge 2.5s ease-in-out forwards',
+          opacity: 0,
+          animationDelay: `${ANIMATION_BASE_DELAY + 0}ms`
+        }}
       >
         {/* Logo and glow container - all positioning controlled by BACKGROUND_LOGO_CONFIG */}
         <div
@@ -82,9 +87,17 @@ function HomePage() {
             }}
           />
 
-          {/* Large rotating logo */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full" style={{ transform: 'translate(-50%, -50%) scaleY(-1) rotate(-45deg)' }}>
+          {/* Large rotating logo - CSS animation for smooth visual rotation */}
+          <div
+            className="absolute top-1/2 left-1/2 w-full h-full"
+            style={{
+              transform: 'translate(-50%, -50%) scaleY(-1) rotate(-45deg)',
+              willChange: 'transform',
+              animation: `backgroundLogoRotate ${360 / BACKGROUND_LOGO_CONFIG.rotationSpeed}s linear infinite`,
+            }}
+          >
             <Logo
+              id="background-logo"
               width={undefined}
               height={undefined}
               className="w-full h-full"
@@ -106,7 +119,7 @@ function HomePage() {
           zIndex: 10
         }}
       >
-        <div className="max-w-7xl mx-auto flex items-center justify-between relative">
+        <div className=" flex items-center justify-between relative">
           {/* Bottom border with rounded ends */}
           <div className="absolute -bottom-1 left-1 right-1 h-0.5 bg-transparent rounded-full" />
           {/* Logo and Title */}
@@ -118,6 +131,7 @@ function HomePage() {
             style={{ outline: 'none', border: 'none' }}
           >
             <Logo
+              id="header-logo"
               width={30}
               height={30}
               className=""
@@ -148,7 +162,7 @@ function HomePage() {
           style={{
             animation: 'fadeInDown 0.6s ease-out forwards',
             opacity: 0,
-            animationDelay: `${ANIMATION_BASE_DELAY + 300}ms`
+            animationDelay: `${ANIMATION_BASE_DELAY + 400}ms`
           }}
         >
           <div className="max-w-4xl mx-auto text-center space-y-6">
@@ -158,7 +172,7 @@ function HomePage() {
             </h1>
 
             {/* Description */}
-            <p className="text-xl md:text-2xl text-foreground-muted max-w-2xl mx-auto leading-relaxed">
+            <p className="text-xl md:text-2xl text-foreground max-w-2xl mx-auto leading-relaxed">
               Create, edit, and share stunning GLSL fragment shaders with live WebGL rendering.
               Inspired by Shadertoy, built for creators.
             </p>
@@ -187,7 +201,7 @@ function HomePage() {
           style={{
             animation: 'fadeInDown 0.6s ease-out forwards',
             opacity: 0,
-            animationDelay: `${ANIMATION_BASE_DELAY + 600}ms`
+            animationDelay: `${ANIMATION_BASE_DELAY + 800}ms`
           }}
         >
           <div className="max-w-6xl mx-auto">

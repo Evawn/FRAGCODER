@@ -18,6 +18,7 @@
     transform: scale(0);
     opacity: 0;
   }
+
   to {
     transform: scale(1);
     opacity: 1;
@@ -29,6 +30,7 @@
     transform: scale(1);
     opacity: 1;
   }
+
   to {
     transform: scale(3);
     opacity: 0;
@@ -39,15 +41,19 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
 }
 
 @keyframes pulseBeam {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.3;
   }
+
   50% {
     opacity: 0.6;
   }
@@ -57,6 +63,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -66,6 +73,7 @@
   from {
     opacity: 1;
   }
+
   to {
     opacity: 0;
   }
@@ -76,8 +84,34 @@
     opacity: 0;
     transform: translateY(-20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes fadeInDownLarge {
+  from {
+    opacity: 0;
+    transform: translateY(-80vh);
+    scale: 0.5;
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0vh);
+    scale: 1;
+  }
+}
+
+/* Background Logo Rotation - Smooth CSS animation for visual rotation */
+@keyframes backgroundLogoRotate {
+  from {
+    transform: translate(-50%, -50%) scaleY(-1) rotate(-45deg);
+  }
+
+  to {
+    transform: translate(-50%, -50%) scaleY(-1) rotate(315deg);
   }
 }

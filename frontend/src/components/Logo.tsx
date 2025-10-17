@@ -2,7 +2,7 @@
 // Includes separate base and top layer exports for testing/development
 // Features gem spectral lighting effect with rotation-based color interpolation
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, memo } from 'react';
 
 interface LogoProps {
     width?: number;
@@ -14,7 +14,11 @@ interface LogoProps {
     onRotate?: (setTargetAngle: (targetOffset: number) => void) => void;
     constantRotation?: boolean;  // Enable continuous rotation (default: false)
     rotationSpeed?: number;      // Rotation speed in degrees per second (default: 6)
+    id?: string;                 // Unique ID for clip path (auto-generated if not provided)
 }
+
+// Counter for auto-generating unique clip path IDs
+let logoIdCounter = 0;
 
 // Color interpolation utilities for gem spectral lighting effect
 interface HSL {
@@ -80,7 +84,7 @@ const getOctagonPoints = (cx: number, cy: number, radius: number) => {
 };
 
 // Render base layer content - simple pinwheel with radial segments + 45-degree rotated square
-const renderBaseLayer = (centerX: number, centerY: number, outerRadius: number, rotationAngle: number = 0) => {
+const renderBaseLayer = (centerX: number, centerY: number, outerRadius: number, rotationAngle: number = 0, noTransform: boolean = false) => {
     const octagonPoints = getOctagonPoints(centerX, centerY, outerRadius);
     const innerSquareRadius = 35; // Distance from center to corner of rotated square
 
@@ -113,7 +117,7 @@ const renderBaseLayer = (centerX: number, centerY: number, outerRadius: number, 
     });
 
     return (
-        <g transform={`rotate(${rotationAngle} ${centerX} ${centerY})`}>
+        <g transform={noTransform ? undefined : `rotate(${rotationAngle} ${centerX} ${centerY})`}>
             <rect width="200" height="200" fill="hsl(38, 75%, 30%)" />
             {/* Pinwheel radial segments with interpolated colors */}
             {octagonPoints.map((_, i) => {
@@ -136,7 +140,7 @@ const renderBaseLayer = (centerX: number, centerY: number, outerRadius: number, 
 };
 
 // Render top layer content - square with corner triangles and spectral lighting
-const renderTopLayer = (centerX: number, centerY: number, outerRadius: number, centerSquareSize: number, rotationAngle: number = 0) => {
+const renderTopLayer = (centerX: number, centerY: number, outerRadius: number, centerSquareSize: number, rotationAngle: number = 0, noTransform: boolean = false) => {
     const octagonPoints = getOctagonPoints(centerX, centerY, outerRadius);
     centerSquareSize = 80; // Override for combined logo to be slightly larger
 
@@ -195,9 +199,9 @@ const renderTopLayer = (centerX: number, centerY: number, outerRadius: number, c
     ];
 
     return (
-        <g transform={`rotate(${rotationAngle} ${centerX} ${centerY})`}>
-            {/* Central square - static color */}
-            <rect x={square.x} y={square.y} width={square.size} height={square.size} fill="hsl(38, 100%, 75.5%)" />
+        <g transform={noTransform ? undefined : `rotate(${rotationAngle} ${centerX} ${centerY})`}>
+            {/* Central square - static color - extended by 0.5px on all sides to prevent gaps */}
+            <rect x={square.x - 1} y={square.y - 1} width={square.size + 2} height={square.size + 2} fill="hsl(38, 100%, 75.5%)" />
 
             {/* Side triangles - interpolated colors */}
             <polygon points={`${squareCorners.topLeft.join(',')} ${squareCorners.topRight.join(',')} ${octagonPoints[0].join(',')}`} fill={sideColors[0]} />
@@ -363,12 +367,13 @@ export const LogoTop = ({ width = 150, height = 150, className = "", topLayerOpa
     );
 };
 
-// Combined logo (base + top layers)
-export const Logo = ({ width = 150, height = 150, className = "", topLayerOpacity = 0.9, duration = 400, easingIntensity = 3, onRotate, constantRotation = false, rotationSpeed = 6 }: LogoProps) => {
+// Combined logo (base + top layers) - Memoized to prevent unnecessary re-renders
+const LogoComponent = ({ width = 150, height = 150, className = "", topLayerOpacity = 0.9, duration = 400, easingIntensity = 3, onRotate, constantRotation = false, rotationSpeed = 6, id }: LogoProps) => {
     const [rotationAngle, setRotationAngle] = useState(0);
     const [targetAngleOffset, setTargetAngleOffset] = useState(0);
     const animationFrameRef = useRef<number | null>(null);
     const lastFrameTimeRef = useRef<number | null>(null);
+    const clipPathId = useRef(id || `octagon-logo-${logoIdCounter++}`).current;
     const centerX = 100;
     const centerY = 100;
     const outerRadius = 90;
@@ -381,20 +386,31 @@ export const Logo = ({ width = 150, height = 150, className = "", topLayerOpacit
         }
     }, [onRotate]);
 
-    // Constant rotation mode - continuous RAF loop
+    // Constant rotation mode - throttled RAF loop for color updates only (20 FPS)
     useEffect(() => {
         if (!constantRotation) return;
 
+        const COLOR_UPDATE_FPS = 20;
+        const COLOR_UPDATE_INTERVAL = 1000 / COLOR_UPDATE_FPS; // 50ms for 20 FPS
+
         let currentRotation = 0;
+        let lastColorUpdateTime = Date.now();
         lastFrameTimeRef.current = Date.now();
 
         const animate = () => {
             const now = Date.now();
             const deltaTime = (now - (lastFrameTimeRef.current || now)) / 1000; // Convert to seconds
+            const timeSinceLastColorUpdate = now - lastColorUpdateTime;
             lastFrameTimeRef.current = now;
 
+            // Always update the internal rotation tracker
             currentRotation = (currentRotation + rotationSpeed * deltaTime) % 360;
-            setRotationAngle(currentRotation);
+
+            // Only update state (trigger re-render) at throttled rate
+            if (timeSinceLastColorUpdate >= COLOR_UPDATE_INTERVAL) {
+                setRotationAngle(currentRotation);
+                lastColorUpdateTime = now;
+            }
 
             animationFrameRef.current = requestAnimationFrame(animate);
         };
@@ -452,23 +468,40 @@ export const Logo = ({ width = 150, height = 150, className = "", topLayerOpacit
     const octagonPoints = getOctagonPoints(centerX, centerY, outerRadius);
     const octagonString = octagonPoints.map(p => `${p[0]},${p[1]}`).join(' ');
 
+    // Memoize expensive render functions - round angle to reduce cache misses while maintaining smoothness
+    // Round to nearest 0.5 degrees for good balance between cache efficiency and visual smoothness
+    const roundedAngle = useMemo(() => Math.round(rotationAngle * 2) / 2, [rotationAngle]);
+
+    const baseLayerContent = useMemo(
+        () => renderBaseLayer(centerX, centerY, outerRadius, roundedAngle, constantRotation),
+        [centerX, centerY, outerRadius, roundedAngle, constantRotation]
+    );
+
+    const topLayerContent = useMemo(
+        () => renderTopLayer(centerX, centerY, outerRadius, centerSquareSize, roundedAngle, constantRotation),
+        [centerX, centerY, outerRadius, centerSquareSize, roundedAngle, constantRotation]
+    );
+
     return (
         <svg width={width} height={height} viewBox="0 0 200 200" className={className}>
             <defs>
-                <clipPath id="octagon-logo">
-                    <polygon points={octagonString} transform={`rotate(${rotationAngle} ${centerX} ${centerY})`} />
+                <clipPath id={clipPathId}>
+                    <polygon points={octagonString} transform={constantRotation ? undefined : `rotate(${roundedAngle} ${centerX} ${centerY})`} />
                 </clipPath>
             </defs>
 
-            <g clipPath="url(#octagon-logo)">
+            <g clipPath={`url(#${clipPathId})`}>
                 {/* Base layer with rotation */}
-                {renderBaseLayer(centerX, centerY, outerRadius, rotationAngle)}
+                {baseLayerContent}
 
                 {/* Top layer with uniform opacity and spectral lighting */}
                 <g opacity={topLayerOpacity}>
-                    {renderTopLayer(centerX, centerY, outerRadius, centerSquareSize, rotationAngle)}
+                    {topLayerContent}
                 </g>
             </g>
         </svg>
     );
 };
+
+// Export memoized version to prevent re-renders when props haven't changed
+export const Logo = memo(LogoComponent);
