@@ -214,15 +214,15 @@ function HomePage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-8">
               <Button
                 onClick={() => navigate('/gallery')}
-                className="w-full sm:w-auto px-12 py-6 text-xl bg-accent hover:bg-accent-highlighted text-accent-foreground font-medium rounded-md transition-colors"
+                className="w-full sm:w-56 px-12 py-6 text-xl bg-accent-shadow hover:bg-accent-highlighted text-accent-foreground font-medium hover:font-extrabold rounded-md transition-colors"
               >
-                Browse Gallery
+                Browse Shaders
               </Button>
               <Button
                 onClick={() => navigate('/new')}
-                className="w-full sm:w-auto px-12 py-6 text-xl bg-background-highlighted hover:bg-foreground-muted hover:text-background text-foreground font-medium rounded-md transition-colors"
+                className="w-full sm:w-56 px-12 py-6 text-xl bg-accent hover:bg-accent-highlighted hover:text-foreground-highlighted text-foreground font-medium hover:font-extrabold rounded-md transition-colors"
               >
-                Create Shader
+                Create
               </Button>
             </div>
           </div>
