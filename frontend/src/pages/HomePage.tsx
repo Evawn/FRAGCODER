@@ -96,7 +96,7 @@ function HomePage() {
             ? `fadeInDownLarge 2.0s ease-in-out forwards`
             : isAtTop
               ? `fadeInDownLarge 1.0s ease-in-out forwards`
-              : `fadeOutUpLarge 1.0s ease-in-out forwards`,
+              : `fadeOutUpLarge 0.75s ease-in-out forwards`,
           animationDelay: !hasPlayedInitialAnimationRef.current && isAtTop ? `${ANIMATION_BASE_DELAY}ms` : '0ms',
           opacity: !hasPlayedInitialAnimationRef.current && isAtTop ? 0 : undefined
         }}

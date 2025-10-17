@@ -114,9 +114,18 @@ function EditorPage() {
       // No slug means new shader - reset to defaults
       setShaderUrl(null);
       setShader(null);
-      setTabs([{ id: '1', name: 'Image', code: DEFAULT_SHADER_CODES.Image, isDeletable: false, errors: [] }]);
+      const defaultTabs = [{ id: '1', name: 'Image', code: DEFAULT_SHADER_CODES.Image, isDeletable: false, errors: [] }];
+      setTabs(defaultTabs);
+
+      // Show loading screen and trigger compilation for default shader
+      setLoading(true);
+      setTimeout(() => {
+        const tabsData = tabsToTabData(defaultTabs);
+        rendererCompile(tabsData);
+        setLoading(false);
+      }, 0);
     }
-  }, [slug]);
+  }, [slug, rendererCompile]);
 
   const loadShader = async (slug: string) => {
     setLoading(true);
