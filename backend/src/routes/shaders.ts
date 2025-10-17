@@ -6,6 +6,78 @@ import { generateUniqueSlug } from '../utils/slugGenerator';
 const router = express.Router();
 const prisma = new PrismaClient();
 
+/**
+ * GET /api/shaders
+ * Get all public shaders with search and pagination
+ *
+ * Query parameters:
+ *   - page (number): Current page number (default: 1)
+ *   - limit (number): Results per page (default: 16)
+ *   - search (string): Search term for title, description, or author username
+ *
+ * Response: {
+ *   shaders: Shader[],
+ *   total: number,
+ *   page: number,
+ *   totalPages: number,
+ *   limit: number
+ * }
+ */
+router.get('/', async (req, res): Promise<any> => {
+  try {
+    // Parse query parameters
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 16;
+    const search = (req.query.search as string) || '';
+
+    // Build where clause with search filtering
+    const where: any = {
+      isPublic: true
+    };
+
+    if (search) {
+      where.OR = [
+        { title: { contains: search } },
+        { description: { contains: search } },
+        { user: { username: { contains: search } } }
+      ];
+    }
+
+    // Execute queries in parallel
+    const [shaders, total] = await Promise.all([
+      prisma.shader.findMany({
+        where,
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true
+            }
+          }
+        },
+        orderBy: {
+          createdAt: 'desc'
+        },
+        skip: (page - 1) * limit,
+        take: limit
+      }),
+      prisma.shader.count({ where })
+    ]);
+
+    // Return paginated response
+    res.json({
+      shaders,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+      limit
+    });
+  } catch (error) {
+    console.error('Error fetching shaders:', error);
+    res.status(500).json({ error: 'Failed to fetch shaders' });
+  }
+});
+
 interface TabData {
   id: string;
   name: string;

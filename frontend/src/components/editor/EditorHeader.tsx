@@ -1,4 +1,5 @@
 import { TitleDropdown } from './TitleDropdown';
+import { BrowseButton } from './BrowseButton';
 import { NewShaderButton } from './NewShaderButton';
 import { UserMenu } from './UserMenu';
 
@@ -55,6 +56,7 @@ export function EditorHeader({
 
       {/* Right-side buttons */}
       <div className="flex items-center gap-2">
+        <BrowseButton onClick={() => window.location.href = '/gallery'} />
         <NewShaderButton onClick={() => window.location.href = '/new'} />
         <UserMenu
           isSignedIn={isSignedIn}
