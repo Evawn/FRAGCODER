@@ -28,6 +28,8 @@ function HomePage() {
   const { user, signOut } = useAuth();
   const [isSignInDialogOpen, setIsSignInDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isAtTop, setIsAtTop] = useState(true);
+  const [hasPlayedInitialAnimation, setHasPlayedInitialAnimation] = useState(false);
 
   // Simulate initial page load
   useEffect(() => {
@@ -35,6 +37,33 @@ function HomePage() {
       setLoading(false);
     }, 800);
     return () => clearTimeout(timer);
+  }, []);
+
+  // Track initial animation completion
+  useEffect(() => {
+    // Initial animation delay (600ms) + duration (2000ms) = 2600ms
+    const timer = setTimeout(() => {
+      setHasPlayedInitialAnimation(true);
+    }, ANIMATION_BASE_DELAY + 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Track scroll position to show/hide background logo
+  useEffect(() => {
+    const handleScroll = () => {
+      // Consider "top" as within 10px of the top
+      const atTop = window.scrollY < 10;
+      setIsAtTop(atTop);
+    };
+
+    // Set initial state
+    handleScroll();
+
+    // Add scroll listener
+    window.addEventListener('scroll', handleScroll);
+
+    // Cleanup
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   // Ref to store Logo rotation function
@@ -58,14 +87,18 @@ function HomePage() {
       {/* Professional Loading Screen */}
       <LoadingScreen isLoading={loading} />
 
-      {/* Background Logo with Glow Effect - Group 4 Animation */}
+      {/* Background Logo with Glow Effect - Scroll-based Animation */}
       <div
         className="fixed inset-0 pointer-events-none overflow-visible"
         style={{
           zIndex: 0,
-          animation: 'fadeInDownLarge 2.5s ease-in-out forwards',
-          opacity: 0,
-          animationDelay: `${ANIMATION_BASE_DELAY + 0}ms`
+          animation: !hasPlayedInitialAnimation && isAtTop
+            ? `fadeInDownLarge 2.0s ease-in-out forwards`
+            : isAtTop
+              ? `fadeInDownLarge 1.0s ease-in-out forwards`
+              : `fadeOutUpLarge 1.0s ease-in-out forwards`,
+          animationDelay: !hasPlayedInitialAnimation && isAtTop ? `${ANIMATION_BASE_DELAY}ms` : '0ms',
+          opacity: !hasPlayedInitialAnimation && isAtTop ? 0 : undefined
         }}
       >
         {/* Logo and glow container - all positioning controlled by BACKGROUND_LOGO_CONFIG */}

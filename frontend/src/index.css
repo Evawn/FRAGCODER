@@ -105,6 +105,20 @@
   }
 }
 
+@keyframes fadeOutUpLarge {
+  from {
+    opacity: 1;
+    transform: translateY(0vh);
+    scale: 1;
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-80vh);
+    scale: 0.5;
+  }
+}
+
 /* Background Logo Rotation - Smooth CSS animation for visual rotation */
 @keyframes backgroundLogoRotate {
   from {
