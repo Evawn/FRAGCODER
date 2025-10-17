@@ -29,7 +29,7 @@ function HomePage() {
   const [isSignInDialogOpen, setIsSignInDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isAtTop, setIsAtTop] = useState(true);
-  const [hasPlayedInitialAnimation, setHasPlayedInitialAnimation] = useState(false);
+  const hasPlayedInitialAnimationRef = useRef(false);
 
   // Simulate initial page load
   useEffect(() => {
@@ -43,8 +43,8 @@ function HomePage() {
   useEffect(() => {
     // Initial animation delay (600ms) + duration (2000ms) = 2600ms
     const timer = setTimeout(() => {
-      setHasPlayedInitialAnimation(true);
-    }, ANIMATION_BASE_DELAY + 3000);
+      hasPlayedInitialAnimationRef.current = true;
+    }, ANIMATION_BASE_DELAY + 2000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -92,13 +92,13 @@ function HomePage() {
         className="fixed inset-0 pointer-events-none overflow-visible"
         style={{
           zIndex: 0,
-          animation: !hasPlayedInitialAnimation && isAtTop
+          animation: !hasPlayedInitialAnimationRef.current && isAtTop
             ? `fadeInDownLarge 2.0s ease-in-out forwards`
             : isAtTop
               ? `fadeInDownLarge 1.0s ease-in-out forwards`
               : `fadeOutUpLarge 1.0s ease-in-out forwards`,
-          animationDelay: !hasPlayedInitialAnimation && isAtTop ? `${ANIMATION_BASE_DELAY}ms` : '0ms',
-          opacity: !hasPlayedInitialAnimation && isAtTop ? 0 : undefined
+          animationDelay: !hasPlayedInitialAnimationRef.current && isAtTop ? `${ANIMATION_BASE_DELAY}ms` : '0ms',
+          opacity: !hasPlayedInitialAnimationRef.current && isAtTop ? 0 : undefined
         }}
       >
         {/* Logo and glow container - all positioning controlled by BACKGROUND_LOGO_CONFIG */}
