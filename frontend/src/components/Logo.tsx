@@ -12,6 +12,8 @@ interface LogoProps {
     duration?: number;           // Animation duration in ms (default: 400)
     easingIntensity?: number;    // Easing curve intensity (default: 3)
     onRotate?: (setTargetAngle: (targetOffset: number) => void) => void;
+    constantRotation?: boolean;  // Enable continuous rotation (default: false)
+    rotationSpeed?: number;      // Rotation speed in degrees per second (default: 6)
 }
 
 // Color interpolation utilities for gem spectral lighting effect
@@ -362,10 +364,11 @@ export const LogoTop = ({ width = 150, height = 150, className = "", topLayerOpa
 };
 
 // Combined logo (base + top layers)
-export const Logo = ({ width = 150, height = 150, className = "", topLayerOpacity = 0.9, duration = 400, easingIntensity = 3, onRotate }: LogoProps) => {
+export const Logo = ({ width = 150, height = 150, className = "", topLayerOpacity = 0.9, duration = 400, easingIntensity = 3, onRotate, constantRotation = false, rotationSpeed = 6 }: LogoProps) => {
     const [rotationAngle, setRotationAngle] = useState(0);
     const [targetAngleOffset, setTargetAngleOffset] = useState(0);
     const animationFrameRef = useRef<number | null>(null);
+    const lastFrameTimeRef = useRef<number | null>(null);
     const centerX = 100;
     const centerY = 100;
     const outerRadius = 90;
@@ -378,8 +381,38 @@ export const Logo = ({ width = 150, height = 150, className = "", topLayerOpacit
         }
     }, [onRotate]);
 
-    // Animate to target angle when it changes
+    // Constant rotation mode - continuous RAF loop
     useEffect(() => {
+        if (!constantRotation) return;
+
+        let currentRotation = 0;
+        lastFrameTimeRef.current = Date.now();
+
+        const animate = () => {
+            const now = Date.now();
+            const deltaTime = (now - (lastFrameTimeRef.current || now)) / 1000; // Convert to seconds
+            lastFrameTimeRef.current = now;
+
+            currentRotation = (currentRotation + rotationSpeed * deltaTime) % 360;
+            setRotationAngle(currentRotation);
+
+            animationFrameRef.current = requestAnimationFrame(animate);
+        };
+
+        animationFrameRef.current = requestAnimationFrame(animate);
+
+        return () => {
+            if (animationFrameRef.current !== null) {
+                cancelAnimationFrame(animationFrameRef.current);
+                animationFrameRef.current = null;
+            }
+        };
+    }, [constantRotation, rotationSpeed]);
+
+    // Animate to target angle when it changes (only when not in constant rotation mode)
+    useEffect(() => {
+        if (constantRotation) return; // Skip if in constant rotation mode
+
         // Cancel any ongoing animation
         if (animationFrameRef.current !== null) {
             cancelAnimationFrame(animationFrameRef.current);
@@ -414,7 +447,7 @@ export const Logo = ({ width = 150, height = 150, className = "", topLayerOpacit
                 cancelAnimationFrame(animationFrameRef.current);
             }
         };
-    }, [targetAngleOffset, duration, easingIntensity]);
+    }, [targetAngleOffset, duration, easingIntensity, constantRotation]);
 
     const octagonPoints = getOctagonPoints(centerX, centerY, outerRadius);
     const octagonString = octagonPoints.map(p => `${p[0]},${p[1]}`).join(' ');

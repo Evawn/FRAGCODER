@@ -11,7 +11,17 @@ import { SignInDialog } from '../components/auth/SignInDialog';
 import { LoadingScreen } from '../components/LoadingScreen';
 
 // Animation timing constant - base delay after loading screen
-const ANIMATION_BASE_DELAY = 400; // ms
+const ANIMATION_BASE_DELAY = 600; // ms
+
+// Background logo positioning and sizing configuration
+const BACKGROUND_LOGO_CONFIG = {
+  size: '90vw',           // Width of the logo
+  topPosition: '-140vh',   // Vertical position (negative = above viewport)
+  glowOpacity: 0.9,       // Opacity of the glow effect
+  glowBlur: '200px',       // Blur amount for glow
+  pulseDuration: '0s',    // Duration of pulse animation
+  rotationSpeed: 6,       // Degrees per second
+};
 
 function HomePage() {
   const navigate = useNavigate();
@@ -48,16 +58,57 @@ function HomePage() {
       {/* Professional Loading Screen */}
       <LoadingScreen isLoading={loading} />
 
+      {/* Background Logo with Glow Effect */}
+      <div
+        className="fixed inset-0 overflow-hidden pointer-events-none"
+        style={{ zIndex: 0 }}
+      >
+        {/* Logo and glow container - all positioning controlled by BACKGROUND_LOGO_CONFIG */}
+        <div
+          className="absolute left-1/2 -translate-x-1/2"
+          style={{
+            top: BACKGROUND_LOGO_CONFIG.topPosition,
+            width: BACKGROUND_LOGO_CONFIG.size,
+            aspectRatio: '1',
+          }}
+        >
+          {/* Pulsing glow */}
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full"
+            style={{
+              background: `radial-gradient(circle, hsla(38, 92%, 50%, ${BACKGROUND_LOGO_CONFIG.glowOpacity}) 0%, transparent 70%)`,
+              filter: `blur(${BACKGROUND_LOGO_CONFIG.glowBlur})`,
+              animation: `pulseBeam ${BACKGROUND_LOGO_CONFIG.pulseDuration} ease-in-out infinite`,
+            }}
+          />
+
+          {/* Large rotating logo */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full" style={{ transform: 'translate(-50%, -50%) scaleY(-1) rotate(-45deg)' }}>
+            <Logo
+              width={undefined}
+              height={undefined}
+              className="w-full h-full"
+              topLayerOpacity={0.85}
+              constantRotation={true}
+              rotationSpeed={BACKGROUND_LOGO_CONFIG.rotationSpeed}
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Header - Group 1 Animation */}
       <div
-        className="w-full bg-background-header border-b-2 border-accent-shadow px-2 py-0.5"
+        className="w-full bg-transparent px-2 py-0.5 relative"
         style={{
           animation: 'fadeInDown 0.6s ease-out forwards',
           opacity: 0,
-          animationDelay: `${ANIMATION_BASE_DELAY + 0}ms`
+          animationDelay: `${ANIMATION_BASE_DELAY + 0}ms`,
+          zIndex: 10
         }}
       >
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="max-w-7xl mx-auto flex items-center justify-between relative">
+          {/* Bottom border with rounded ends */}
+          <div className="absolute -bottom-1 left-1 right-1 h-0.5 bg-transparent rounded-full" />
           {/* Logo and Title */}
           <button
             onClick={() => navigate('/')}
@@ -75,7 +126,7 @@ function HomePage() {
               easingIntensity={2}
               onRotate={(setTargetAngle) => { logoRotateRef.current = setTargetAngle; }}
             />
-            <span>FRAGCODER</span>
+            <span >FRAGCODER</span>
           </button>
 
           {/* User Menu */}
@@ -90,7 +141,7 @@ function HomePage() {
       </div>
 
       {/* Main Content Container */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col relative" style={{ zIndex: 10 }}>
         {/* Hero Section - Group 2 Animation */}
         <div
           className="w-full px-8 py-16 md:py-24"
@@ -102,7 +153,7 @@ function HomePage() {
         >
           <div className="max-w-4xl mx-auto text-center space-y-6">
             {/* Large Title */}
-            <h1 className="text-6xl md:text-7xl font-bold text-foreground-highlighted tracking-tight">
+            <h1 className="text-6xl md:text-7xl font-bold text-foreground-highlighted tracking-tighter">
               FRAGCODER
             </h1>
 
