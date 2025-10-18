@@ -65,7 +65,7 @@ function Gallery() {
 
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: '16',
+        limit: '8',
         ...(search && { search })
       });
 
@@ -152,7 +152,7 @@ function Gallery() {
 
       {/* Header - Group 1 Animation */}
       <div
-        className="w-full bg-background-header px-2 py-0 relative flex-shrink-0"
+        className="w-full bg-background-header px-0 py-0 relative flex-shrink-0"
         style={{
           animation: 'fadeInDown 0.6s ease-out forwards',
           opacity: 0,
@@ -160,7 +160,7 @@ function Gallery() {
           zIndex: 10
         }}
       >
-        <div className="flex items-center justify-between relative border-b-2 py-px border-accent-shadow">
+        <div className="flex items-center justify-between relative border-b-2 py-px px-2 border-accent-shadow">
 
           {/* Logo and Title (Left) */}
           <button
@@ -204,7 +204,7 @@ function Gallery() {
 
       {/* Search Results Section - Group 2 Animation */}
       <div
-        className="w-full px-8 py-2 flex-shrink-0"
+        className="w-[90vw] mx-auto py-4 flex-shrink-0"
         style={{
           animation: 'fadeInDown 0.6s ease-out forwards',
           opacity: 0,
@@ -248,14 +248,14 @@ function Gallery() {
 
       {/* Results Container - Group 3 Animation, Fixed Height */}
       <div
-        className="w-[90vw] mx-auto px-6 py-6 flex-1 overflow-hidden"
+        className="w-[90vw] mx-auto py-6 flex-1 overflow-hidden"
         style={{
           animation: 'fadeInDown 0.6s ease-out forwards',
           opacity: 0,
           animationDelay: `${ANIMATION_BASE_DELAY + 800}ms`
         }}
       >
-        <div className="h-full overflow-y-clip">
+        <div className="h-full overflow-y-visible">
           <ShaderGrid shaders={shaders} />
         </div>
       </div>
