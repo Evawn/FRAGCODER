@@ -1,6 +1,6 @@
 // Professional gallery page for browsing public shaders with search and pagination
-// Features: header with logo/user menu, server-side search, paginated results, staggered animations
-// Layout: Header → Search Area → Fixed-height Results Container (no page scroll)
+// Features: centered header with logo/title/search, server-side search, paginated results, staggered animations
+// Layout: Header (logo left, Browse Shaders + search center, user menu right) → Thin Results Bar (pagination + count) → Shader Grid
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -146,13 +146,13 @@ function Gallery() {
   }
 
   return (
-    <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
+    <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden py-0">
       {/* Professional Loading Screen */}
       <LoadingScreen isLoading={loading} />
 
       {/* Header - Group 1 Animation */}
       <div
-        className="w-full bg-transparent px-2 py-0.5 relative flex-shrink-0 "
+        className="w-full bg-background-header px-2 py-0 relative flex-shrink-0"
         style={{
           animation: 'fadeInDown 0.6s ease-out forwards',
           opacity: 0,
@@ -160,11 +160,9 @@ function Gallery() {
           zIndex: 10
         }}
       >
-        <div className="flex items-center justify-between relative border-b-2 border-accent-shadow">
-          {/* Bottom border with rounded ends */}
-          <div className="absolute -bottom-1 left-1 right-1 h-0.5 bg-transparent rounded-full" />
+        <div className="flex items-center justify-between relative border-b-2 py-px border-accent-shadow">
 
-          {/* Logo and Title */}
+          {/* Logo and Title (Left) */}
           <button
             onClick={() => navigate('/')}
             onMouseEnter={handleLogoMouseEnter}
@@ -185,6 +183,18 @@ function Gallery() {
             <span>FRAGCODER</span>
           </button>
 
+          {/* Browse Shaders Title and Search Bar (Center) */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-4">
+            {/* <h1 className="text-title italic font-regular whitespace-nowrap">Browse</h1> */}
+            <div className="w-[400px]">
+              <SearchBar
+                searchTerm={searchTerm}
+                onSearchChange={handleSearchChange}
+                placeholder="Search shaders, authors..."
+              />
+            </div>
+          </div>
+
           {/* Right-side buttons */}
           <div className="flex items-center gap-2">
             <NewShaderButton onClick={() => navigate('/new')} />
@@ -199,27 +209,16 @@ function Gallery() {
         </div>
       </div>
 
-      {/* Search Area - Group 2 Animation */}
+      {/* Search Results Section - Group 2 Animation */}
       <div
-        className="w-[90vw] mx-auto px-8 py-6 flex-shrink-0"
+        className="w-full px-8 py-3 flex-shrink-0 border-b border-border"
         style={{
           animation: 'fadeInDown 0.6s ease-out forwards',
           opacity: 0,
           animationDelay: `${ANIMATION_BASE_DELAY + 400}ms`
         }}
       >
-        <h1 className="text-3xl font-bold mb-4">Browse Shaders</h1>
-
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          {/* Search Bar */}
-          <div className="w-full sm:max-w-md">
-            <SearchBar
-              searchTerm={searchTerm}
-              onSearchChange={handleSearchChange}
-              placeholder="Search shaders, authors..."
-            />
-          </div>
-
+        <div className="flex justify-between items-center">
           {/* Pagination Controls */}
           {totalPages > 1 && (
             <Pagination
@@ -228,20 +227,21 @@ function Gallery() {
               onPageChange={handlePageChange}
             />
           )}
-        </div>
+          {totalPages <= 1 && <div />}
 
-        {/* Results Count */}
-        {searchTerm && (
-          <p className="text-foreground-muted mt-3 text-sm">
-            Found {total} shader{total !== 1 ? 's' : ''}
-            {searchTerm && ` matching "${searchTerm}"`}
+          {/* Results Text */}
+          <p className="text-foreground-muted text-sm">
+            {searchTerm
+              ? `Found ${total} result${total !== 1 ? 's' : ''} for '${searchTerm}'`
+              : `Viewing all shaders (${total})`
+            }
           </p>
-        )}
+        </div>
       </div>
 
       {/* Results Container - Group 3 Animation, Fixed Height */}
       <div
-        className="w-[80vw] mx-auto px-8 pb-8 flex-1 overflow-hidden"
+        className="w-[90vw] mx-auto px-6 py-6 flex-1 overflow-hidden"
         style={{
           animation: 'fadeInDown 0.6s ease-out forwards',
           opacity: 0,

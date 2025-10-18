@@ -28,7 +28,6 @@ function HomePage() {
   const { user, signOut } = useAuth();
   const [isSignInDialogOpen, setIsSignInDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [isAtTop, setIsAtTop] = useState(true);
   const hasPlayedInitialAnimationRef = useRef(false);
 
   // Simulate initial page load
@@ -48,24 +47,6 @@ function HomePage() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Track scroll position to show/hide background logo
-  useEffect(() => {
-    const handleScroll = () => {
-      // Consider "top" as within 10px of the top
-      const atTop = window.scrollY < 10;
-      setIsAtTop(atTop);
-    };
-
-    // Set initial state
-    handleScroll();
-
-    // Add scroll listener
-    window.addEventListener('scroll', handleScroll);
-
-    // Cleanup
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
   // Ref to store Logo rotation function
   const logoRotateRef = useRef<((targetOffset: number) => void) | null>(null);
 
@@ -83,22 +64,20 @@ function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <div className="min-h-screen max-w-screen bg-background text-foreground flex flex-col overflow-hidden">
       {/* Professional Loading Screen */}
       <LoadingScreen isLoading={loading} />
 
-      {/* Background Logo with Glow Effect - Scroll-based Animation */}
+      {/* Background Logo with Glow Effect - Entrance Animation */}
       <div
-        className="fixed inset-0 pointer-events-none overflow-visible"
+        className="absolute inset-0 pointer-events-none overflow-clip"
         style={{
           zIndex: 0,
-          animation: !hasPlayedInitialAnimationRef.current && isAtTop
+          animation: !hasPlayedInitialAnimationRef.current
             ? `fadeInDownLarge 2.0s ease-in-out forwards`
-            : isAtTop
-              ? `fadeInDownLarge 1.0s ease-in-out forwards`
-              : `fadeOutUpLarge 0.75s ease-in-out forwards`,
-          animationDelay: !hasPlayedInitialAnimationRef.current && isAtTop ? `${ANIMATION_BASE_DELAY}ms` : '0ms',
-          opacity: !hasPlayedInitialAnimationRef.current && isAtTop ? 0 : undefined
+            : undefined,
+          animationDelay: !hasPlayedInitialAnimationRef.current ? `${ANIMATION_BASE_DELAY}ms` : '0ms',
+          opacity: !hasPlayedInitialAnimationRef.current ? 0 : 1
         }}
       >
         {/* Logo and glow container - all positioning controlled by BACKGROUND_LOGO_CONFIG */}
