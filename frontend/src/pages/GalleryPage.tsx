@@ -10,6 +10,7 @@ import Pagination from '../components/Pagination';
 import { LoadingScreen } from '../components/LoadingScreen';
 import { Logo } from '../components/Logo';
 import { UserMenu } from '../components/editor/UserMenu';
+import { NewShaderButton } from '../components/editor/NewShaderButton';
 import { useAuth } from '../AuthContext';
 import { SignInDialog } from '../components/auth/SignInDialog';
 
@@ -151,7 +152,7 @@ function Gallery() {
 
       {/* Header - Group 1 Animation */}
       <div
-        className="w-full bg-transparent px-2 py-0.5 relative flex-shrink-0"
+        className="w-full bg-transparent px-2 py-0.5 relative flex-shrink-0 "
         style={{
           animation: 'fadeInDown 0.6s ease-out forwards',
           opacity: 0,
@@ -159,7 +160,7 @@ function Gallery() {
           zIndex: 10
         }}
       >
-        <div className="flex items-center justify-between relative">
+        <div className="flex items-center justify-between relative border-b-2 border-accent-shadow">
           {/* Bottom border with rounded ends */}
           <div className="absolute -bottom-1 left-1 right-1 h-0.5 bg-transparent rounded-full" />
 
@@ -184,27 +185,30 @@ function Gallery() {
             <span>FRAGCODER</span>
           </button>
 
-          {/* User Menu */}
-          <UserMenu
-            isSignedIn={!!user}
-            username={user?.username}
-            userPicture={user?.picture || undefined}
-            onSignIn={() => setIsSignInDialogOpen(true)}
-            onSignOut={signOut}
-          />
+          {/* Right-side buttons */}
+          <div className="flex items-center gap-2">
+            <NewShaderButton onClick={() => navigate('/new')} />
+            <UserMenu
+              isSignedIn={!!user}
+              username={user?.username}
+              userPicture={user?.picture || undefined}
+              onSignIn={() => setIsSignInDialogOpen(true)}
+              onSignOut={signOut}
+            />
+          </div>
         </div>
       </div>
 
       {/* Search Area - Group 2 Animation */}
       <div
-        className="w-full px-8 py-6 flex-shrink-0"
+        className="w-[90vw] mx-auto px-8 py-6 flex-shrink-0"
         style={{
           animation: 'fadeInDown 0.6s ease-out forwards',
           opacity: 0,
           animationDelay: `${ANIMATION_BASE_DELAY + 400}ms`
         }}
       >
-        <h1 className="text-3xl font-bold mb-6">Shader Gallery</h1>
+        <h1 className="text-3xl font-bold mb-4">Browse Shaders</h1>
 
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           {/* Search Bar */}
@@ -237,14 +241,14 @@ function Gallery() {
 
       {/* Results Container - Group 3 Animation, Fixed Height */}
       <div
-        className="w-full px-8 pb-8 flex-1 overflow-hidden"
+        className="w-[80vw] mx-auto px-8 pb-8 flex-1 overflow-hidden"
         style={{
           animation: 'fadeInDown 0.6s ease-out forwards',
           opacity: 0,
           animationDelay: `${ANIMATION_BASE_DELAY + 800}ms`
         }}
       >
-        <div className="h-full overflow-y-auto">
+        <div className="h-full overflow-y-clip">
           <ShaderGrid shaders={shaders} />
         </div>
       </div>

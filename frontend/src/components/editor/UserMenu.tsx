@@ -24,12 +24,13 @@ export function UserMenu({
       <Button
         variant="ghost"
         size="sm"
-        className="h-auto px-2 py-1 text-large font-light text-foreground bg-transparent hover:text-accent hover:bg-transparent focus:outline-none"
+        className="h-auto px-2 py-1 text-large font-regular text-foreground bg-transparent hover:text-accent hover:bg-transparent focus:outline-none"
         style={{ outline: 'none', border: 'none' }}
         onClick={onSignIn}
       >
+
+        <span className="text-md">Sign In</span>
         <UserCircle className="w-4 h-4 mr-1" />
-        <span className="text-lg">Sign In</span>
       </Button>
     );
   }
@@ -58,11 +59,11 @@ export function UserMenu({
       <Button
         variant="ghost"
         size="sm"
-        className="h-auto px-2 py-1 text-large font-light text-foreground bg-transparent hover:text-accent hover:bg-transparent focus:outline-none"
+        className="h-auto  px-2 py-1 text-large font-regular text-foreground bg-transparent hover:text-accent hover:bg-transparent focus:outline-none"
         style={{ outline: 'none', border: 'none' }}
       >
         <div className="flex items-center gap-2">
-          <span className="text-lg">{username}</span>
+          <span className="text-md">{username}</span>
           {userPicture ? (
             <img
               src={userPicture}
@@ -70,7 +71,7 @@ export function UserMenu({
               className="w-6 h-6 rounded-full"
             />
           ) : (
-            <UserCircle className="w-5 h-5" />
+            <UserCircle className="!w-4 !h-4" />
           )}
 
         </div>

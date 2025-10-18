@@ -205,7 +205,7 @@ function HomePage() {
             </h1>
 
             {/* Description */}
-            <p className="text-xl md:text-2xl text-foreground max-w-2xl mx-auto leading-relaxed">
+            <p className="text-xl italic md:text-2xl text-foreground-muted max-w-2xl mx-auto leading-relaxed">
               Create, edit, and share stunning GLSL fragment shaders with live WebGL rendering.
               Inspired by Shadertoy, built for creators.
             </p>
@@ -214,13 +214,13 @@ function HomePage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-8">
               <Button
                 onClick={() => navigate('/gallery')}
-                className="w-full sm:w-56 px-12 py-6 text-xl bg-accent-shadow hover:bg-accent-highlighted text-accent-foreground font-medium hover:font-extrabold rounded-md transition-colors"
+                className="w-full sm:w-56 px-12 py-6 text-xl  border-accent hover:border-accent-highlighted bg-accent-shadow hover:bg-accent-highlighted text-accent-highlighted hover:text-background font-medium hover:font-extrabold rounded-md transition-colors"
               >
                 Browse Shaders
               </Button>
               <Button
                 onClick={() => navigate('/new')}
-                className="w-full sm:w-56 px-12 py-6 text-xl bg-accent hover:bg-accent-highlighted hover:text-foreground-highlighted text-foreground font-medium hover:font-extrabold rounded-md transition-colors"
+                className="w-full sm:w-56 px-12 py-6 text-xl border-accent-highlighted  bg-accent hover:bg-accent-highlighted hover:text-foreground-highlighted text-foreground font-medium hover:font-extrabold rounded-md transition-colors"
               >
                 Create
               </Button>
