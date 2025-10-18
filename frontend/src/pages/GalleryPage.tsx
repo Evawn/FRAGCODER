@@ -183,16 +183,9 @@ function Gallery() {
             <span>FRAGCODER</span>
           </button>
 
-          {/* Browse Shaders Title and Search Bar (Center) */}
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-4">
-            {/* <h1 className="text-title italic font-regular whitespace-nowrap">Browse</h1> */}
-            <div className="w-[400px]">
-              <SearchBar
-                searchTerm={searchTerm}
-                onSearchChange={handleSearchChange}
-                placeholder="Search shaders, authors..."
-              />
-            </div>
+          {/* Center Title (optional - currently empty) */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            {/* Reserved for future center content */}
           </div>
 
           {/* Right-side buttons */}
@@ -211,31 +204,45 @@ function Gallery() {
 
       {/* Search Results Section - Group 2 Animation */}
       <div
-        className="w-full px-8 py-3 flex-shrink-0 border-b border-border"
+        className="w-full px-8 py-2 flex-shrink-0"
         style={{
           animation: 'fadeInDown 0.6s ease-out forwards',
           opacity: 0,
           animationDelay: `${ANIMATION_BASE_DELAY + 400}ms`
         }}
       >
-        <div className="flex justify-between items-center">
-          {/* Pagination Controls */}
-          {totalPages > 1 && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Search Bar */}
+          <div className="w-[400px]">
+            <SearchBar
+              searchTerm={searchTerm}
+              onSearchChange={handleSearchChange}
+              placeholder="Search shaders, authors..."
             />
-          )}
-          {totalPages <= 1 && <div />}
+          </div>
 
-          {/* Results Text */}
-          <p className="text-foreground-muted text-sm">
-            {searchTerm
-              ? `Found ${total} result${total !== 1 ? 's' : ''} for '${searchTerm}'`
-              : `Viewing all shaders (${total})`
-            }
-          </p>
+          {/* Results Text and Pagination Group (wraps together as a unit) */}
+          <div className="flex items-center gap-4 flex-1 min-w-[400px]">
+            {/* Results Text */}
+            <p className="text-foreground-muted italic font-normal text-xs whitespace-nowrap">
+              {searchTerm
+                ? `Found ${total} result${total !== 1 ? 's' : ''} for '${searchTerm}'`
+                : `Viewing all shaders (${total})`
+              }
+            </p>
+
+            {/* Spacer to push pagination to the right */}
+            <div className="flex-1" />
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
+            )}
+          </div>
         </div>
       </div>
 
