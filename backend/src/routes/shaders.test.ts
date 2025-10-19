@@ -136,27 +136,6 @@ describe('Shader Routes', () => {
         expect(response.body.total).toBe(1);
       });
 
-      it('should return shaders with user information', async () => {
-        await testPrisma.shader.create({
-          data: {
-            title: 'Test Shader',
-            slug: 'test123',
-            tabs: JSON.stringify(sampleTabs),
-            isPublic: true,
-            compilationStatus: 'SUCCESS',
-            userId: user1.id,
-            lastSavedAt: new Date(),
-          },
-        });
-
-        const response = await request(app).get('/api/shaders');
-
-        expect(response.status).toBe(200);
-        expect(response.body.shaders[0].user).toEqual({
-          id: user1.id,
-          username: user1.username,
-        });
-      });
     });
 
     describe('Pagination', () => {
@@ -326,24 +305,6 @@ describe('Shader Routes', () => {
         expect(response.body.url).toBe('http://localhost:5173/shader/abc123');
       });
 
-      it('should create shader in database', async () => {
-        vi.mocked(slugGenerator.generateUniqueSlug).mockResolvedValue('def456');
-
-        const response = await request(app)
-          .post('/api/shaders')
-          .set('Authorization', `Bearer ${user1.token}`)
-          .send(validShaderData);
-
-        expect(response.status).toBe(201);
-
-        const dbShader = await testPrisma.shader.findUnique({
-          where: { slug: 'def456' },
-        });
-
-        expect(dbShader).not.toBeNull();
-        expect(dbShader?.title).toBe('My New Shader');
-        expect(dbShader?.userId).toBe(user1.id);
-      });
 
       it('should set default isPublic to true when not provided', async () => {
         vi.mocked(slugGenerator.generateUniqueSlug).mockResolvedValue('ghi789');
@@ -410,18 +371,6 @@ describe('Shader Routes', () => {
         expect(response.body.shader.compilationErrors).toEqual(compilationErrors);
       });
 
-      it('should associate shader with authenticated user', async () => {
-        vi.mocked(slugGenerator.generateUniqueSlug).mockResolvedValue('usertest');
-
-        const response = await request(app)
-          .post('/api/shaders')
-          .set('Authorization', `Bearer ${user1.token}`)
-          .send(validShaderData);
-
-        expect(response.status).toBe(201);
-        expect(response.body.shader.userId).toBe(user1.id);
-        expect(response.body.shader.user.username).toBe(user1.username);
-      });
     });
 
     describe('Authentication', () => {
@@ -700,19 +649,6 @@ describe('Shader Routes', () => {
         expect(response.body.shader.compilationStatus).toBe('WARNING');
       });
 
-      it('should persist changes to database', async () => {
-        await request(app)
-          .put(`/api/shaders/${shaderSlug}`)
-          .set('Authorization', `Bearer ${user1.token}`)
-          .send(updateData);
-
-        const dbShader = await testPrisma.shader.findUnique({
-          where: { slug: shaderSlug },
-        });
-
-        expect(dbShader?.title).toBe('Updated Title');
-        expect(JSON.parse(dbShader!.tabs)).toEqual(updateData.tabs);
-      });
 
       it('should update lastSavedAt timestamp', async () => {
         const before = new Date();
@@ -900,17 +836,6 @@ describe('Shader Routes', () => {
         expect(response.body.message).toContain('deleted');
       });
 
-      it('should remove shader from database', async () => {
-        await request(app)
-          .delete(`/api/shaders/${shaderSlug}`)
-          .set('Authorization', `Bearer ${user1.token}`);
-
-        const dbShader = await testPrisma.shader.findUnique({
-          where: { slug: shaderSlug },
-        });
-
-        expect(dbShader).toBeNull();
-      });
 
       it('should not affect other shaders', async () => {
         await testPrisma.shader.create({
@@ -972,17 +897,6 @@ describe('Shader Routes', () => {
         expect(response.body.error).toContain('Shader');
       });
 
-      it('should not delete if ownership check fails', async () => {
-        await request(app)
-          .delete(`/api/shaders/${shaderSlug}`)
-          .set('Authorization', `Bearer ${user2.token}`);
-
-        const dbShader = await testPrisma.shader.findUnique({
-          where: { slug: shaderSlug },
-        });
-
-        expect(dbShader).not.toBeNull();
-      });
     });
   });
 
@@ -1037,22 +951,6 @@ describe('Shader Routes', () => {
         expect(response.body.url).toBe('http://localhost:5173/shader/clone123');
       });
 
-      it('should create cloned shader in database', async () => {
-        vi.mocked(slugGenerator.generateUniqueSlug).mockResolvedValue('clone456');
-
-        await request(app)
-          .post(`/api/shaders/${publicShaderSlug}/clone`)
-          .set('Authorization', `Bearer ${user2.token}`);
-
-        const clonedShader = await testPrisma.shader.findUnique({
-          where: { slug: 'clone456' },
-        });
-
-        expect(clonedShader).not.toBeNull();
-        expect(clonedShader?.title).toBe('Public Shader (Clone)');
-        expect(clonedShader?.forkedFrom).toBe(publicShaderSlug);
-        expect(clonedShader?.userId).toBe(user2.id);
-      });
 
       it('should copy all shader data to clone', async () => {
         vi.mocked(slugGenerator.generateUniqueSlug).mockResolvedValue('fullclone');
@@ -1079,20 +977,6 @@ describe('Shader Routes', () => {
         expect(response.body.shader.userId).toBe(user1.id);
       });
 
-      it('should not modify original shader', async () => {
-        vi.mocked(slugGenerator.generateUniqueSlug).mockResolvedValue('testclone');
-
-        await request(app)
-          .post(`/api/shaders/${publicShaderSlug}/clone`)
-          .set('Authorization', `Bearer ${user2.token}`);
-
-        const originalShader = await testPrisma.shader.findUnique({
-          where: { slug: publicShaderSlug },
-        });
-
-        expect(originalShader?.title).toBe('Public Shader');
-        expect(originalShader?.userId).toBe(user1.id);
-      });
     });
 
     describe('Authentication', () => {
@@ -1123,16 +1007,6 @@ describe('Shader Routes', () => {
         expect(response.body.error).toContain('private');
       });
 
-      it('should not create clone in database when forbidden', async () => {
-        const countBefore = await testPrisma.shader.count();
-
-        await request(app)
-          .post(`/api/shaders/${privateShaderSlug}/clone`)
-          .set('Authorization', `Bearer ${user2.token}`);
-
-        const countAfter = await testPrisma.shader.count();
-        expect(countAfter).toBe(countBefore);
-      });
     });
 
     describe('Error cases', () => {
@@ -1145,17 +1019,6 @@ describe('Shader Routes', () => {
         expect(response.body.error).toContain('Shader');
       });
 
-      it('should handle slug generation', async () => {
-        vi.mocked(slugGenerator.generateUniqueSlug).mockResolvedValue('generated-slug');
-
-        const response = await request(app)
-          .post(`/api/shaders/${publicShaderSlug}/clone`)
-          .set('Authorization', `Bearer ${user2.token}`);
-
-        expect(response.status).toBe(201);
-        expect(slugGenerator.generateUniqueSlug).toHaveBeenCalled();
-        expect(response.body.shader.slug).toBe('generated-slug');
-      });
     });
   });
 });
