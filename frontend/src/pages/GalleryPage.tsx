@@ -74,7 +74,7 @@ function Gallery() {
 
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: '20',
+        limit: '12',
         ...(search && { search })
       });
 
