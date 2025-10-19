@@ -1,8 +1,9 @@
 // Minimal shader card with 4:3 thumbnail and thin title footer
-// Features: Client-side rendered thumbnail, pulsing loading animation, crisp shadow styling
+// Features: Client-side rendered thumbnail, pulsing loading animation, crisp shadow styling, hover overlay with author and fork icon
 
 import { Link } from 'react-router-dom';
 import { useState, useRef } from 'react';
+import { GitBranchPlus } from 'lucide-react';
 
 interface ShaderCardProps {
   id: string;
@@ -10,9 +11,11 @@ interface ShaderCardProps {
   slug: string;
   thumbnailDataURL?: string | null;
   isLoading?: boolean;
+  author?: string;
+  isForked?: boolean;
 }
 
-function ShaderCard({ id, title, slug, thumbnailDataURL, isLoading = false }: ShaderCardProps) {
+function ShaderCard({ id, title, slug, thumbnailDataURL, isLoading = false, author, isForked = false }: ShaderCardProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const currentThumbnailRef = useRef<string | null | undefined>(thumbnailDataURL);
 
@@ -40,15 +43,14 @@ function ShaderCard({ id, title, slug, thumbnailDataURL, isLoading = false }: Sh
       }}
     >
       {/* 4:3 Thumbnail Section */}
-      <div className="aspect-[4/3] bg-surface-sunken relative overflow-hidden">
+      <div className="aspect-[4/3] bg-surface-sunken relative overflow-hidden group">
         {thumbnailDataURL && !isLoading ? (
           <img
             key={thumbnailDataURL}
             src={thumbnailDataURL}
             alt={title}
-            className={`w-full h-full object-cover transition-opacity duration-300 ${
-              imageLoaded ? 'opacity-100' : 'opacity-0'
-            }`}
+            className={`w-full h-full object-cover transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'
+              }`}
             onLoad={handleImageLoad}
             onError={handleImageError}
           />
@@ -82,11 +84,30 @@ function ShaderCard({ id, title, slug, thumbnailDataURL, isLoading = false }: Sh
             </svg>
           </div>
         )}
+
+        {/* Hover overlay with author and fork icon */}
+        {(author || isForked) && (
+          <div className="absolute top-0 left-0 right-0 h-1/8 bg-gradient-to-b from-black/15 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none">
+            <div className="p-2 flex items-start justify-between">
+              {/* Author text in top-left */}
+              {author && (
+                <span className="text-xs text-white/90 font-normal">
+                  by: {author}
+                </span>
+              )}
+
+              {/* Fork icon in top-right */}
+              {isForked && (
+                <GitBranchPlus className="w-4 h-4 text-white/90" />
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Thin Footer with Title */}
-      <div className="bg-card-bg px-3 py-2 border-t border-card-border">
-        <h3 className="text-sm font-medium text-foreground truncate">
+      <div className="bg-background-header px-3 py-2">
+        <h3 className="text-sm font-normal text-foreground truncate">
           {title}
         </h3>
       </div>

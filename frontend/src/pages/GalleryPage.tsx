@@ -48,11 +48,13 @@ function Gallery() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [shaders, setShaders] = useState<Shader[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [inputValue, setInputValue] = useState(''); // What user is typing
+  const [searchTerm, setSearchTerm] = useState(''); // Committed search term
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [isPaginationTransition, setIsPaginationTransition] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSignInDialogOpen, setIsSignInDialogOpen] = useState(false);
 
@@ -72,7 +74,7 @@ function Gallery() {
 
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: '8',
+        limit: '20',
         ...(search && { search })
       });
 
@@ -92,6 +94,7 @@ function Gallery() {
       console.error('Error fetching shaders:', err);
     } finally {
       setLoading(false);
+      setIsPaginationTransition(false);
     }
   }, []);
 
@@ -142,21 +145,18 @@ function Gallery() {
     fetchShaders(1, '');
   }, [fetchShaders]);
 
-  // Handle search change with debounce
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      // Reset to page 1 when search term changes
-      fetchShaders(1, searchTerm);
-    }, 300); // 300ms debounce
+  const handleInputChange = (value: string) => {
+    setInputValue(value);
+  };
 
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm, fetchShaders]);
-
-  const handleSearchChange = (value: string) => {
-    setSearchTerm(value);
+  const handleSearchSubmit = () => {
+    // Update search term and fetch results (resets to page 1)
+    setSearchTerm(inputValue);
+    fetchShaders(1, inputValue);
   };
 
   const handlePageChange = (page: number) => {
+    setIsPaginationTransition(true);
     fetchShaders(page, searchTerm);
     // Scroll to top of results
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -195,15 +195,34 @@ function Gallery() {
   }
 
   return (
-    <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden py-0">
-      {/* Professional Loading Screen */}
-      <LoadingScreen isLoading={loading} />
+    <div className="h-screen bg-background text-foreground flex flex-col overflow-x-visible overflow-y-hidden py-0">
+      {/* Background Glow Gradient - Fixed to bottom */}
+      <div
+        className="fixed top-[-75vw] left-1/2 -translate-x-1/2 pointer-events-none"
+        style={{
+          zIndex: 0,
+          width: '95vw',
+          aspectRatio: '1',
+        }}
+      >
+        {/* Static glow gradient */}
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full"
+          style={{
+            background: 'radial-gradient(circle, hsla(38, 92%, 50%, 0.5) 0%, transparent 70%)',
+            filter: 'blur(400px)',
+          }}
+        />
+      </div>
+
+      {/* Professional Loading Screen - only show for initial load, not pagination */}
+      <LoadingScreen isLoading={loading && !isPaginationTransition} />
 
       {/* Header - Group 1 Animation */}
       <div
         className="w-full bg-background-header px-0 py-0 relative flex-shrink-0"
         style={{
-          animation: 'fadeInDown 0.6s ease-out forwards',
+          animation: 'fadeInDown 0.4s ease-out forwards',
           opacity: 0,
           animationDelay: `${ANIMATION_BASE_DELAY + 0}ms`,
           zIndex: 10
@@ -255,60 +274,62 @@ function Gallery() {
       <div
         className="w-[90vw] mx-auto py-4  flex-shrink-0"
         style={{
-          animation: 'fadeInDown 0.6s ease-out forwards',
+          animation: 'fadeInDown 0.4s ease-out forwards',
           opacity: 0,
-          animationDelay: `${ANIMATION_BASE_DELAY + 400}ms`
+          animationDelay: `${ANIMATION_BASE_DELAY + 200}ms`
         }}
       >
         <div className="flex flex-wrap items-center gap-4">
           {/* Search Bar */}
-          <div className="w-[400px]">
+          <div className="w-full md:w-[400px]">
             <SearchBar
-              searchTerm={searchTerm}
-              onSearchChange={handleSearchChange}
+              inputValue={inputValue}
+              onInputChange={handleInputChange}
+              onSearchSubmit={handleSearchSubmit}
               placeholder="Search shaders, authors..."
             />
           </div>
 
-          {/* Results Text and Pagination Group (wraps together as a unit) */}
-          <div className="flex items-center gap-4 flex-1 min-w-[400px]">
+          {/* Results Text and Pagination Group (wraps on mobile) */}
+          <div className="flex flex-wrap items-center gap-4 flex-1 w-full md:w-auto">
             {/* Results Text */}
-            <p className="text-foreground-muted italic font-normal text-xs whitespace-nowrap">
+            <p className="text-foreground-muted italic font-normal text-xs">
               {searchTerm
-                ? `Found ${total} result${total !== 1 ? 's' : ''} for '${searchTerm}'`
-                : `Viewing all shaders (${total})`
+                ? `Viewing ${shaders.length} / ${total} results for '${searchTerm}'`
+                : `Viewing ${shaders.length} / ${total} shaders`
               }
             </p>
 
-            {/* Spacer to push pagination to the right */}
-            <div className="flex-1" />
+            {/* Spacer to push pagination to the right on desktop */}
+            <div className="hidden md:flex flex-1" />
 
             {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
-              />
-            )}
+
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+            />
+
           </div>
         </div>
       </div>
 
       {/* Results Container - Group 3 Animation, Fixed Height */}
       <div
-        className="w-[90vw] mx-auto p-4 flex-1 overflow-visible"
+        className="w-[90vw] mx-auto p-0 flex-1 overflow-y-auto hide-scrollbar"
         style={{
           animation: 'fadeInDown 0.6s ease-out forwards',
           opacity: 0,
-          animationDelay: `${ANIMATION_BASE_DELAY + 800}ms`
+          animationDelay: `${ANIMATION_BASE_DELAY + 400}ms`
         }}
       >
-        <div className="h-full overflow-y-visible">
+        <div className="h-full">
           <ShaderGrid
             shaders={shaders}
             thumbnails={thumbnails}
             loadingThumbnails={loadingThumbnails}
+            currentPage={currentPage}
           />
         </div>
       </div>
