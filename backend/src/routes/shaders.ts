@@ -279,7 +279,28 @@ router.get('/:slug', async (req, res): Promise<any> => {
 
     // Check if shader is public or user has access
     if (!shader.isPublic) {
-      // TODO: Implement proper authorization check
+      // Get user from token if available (optional authentication)
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+
+      if (token) {
+        const { verifyToken } = await import('../utils/jwt');
+        const payload = verifyToken(token);
+
+        // Allow access if user is the owner
+        if (payload && payload.userId === shader.userId) {
+          return res.json({
+            shader: {
+              ...shader,
+              tabs: JSON.parse(shader.tabs),
+              compilationErrors: shader.compilationErrors
+                ? JSON.parse(shader.compilationErrors)
+                : null,
+            },
+          });
+        }
+      }
+
       return res.status(403).json({ error: 'This shader is private' });
     }
 
@@ -470,6 +491,7 @@ router.post('/:slug/clone', authenticateToken, async (req, res): Promise<any> =>
         isPublic: true,
         compilationStatus: true,
         compilationErrors: true,
+        userId: true,
       }
     });
 
@@ -477,9 +499,8 @@ router.post('/:slug/clone', authenticateToken, async (req, res): Promise<any> =>
       return res.status(404).json({ error: 'Shader not found' });
     }
 
-    // Check if shader is public (or user has access)
-    if (!originalShader.isPublic) {
-      // TODO: Allow cloning private shaders if user has access
+    // Check if shader is public or user is the owner
+    if (!originalShader.isPublic && originalShader.userId !== req.user!.id) {
       return res.status(403).json({ error: 'This shader is private and cannot be cloned' });
     }
 
