@@ -1,11 +1,10 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../db';
 import { verifyGoogleToken } from '../utils/googleAuth';
 import { generateToken } from '../utils/jwt';
 import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 /**
  * POST /api/auth/google

@@ -1,10 +1,10 @@
 import express from 'express';
-import { PrismaClient, CompilationStatus } from '@prisma/client';
+import { CompilationStatus } from '@prisma/client';
+import { prisma } from '../db';
 import { authenticateToken } from '../middleware/auth';
 import { generateUniqueSlug } from '../utils/slugGenerator';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 /**
  * GET /api/shaders

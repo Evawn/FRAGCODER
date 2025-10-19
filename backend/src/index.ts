@@ -1,14 +1,13 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from './db';
 import authRoutes from './routes/auth';
 import shaderRoutes from './routes/shaders';
 
 dotenv.config();
 
 const app = express();
-const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3001;
 
 // Configure CORS for security
@@ -25,12 +24,12 @@ app.use('/api/auth', authRoutes);
 app.use('/api/shaders', shaderRoutes);
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
     res.json({ status: 'OK' });
 });
 
 // Database connection test endpoint
-app.get('/db-test', async (req, res) => {
+app.get('/db-test', async (_req, res) => {
     try {
         await prisma.$connect();
         res.json({ database: 'Connected successfully!' });

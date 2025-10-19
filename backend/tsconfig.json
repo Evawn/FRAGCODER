@@ -23,10 +23,10 @@
     "sourceMap": true,                     // Enable debugging
     "noImplicitReturns": true,            // All code paths must return
     "noFallthroughCasesInSwitch": true,   // Prevent switch fallthrough bugs
-    
-    // Optional Strictness (uncomment if desired)
-    // "noUnusedLocals": true,             // Error on unused variables
-    // "noUnusedParameters": true,         // Error on unused parameters
+
+    // Strictness
+    "noUnusedLocals": true,               // Error on unused variables
+    "noUnusedParameters": true,           // Error on unused parameters
     
     // For Prisma compatibility
     "experimentalDecorators": true,        // If using decorators
