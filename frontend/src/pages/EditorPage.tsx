@@ -1,50 +1,31 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+// Main editor page component - manages UI layout and WebGL rendering
+// Business logic for editor state is handled by useEditorState hook
+
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '../components/ui/resizable';
 import ShaderEditor from '../components/editor/ShaderEditor';
 import ShaderPlayer from '../components/ShaderPlayer';
-import type { CompilationError, Tab, ShaderData } from '../types';
+import type { CompilationError } from '../types';
 import { useAuth } from '../AuthContext';
 import { useWebGLRenderer } from '../hooks/useWebGLRenderer';
-import { useDialogManager } from '../hooks/useDialogManager';
+import { useEditorState } from '../hooks/useEditorState';
 import { SignInDialog } from '../components/auth/SignInDialog';
 import { SaveAsDialog } from '../components/editor/SaveAsDialog';
 import { RenameDialog } from '../components/editor/RenameDialog';
 import { DeleteShaderDialog } from '../components/editor/DeleteShaderDialog';
 import { CloneDialog } from '../components/editor/CloneDialog';
-import { DEFAULT_SHADER_CODES, getDefaultCode } from '../utils/defaultShaderCode';
-import {
-  getShaderBySlug,
-  updateShader,
-  saveShader,
-  cloneShader,
-  deleteShader,
-} from '../api/shaders';
-import {
-  determineCompilationStatus,
-  apiShaderToShaderData,
-  tabsToTabData,
-  apiTabsToLocalTabs,
-  distributeErrorsToTabs,
-  calculatePanelMinSize,
-  showErrorAlert,
-  sortTabsByCanonicalOrder,
-} from '../utils/editorPageHelpers';
+import { calculatePanelMinSize } from '../utils/editorPageHelpers';
 import { Logo } from '../components/Logo';
 import { LoadingScreen } from '../components/LoadingScreen';
 
 function EditorPage() {
   const navigate = useNavigate();
   const { slug } = useParams<{ slug: string }>();
-  const { user, token, signOut } = useAuth();
-  const [shaderUrl, setShaderUrl] = useState<string | null>(slug || null);
+  const { user, signOut } = useAuth();
 
-  const [shader, setShader] = useState<ShaderData | null>(null);
+  // UI state (not editor state)
   const [isPlaying, setIsPlaying] = useState(true);
-  const [compilationErrors, setCompilationErrors] = useState<CompilationError[]>([]);
-  const [compilationSuccess, setCompilationSuccess] = useState<boolean | undefined>(undefined);
-  const [compilationTime, setCompilationTime] = useState<number>(0);
-  const [loading, setLoading] = useState(false);
   const [leftPanelMinSize, setLeftPanelMinSize] = useState(30);
 
   // Resize state tracking for optimization
@@ -59,34 +40,19 @@ function EditorPage() {
   // Ref to store Logo rotation function
   const logoRotateRef = useRef<((targetOffset: number) => void) | null>(null);
 
-  // Tab management state (moved from ShaderEditor)
-  const [tabs, setTabs] = useState<Tab[]>([
-    { id: '1', name: 'Image', code: DEFAULT_SHADER_CODES.Image, isDeletable: false, errors: [] }
-  ]);
-  const [activeTabId, setActiveTabId] = useState('1');
+  // Auto-play callback - called when compilation succeeds
+  const handleAutoPlay = useCallback(() => {
+    setIsPlaying(true);
+  }, []);
 
-  // Dialog management (simplified with custom hook)
-  const dialogManager = useDialogManager();
+  // Ref to store the compilation result handler
+  // This allows us to pass it to useWebGLRenderer before editorState is created
+  const compilationResultHandlerRef = useRef<((success: boolean, errors: CompilationError[], compilationTime: number) => void) | null>(null);
 
-  // Local shader title (moved from ShaderEditor)
-  const [localShaderTitle, setLocalShaderTitle] = useState(shader?.title || 'Untitled...');
-
-  // Calculate whether current user owns the shader
-  const isOwner = useMemo(() => {
-    return !!(user && shader && user.id === shader.userId);
-  }, [user, shader]);
-
-  // Handle compilation results
-  const handleCompilationResult = useCallback((success: boolean, errors: CompilationError[], compilationTime: number) => {
-    console.log('Compilation result:', success ? 'success' : 'failed', errors, `${compilationTime}ms`);
-    setCompilationErrors(errors);
-    setCompilationSuccess(success);
-    setCompilationTime(compilationTime);
-
-    // Auto-play when compilation succeeds
-    if (success) {
-      setIsPlaying(true);
-    }
+  // Stable proxy callback to avoid recreating on every render
+  const handleCompilationResultProxy = useCallback((success: boolean, errors: CompilationError[], time: number) => {
+    // Call the handler from editorState via ref
+    compilationResultHandlerRef.current?.(success, errors, time);
   }, []);
 
   // Initialize WebGL renderer with imperative controls
@@ -104,58 +70,18 @@ function EditorPage() {
     fps,
     resolution
   } = useWebGLRenderer({
-    onCompilationResult: handleCompilationResult
+    onCompilationResult: handleCompilationResultProxy
   });
 
-  useEffect(() => {
-    if (slug) {
-      loadShader(slug);
-    } else {
-      // No slug means new shader - reset to defaults
-      setShaderUrl(null);
-      setShader(null);
-      const defaultTabs = [{ id: '1', name: 'Image', code: DEFAULT_SHADER_CODES.Image, isDeletable: false, errors: [] }];
-      setTabs(defaultTabs);
+  // Initialize editor state with custom hook
+  const editorState = useEditorState({
+    slug,
+    onCompile: rendererCompile,
+    onAutoPlay: handleAutoPlay,
+  });
 
-      // Show loading screen and trigger compilation for default shader
-      setLoading(true);
-      setTimeout(() => {
-        const tabsData = tabsToTabData(defaultTabs);
-        rendererCompile(tabsData);
-        setLoading(false);
-      }, 0);
-    }
-  }, [slug, rendererCompile]);
-
-  const loadShader = async (slug: string) => {
-    setLoading(true);
-    try {
-      // Fetch shader data from backend
-      const apiShader = await getShaderBySlug(slug);
-
-      // Convert API Shader format to ShaderData format for ShaderEditor
-      setShader(apiShaderToShaderData(apiShader));
-
-      // Load tabs from shader data and sort them in canonical order
-      const loadedTabs = apiTabsToLocalTabs(apiShader.tabs);
-      setTabs(sortTabsByCanonicalOrder(loadedTabs));
-
-      // Trigger compilation after loading (using imperative method)
-      const tabsData = tabsToTabData(loadedTabs);
-      rendererCompile(tabsData);
-
-      // Set URL to indicate this is a saved shader
-      setShaderUrl(slug);
-
-    } catch (error) {
-      console.error('Error loading shader:', error);
-      alert('Failed to load shader. It may not exist or may be private.');
-      // Navigate back to new shader page on error
-      navigate('/new');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Update the ref with editorState's handler
+  compilationResultHandlerRef.current = editorState.handleCompilationResult;
 
   const handlePanelResize = useCallback(() => {
     // Clear any existing timeout
@@ -179,12 +105,12 @@ function EditorPage() {
       // Recreate WebGL pipeline with new resolution
       rendererUpdateViewport();
       // Resume rendering if it was playing before
-      if (playStateBeforeResizeRef.current && compilationSuccess) {
+      if (playStateBeforeResizeRef.current && editorState.compilationSuccess) {
         rendererPlay();
         setIsPlaying(true);
       }
     }, 150);
-  }, [isResizing, isPlaying, rendererPause, rendererUpdateViewport, rendererPlay, compilationSuccess]);
+  }, [isResizing, isPlaying, rendererPause, rendererUpdateViewport, rendererPlay, editorState.compilationSuccess]);
 
   const handleResolutionLockChange = useCallback((locked: boolean, resolution?: { width: number; height: number }, minWidth?: number) => {
     // Update renderer resolution lock
@@ -193,242 +119,6 @@ function EditorPage() {
     // Update panel minimum size
     setLeftPanelMinSize(calculatePanelMinSize(locked, minWidth));
   }, [rendererSetResolutionLock]);
-
-  // Sync local shader title with shader prop
-  useEffect(() => {
-    if (shader?.title) {
-      setLocalShaderTitle(shader.title);
-    }
-  }, [shader?.title]);
-
-  // Update tabs with incoming compilation errors and maintain sort order
-  useEffect(() => {
-    setTabs(prevTabs => sortTabsByCanonicalOrder(distributeErrorsToTabs(prevTabs, compilationErrors)));
-  }, [compilationErrors]);
-
-  // Tab management handlers (moved from ShaderEditor)
-  const handleAddTab = useCallback((name: string) => {
-    // Prevent duplicate tabs - check if tab with this name already exists
-    const tabExists = tabs.some(tab => tab.name === name);
-    if (tabExists) {
-      console.warn(`Tab "${name}" already exists. Skipping creation.`);
-      return;
-    }
-
-    const newTab: Tab = {
-      id: Date.now().toString(),
-      name,
-      code: getDefaultCode(name),
-      isDeletable: true,
-      errors: []
-    };
-    setTabs(prev => sortTabsByCanonicalOrder([...prev, newTab]));
-    setActiveTabId(newTab.id);
-  }, [tabs]);
-
-  const handleDeleteTab = useCallback((tabId: string) => {
-    setTabs(prev => {
-      const filtered = prev.filter(tab => tab.id !== tabId);
-      // If deleting active tab, switch to first tab
-      if (activeTabId === tabId) {
-        setActiveTabId(filtered[0].id);
-      }
-      return filtered;
-    });
-  }, [activeTabId]);
-
-  const handleCodeChange = useCallback((newCode: string, tabId: string) => {
-    setTabs(prevTabs => prevTabs.map(tab =>
-      tab.id === tabId ? { ...tab, code: newCode } : tab
-    ));
-  }, []);
-
-  const handleCompile = useCallback(() => {
-    // Convert tabs to TabShaderData format and compile imperatively
-    const tabsData = tabsToTabData(tabs);
-    rendererCompile(tabsData);
-  }, [tabs, rendererCompile]);
-
-  // Business logic handlers (moved from ShaderEditor)
-  const handleSaveAsClick = useCallback(() => {
-    if (!user) {
-      // Not signed in - show sign in dialog first, then save as dialog after sign-in
-      dialogManager.openSignIn(() => dialogManager.openSaveAs());
-    } else {
-      // Already signed in - show save as dialog directly
-      dialogManager.openSaveAs();
-    }
-  }, [user, dialogManager]);
-
-  const handleSave = useCallback(async (titleOverride?: string) => {
-    try {
-      console.log('Saving shader...');
-
-      // Check if we have a shader and slug
-      if (!shader || !slug) {
-        throw new Error('No shader to save');
-      }
-
-      // Check if user is authenticated
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
-      // Always trigger compilation before saving
-      handleCompile();
-
-      // Wait for compilation to complete
-      await new Promise(resolve => setTimeout(resolve, 150));
-
-      // Determine compilation status
-      const status = determineCompilationStatus(compilationSuccess, compilationErrors);
-
-      // Prepare tabs data and update data
-      const tabsData = tabsToTabData(tabs);
-      const updateData = {
-        name: titleOverride ?? localShaderTitle,
-        tabs: tabsData,
-        compilationStatus: status,
-      };
-
-      // Save via API
-      await updateShader(slug, updateData, token);
-      console.log('Shader saved successfully!');
-
-    } catch (error) {
-      console.error('Failed to save shader:', error);
-      showErrorAlert(error, 'save shader');
-    }
-  }, [shader, slug, token, handleCompile, compilationSuccess, compilationErrors, localShaderTitle, tabs]);
-
-  const handleRenameShader = useCallback(async (newName: string) => {
-    // Update local title immediately (for UI)
-    setLocalShaderTitle(newName);
-
-    // Trigger save with the new name directly (to avoid async state issues)
-    await handleSave(newName);
-  }, [handleSave]);
-
-  const handleCloneClick = useCallback(() => {
-    if (!user) {
-      // Not signed in - show sign in dialog first, then clone dialog after sign-in
-      dialogManager.openSignIn(() => dialogManager.openClone());
-    } else {
-      // Already signed in - show clone dialog directly
-      dialogManager.openClone();
-    }
-  }, [user, dialogManager]);
-
-  const handleCloneShader = useCallback(async () => {
-    try {
-      console.log('Cloning shader...');
-
-      // Check if we have a shader and slug
-      if (!shader || !slug) {
-        throw new Error('No shader to clone');
-      }
-
-      // Check if user is authenticated
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
-      // Clone via API
-      const response = await cloneShader(slug, token);
-      console.log('Shader cloned successfully!', response);
-
-      // Navigate to the cloned shader's URL
-      const clonedSlug = response.shader.slug;
-      navigate(`/shader/${clonedSlug}`);
-
-    } catch (error) {
-      console.error('Failed to clone shader:', error);
-
-      // Re-throw error to be caught by dialog
-      if (error instanceof Error) {
-        throw new Error(error.message);
-      } else {
-        throw new Error('Failed to clone shader. Please try again.');
-      }
-    }
-  }, [shader, slug, token, navigate]);
-
-  const handleDeleteShader = useCallback(async () => {
-    try {
-      console.log('Deleting shader...');
-
-      // Check if we have a shader and slug
-      if (!shader || !slug) {
-        throw new Error('No shader to delete');
-      }
-
-      // Check if user is authenticated
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
-      // Delete via API
-      await deleteShader(slug, token);
-      console.log('Shader deleted successfully!');
-
-      // Navigate to home page
-      navigate('/');
-
-    } catch (error) {
-      console.error('Failed to delete shader:', error);
-
-      // Re-throw error to be caught by dialog
-      if (error instanceof Error) {
-        throw new Error(error.message);
-      } else {
-        throw new Error('Failed to delete shader. Please try again.');
-      }
-    }
-  }, [shader, slug, token, navigate]);
-
-  const handleSaveShader = useCallback(async (shaderName: string) => {
-    try {
-      console.log('Saving new shader:', shaderName);
-
-      // Trigger compilation if not already compiled or if code has changed
-      // This ensures we have accurate compilation status before saving
-      if (compilationSuccess === undefined) {
-        handleCompile();
-        // Wait a moment for compilation to complete
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-
-      // Check if user is authenticated
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
-      // Determine compilation status
-      const status = determineCompilationStatus(compilationSuccess, compilationErrors);
-
-      // Prepare shader data
-      const tabsData = tabsToTabData(tabs);
-      const shaderData = {
-        name: shaderName,
-        tabs: tabsData,
-        isPublic: true,
-        compilationStatus: status,
-        compilationErrors: compilationErrors.length > 0 ? compilationErrors : undefined
-      };
-
-      // Save new shader via API
-      const response = await saveShader(shaderData, token);
-      console.log('New shader created successfully!', response);
-
-      // Navigate to the saved shader's URL
-      const newSlug = response.shader.slug;
-      navigate(`/shader/${newSlug}`);
-
-    } catch (error) {
-      console.error('Failed to save shader:', error);
-      showErrorAlert(error, 'save shader');
-    }
-  }, [compilationSuccess, handleCompile, compilationErrors, tabs, token, navigate]);
 
   // Handle Logo rotation on mouse enter/leave
   const handleLogoMouseEnter = useCallback(() => {
@@ -445,12 +135,12 @@ function EditorPage() {
 
   // Handle play/pause with imperative controls
   useEffect(() => {
-    if (isPlaying && compilationSuccess) {
+    if (isPlaying && editorState.compilationSuccess) {
       rendererPlay();
     } else {
       rendererPause();
     }
-  }, [isPlaying, compilationSuccess, rendererPlay, rendererPause]);
+  }, [isPlaying, editorState.compilationSuccess, rendererPlay, rendererPause]);
 
   // Measure player header height for background layer
   useEffect(() => {
@@ -479,7 +169,7 @@ function EditorPage() {
   return (
     <div className="h-screen bg-background text-foreground flex flex-col relative">
       {/* Professional Loading Screen */}
-      <LoadingScreen isLoading={loading} />
+      <LoadingScreen isLoading={editorState.loading} />
 
       {/* Full-width header background layer - sits above resize handle but below header content */}
       <div
@@ -542,36 +232,36 @@ function EditorPage() {
           <div className="h-full flex flex-col bg-background">
             <ShaderEditor
               // Display data
-              tabs={tabs}
-              activeTabId={activeTabId}
-              localShaderTitle={localShaderTitle}
-              creatorUsername={shader?.creatorUsername}
+              tabs={editorState.tabs}
+              activeTabId={editorState.activeTabId}
+              localShaderTitle={editorState.localShaderTitle}
+              creatorUsername={editorState.shader?.creatorUsername}
 
               // Compilation state
-              compilationSuccess={compilationSuccess}
-              compilationTime={compilationTime}
+              compilationSuccess={editorState.compilationSuccess}
+              compilationTime={editorState.compilationTime}
 
               // User/ownership
-              isSavedShader={!!shaderUrl}
-              isOwner={isOwner}
+              isSavedShader={!!editorState.shaderUrl}
+              isOwner={editorState.isOwner}
               isSignedIn={!!user}
               username={user?.username}
               userPicture={user?.picture || undefined}
 
               // Tab callbacks
-              onTabChange={setActiveTabId}
-              onAddTab={handleAddTab}
-              onDeleteTab={handleDeleteTab}
-              onCodeChange={handleCodeChange}
+              onTabChange={editorState.onTabChange}
+              onAddTab={editorState.onAddTab}
+              onDeleteTab={editorState.onDeleteTab}
+              onCodeChange={editorState.onCodeChange}
 
               // Shader operation callbacks
-              onCompile={handleCompile}
-              onSave={handleSave}
-              onSaveAs={handleSaveAsClick}
-              onRename={() => dialogManager.openRename()}
-              onClone={handleCloneClick}
-              onDelete={() => dialogManager.openDelete()}
-              onSignIn={() => dialogManager.openSignIn()}
+              onCompile={editorState.onCompile}
+              onSave={editorState.onSave}
+              onSaveAs={editorState.onSaveAs}
+              onRename={editorState.dialogManager.openRename}
+              onClone={editorState.onClone}
+              onDelete={editorState.onDelete}
+              onSignIn={editorState.dialogManager.openSignIn}
               onSignOut={signOut}
             />
           </div>
@@ -580,36 +270,36 @@ function EditorPage() {
 
       {/* Dialogs (moved from ShaderEditor) */}
       <SignInDialog
-        open={dialogManager.isOpen('signin')}
-        onOpenChange={(open) => !open && dialogManager.closeDialog()}
-        onSignInSuccess={dialogManager.signInCallback}
+        open={editorState.dialogManager.isOpen('signin')}
+        onOpenChange={(open) => !open && editorState.dialogManager.closeDialog()}
+        onSignInSuccess={editorState.dialogManager.signInCallback}
       />
 
       <SaveAsDialog
-        open={dialogManager.isOpen('saveAs')}
-        onOpenChange={(open) => !open && dialogManager.closeDialog()}
-        onSave={handleSaveShader}
+        open={editorState.dialogManager.isOpen('saveAs')}
+        onOpenChange={(open) => !open && editorState.dialogManager.closeDialog()}
+        onSave={editorState.onSaveShader}
       />
 
       <RenameDialog
-        currentName={localShaderTitle}
-        open={dialogManager.isOpen('rename')}
-        onOpenChange={(open) => !open && dialogManager.closeDialog()}
-        onRename={handleRenameShader}
+        currentName={editorState.localShaderTitle}
+        open={editorState.dialogManager.isOpen('rename')}
+        onOpenChange={(open) => !open && editorState.dialogManager.closeDialog()}
+        onRename={editorState.onRename}
       />
 
       <DeleteShaderDialog
-        shaderName={localShaderTitle}
-        open={dialogManager.isOpen('delete')}
-        onOpenChange={(open) => !open && dialogManager.closeDialog()}
-        onDelete={handleDeleteShader}
+        shaderName={editorState.localShaderTitle}
+        open={editorState.dialogManager.isOpen('delete')}
+        onOpenChange={(open) => !open && editorState.dialogManager.closeDialog()}
+        onDelete={editorState.onDeleteShader}
       />
 
       <CloneDialog
-        shaderName={localShaderTitle}
-        open={dialogManager.isOpen('clone')}
-        onOpenChange={(open) => !open && dialogManager.closeDialog()}
-        onClone={handleCloneShader}
+        shaderName={editorState.localShaderTitle}
+        open={editorState.dialogManager.isOpen('clone')}
+        onOpenChange={(open) => !open && editorState.dialogManager.closeDialog()}
+        onClone={editorState.onCloneShader}
       />
     </div>
   );
