@@ -51,7 +51,7 @@ router.post('/google', asyncHandler(async (req, res) => {
   }
 
   // User doesn't exist - return profile data for registration
-  res.json({
+  return res.json({
     exists: false,
     profile,
   });
@@ -123,7 +123,7 @@ router.post('/register', asyncHandler(async (req, res) => {
   // Generate JWT token
   const token = generateToken(user.id, user.email);
 
-  res.status(201).json({
+  return res.status(201).json({
     user,
     token,
   });
@@ -152,7 +152,7 @@ router.get('/me', asyncHandler(authenticateToken), asyncHandler(async (req, res)
     throw new NotFoundError('User');
   }
 
-  res.json({ user });
+  return res.json({ user });
 }));
 
 export default router;

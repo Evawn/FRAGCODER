@@ -31,7 +31,7 @@ export function errorMiddleware(
   err: Error | AppError,
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): void {
   // Default to 500 if error doesn't have status code
   const statusCode = err instanceof AppError ? err.statusCode : 500;

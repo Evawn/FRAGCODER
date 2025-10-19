@@ -22,7 +22,7 @@ declare global {
  */
 export async function authenticateToken(
   req: Request,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ): Promise<void> {
   // Extract token from Authorization header (format: "Bearer TOKEN")

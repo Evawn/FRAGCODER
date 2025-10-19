@@ -11,12 +11,20 @@ build/
 # Backend
 backend/prisma/dev.db
 backend/prisma/dev.db-journal
+backend/prisma/test.db
+backend/prisma/test.db-journal
 backend/dist/
 backend/node_modules/
 
-# Frontend  
+# Frontend
 frontend/node_modules/
 frontend/dist/
+
+# Test coverage
+coverage/
+frontend/coverage/
+backend/coverage/
+.vitest/
 
 # Root
 node_modules/

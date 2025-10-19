@@ -265,7 +265,7 @@ router.get('/:slug', asyncHandler(async (req, res) => {
     throw new ForbiddenError('This shader is private');
   }
 
-  res.json({
+  return res.json({
     shader: {
       ...shader,
       tabs: JSON.parse(shader.tabs),
