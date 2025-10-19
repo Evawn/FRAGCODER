@@ -47,7 +47,17 @@ router.get('/', async (req, res): Promise<any> => {
     const [shaders, total] = await Promise.all([
       prisma.shader.findMany({
         where,
-        include: {
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          description: true,
+          tabs: true,  // Include shader code for client-side thumbnail generation
+          userId: true,
+          forkedFrom: true,
+          createdAt: true,
+          updatedAt: true,
+          isPublic: true,
           user: {
             select: {
               id: true,
@@ -64,9 +74,15 @@ router.get('/', async (req, res): Promise<any> => {
       prisma.shader.count({ where })
     ]);
 
+    // Parse tabs JSON for each shader
+    const parsedShaders = shaders.map(shader => ({
+      ...shader,
+      tabs: JSON.parse(shader.tabs)
+    }));
+
     // Return paginated response
     res.json({
-      shaders,
+      shaders: parsedShaders,
       total,
       page,
       totalPages: Math.ceil(total / limit),

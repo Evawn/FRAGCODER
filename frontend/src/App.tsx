@@ -6,7 +6,7 @@ import LogoTestPage from './pages/LogoTestPage'
 
 function App() {
   return (
-    <div className="relative min-h-screen bg-background text-foreground w-full">
+    <div className="relative min-h-screen bg-background text-foreground w-full overflow-x-clip">
       {/* <Navigation /> */}
       <Routes>
         <Route path="/" element={<HomePage />} />

@@ -2,13 +2,14 @@
 // Responsive grid: 1-4 columns based on screen size, with smooth entrance animations
 
 import ShaderCard from './ShaderCard';
+import type { TabShaderData } from '../utils/GLSLCompiler';
 
 interface Shader {
   id: string;
   title: string;
   slug: string;
   description?: string;
-  thumbnail?: string;
+  tabs: TabShaderData[];
   userId: string;
   user: {
     id: string;
@@ -22,9 +23,11 @@ interface Shader {
 
 interface ShaderGridProps {
   shaders: Shader[];
+  thumbnails: Map<string, string | null>;
+  loadingThumbnails: Set<string>;
 }
 
-function ShaderGrid({ shaders }: ShaderGridProps) {
+function ShaderGrid({ shaders, thumbnails, loadingThumbnails }: ShaderGridProps) {
   if (shaders.length === 0) {
     return (
       <div className="text-center py-16">
@@ -49,11 +52,8 @@ function ShaderGrid({ shaders }: ShaderGridProps) {
             id={shader.id}
             title={shader.title}
             slug={shader.slug}
-            description={shader.description}
-            thumbnail={shader.thumbnail}
-            author={shader.user}
-            createdAt={shader.createdAt}
-            forkedFrom={shader.forkedFrom}
+            thumbnailDataURL={thumbnails.get(shader.id) || null}
+            isLoading={loadingThumbnails.has(shader.id)}
           />
         </div>
       ))}

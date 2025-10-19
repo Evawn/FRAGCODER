@@ -13,6 +13,8 @@ import { UserMenu } from '../components/editor/UserMenu';
 import { NewShaderButton } from '../components/editor/NewShaderButton';
 import { useAuth } from '../AuthContext';
 import { SignInDialog } from '../components/auth/SignInDialog';
+import { ThumbnailRenderer } from '../utils/ThumbnailRenderer';
+import type { TabShaderData } from '../utils/GLSLCompiler';
 
 // Animation timing constant - base delay after loading screen
 const ANIMATION_BASE_DELAY = 600; // ms
@@ -22,7 +24,7 @@ interface Shader {
   title: string;
   slug: string;
   description?: string;
-  thumbnail?: string;
+  tabs: TabShaderData[];
   userId: string;
   user: {
     id: string;
@@ -53,6 +55,11 @@ function Gallery() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSignInDialogOpen, setIsSignInDialogOpen] = useState(false);
+
+  // Thumbnail management state
+  const [thumbnails, setThumbnails] = useState<Map<string, string | null>>(new Map());
+  const [loadingThumbnails, setLoadingThumbnails] = useState<Set<string>>(new Set());
+  const thumbnailRendererRef = useRef<ThumbnailRenderer | null>(null);
 
   // Ref to store Logo rotation function
   const logoRotateRef = useRef<((targetOffset: number) => void) | null>(null);
@@ -87,6 +94,48 @@ function Gallery() {
       setLoading(false);
     }
   }, []);
+
+  // Initialize ThumbnailRenderer on mount
+  useEffect(() => {
+    thumbnailRendererRef.current = new ThumbnailRenderer();
+
+    // Cleanup on unmount
+    return () => {
+      if (thumbnailRendererRef.current) {
+        thumbnailRendererRef.current.dispose();
+        thumbnailRendererRef.current = null;
+      }
+    };
+  }, []);
+
+  // Generate thumbnails for fetched shaders
+  useEffect(() => {
+    if (!thumbnailRendererRef.current || shaders.length === 0) return;
+
+    const renderer = thumbnailRendererRef.current;
+
+    // Mark all shaders as loading
+    setLoadingThumbnails(new Set(shaders.map(s => s.id)));
+
+    // Queue each shader for thumbnail generation
+    shaders.forEach(shader => {
+      renderer.queueThumbnail(shader.id, shader.tabs, (dataURL) => {
+        // Update thumbnails map
+        setThumbnails(prev => {
+          const next = new Map(prev);
+          next.set(shader.id, dataURL);
+          return next;
+        });
+
+        // Remove from loading set
+        setLoadingThumbnails(prev => {
+          const next = new Set(prev);
+          next.delete(shader.id);
+          return next;
+        });
+      });
+    });
+  }, [shaders]);
 
   // Initial load
   useEffect(() => {
@@ -204,7 +253,7 @@ function Gallery() {
 
       {/* Search Results Section - Group 2 Animation */}
       <div
-        className="w-[90vw] mx-auto py-4 flex-shrink-0"
+        className="w-[90vw] mx-auto py-4  flex-shrink-0"
         style={{
           animation: 'fadeInDown 0.6s ease-out forwards',
           opacity: 0,
@@ -248,7 +297,7 @@ function Gallery() {
 
       {/* Results Container - Group 3 Animation, Fixed Height */}
       <div
-        className="w-[90vw] mx-auto py-6 flex-1 overflow-hidden"
+        className="w-[90vw] mx-auto p-4 flex-1 overflow-visible"
         style={{
           animation: 'fadeInDown 0.6s ease-out forwards',
           opacity: 0,
@@ -256,7 +305,11 @@ function Gallery() {
         }}
       >
         <div className="h-full overflow-y-visible">
-          <ShaderGrid shaders={shaders} />
+          <ShaderGrid
+            shaders={shaders}
+            thumbnails={thumbnails}
+            loadingThumbnails={loadingThumbnails}
+          />
         </div>
       </div>
 

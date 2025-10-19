@@ -70,7 +70,7 @@ function HomePage() {
 
       {/* Background Logo with Glow Effect - Entrance Animation */}
       <div
-        className="absolute inset-0 pointer-events-none overflow-clip"
+        className="absolute inset-0 pointer-events-none overflow-visible"
         style={{
           zIndex: 0,
           animation: !hasPlayedInitialAnimationRef.current

@@ -49,6 +49,9 @@ export class WebGLRenderer {
   private mouseClickY: number = 0;
   private isMouseDown: boolean = false;
 
+  // Vertex buffer (shared across all shaders - full-screen quad geometry)
+  private positionBuffer: WebGLBuffer | null = null;
+
   constructor() {
     this.render = this.render.bind(this);
   }
@@ -72,11 +75,32 @@ export class WebGLRenderer {
     }
 
     this.gl = gl;
-    console.log('Using WebGL 2.0');
     this.updateViewport();
 
     // Set up mouse event listeners
     this.setupMouseListeners();
+
+    // Create vertex buffer for full-screen quad (shared across all shaders)
+    this.positionBuffer = gl.createBuffer();
+    if (!this.positionBuffer) {
+      console.error('Failed to create vertex buffer');
+      return false;
+    }
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+    gl.bufferData(
+      gl.ARRAY_BUFFER,
+      new Float32Array([
+        -1, -1,
+         1, -1,
+        -1,  1,
+        -1,  1,
+         1, -1,
+         1,  1,
+      ]),
+      gl.STATIC_DRAW
+    );
+    gl.bindBuffer(gl.ARRAY_BUFFER, null); // Unbind
 
     return true;
   }
@@ -197,10 +221,6 @@ export class WebGLRenderer {
 
           // Initialize ping-pong state (start with main buffer)
           this.usePongBuffer.set(passName, false);
-
-          console.log(`[${passName}] Created ping-pong framebuffers at ${this.canvas!.width}x${this.canvas!.height}`);
-        } else {
-          console.log(`[Image] Renders directly to screen at ${this.canvas!.width}x${this.canvas!.height}`);
         }
 
         // Store successful pass
@@ -279,29 +299,22 @@ export class WebGLRenderer {
       this.passes.set(passName, pass);
     }
 
-    // Set up geometry (full screen quad) - shared across all passes
-    // We'll use the Image program to set this up, then it applies to all
-    const imagePass = this.passes.get('Image');
-    if (imagePass) {
-      gl.useProgram(imagePass.program);
-      const positionAttributeLocation = gl.getAttribLocation(imagePass.program, 'a_position');
-      const positionBuffer = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-      gl.bufferData(
-        gl.ARRAY_BUFFER,
-        new Float32Array([
-          -1, -1,
-           1, -1,
-          -1,  1,
-          -1,  1,
-           1, -1,
-           1,  1,
-        ]),
-        gl.STATIC_DRAW
-      );
+    // Set up vertex attributes for each program (buffer is already created in initialize)
+    // Each program needs its attribute location bound to our shared vertex buffer
+    if (this.positionBuffer) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
 
-      gl.enableVertexAttribArray(positionAttributeLocation);
-      gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+      for (const pass of this.passes.values()) {
+        gl.useProgram(pass.program);
+        const positionAttributeLocation = gl.getAttribLocation(pass.program, 'a_position');
+        if (positionAttributeLocation !== -1) {
+          gl.enableVertexAttribArray(positionAttributeLocation);
+          gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+        }
+      }
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, null); // Unbind
+      gl.useProgram(null); // Unbind program
     }
 
     // Reset animation start time when shader changes (preserve pause state)
@@ -546,9 +559,19 @@ export class WebGLRenderer {
 
     const gl = this.gl;
     const rect = this.canvas.getBoundingClientRect();
-    // Round rect dimensions to avoid sub-pixel inconsistencies
-    this.canvas.width = Math.round(rect.width * window.devicePixelRatio);
-    this.canvas.height = Math.round(rect.height * window.devicePixelRatio);
+
+    // For off-screen canvases (not in DOM), getBoundingClientRect() returns 0x0
+    // In this case, preserve the existing canvas dimensions
+    const rectWidth = rect.width || this.canvas.width;
+    const rectHeight = rect.height || this.canvas.height;
+
+    // Only update canvas size if we have valid dimensions
+    if (rectWidth > 0 && rectHeight > 0) {
+      // Round rect dimensions to avoid sub-pixel inconsistencies
+      this.canvas.width = Math.round(rectWidth * window.devicePixelRatio);
+      this.canvas.height = Math.round(rectHeight * window.devicePixelRatio);
+    }
+
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
 
     // Resize all framebuffer textures to match new canvas size
@@ -567,8 +590,6 @@ export class WebGLRenderer {
           gl.UNSIGNED_BYTE,
           null
         );
-
-        console.log(`[${pass.name}] Resized main buffer to ${this.canvas.width}x${this.canvas.height}`);
       }
 
       // Resize ping-pong buffer as well
@@ -585,8 +606,6 @@ export class WebGLRenderer {
           gl.UNSIGNED_BYTE,
           null
         );
-
-        console.log(`[${pass.name}] Resized pong buffer to ${this.canvas.width}x${this.canvas.height}`);
       }
     }
 
@@ -644,6 +663,14 @@ export class WebGLRenderer {
       gl.drawArrays(gl.TRIANGLES, 0, 6);
     }
 
+    // After rendering all passes, flip the ping-pong state for buffer passes
+    for (const passName of this.passOrder) {
+      if (passName !== 'Image' && this.passes.has(passName)) {
+        const currentState = this.usePongBuffer.get(passName) || false;
+        this.usePongBuffer.set(passName, !currentState);
+      }
+    }
+
     // Ensure we end up unbound
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
@@ -656,6 +683,12 @@ export class WebGLRenderer {
     this.cleanupPasses();
 
     if (this.gl) {
+      // Delete vertex buffer
+      if (this.positionBuffer) {
+        this.gl.deleteBuffer(this.positionBuffer);
+        this.positionBuffer = null;
+      }
+
       // Additional cleanup if needed
       this.gl = null;
     }
@@ -817,30 +850,42 @@ export class WebGLRenderer {
 
     const gl = this.gl;
 
-    // Clean up each pass
+    // CRITICAL: Unbind ALL texture units BEFORE deleting resources
+    // WebGL has multiple texture units (TEXTURE0-3) that may have bound textures
+    // We must unbind ALL of them, not just the currently active unit
+    for (let i = 0; i < 4; i++) {  // Unbind texture units 0-3 (for Buffer A-D)
+      gl.activeTexture(gl.TEXTURE0 + i);
+      gl.bindTexture(gl.TEXTURE_2D, null);
+    }
+
+    // Reset to texture unit 0 (standard practice)
+    gl.activeTexture(gl.TEXTURE0);
+
+    // Unbind other WebGL state
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.useProgram(null);
+
+    // Clean up each pass (now safe since all state is unbound)
     for (const pass of this.passes.values()) {
-      // Delete main framebuffer if exists
+      // Delete framebuffers and textures
       if (pass.framebuffer) {
         gl.deleteFramebuffer(pass.framebuffer);
       }
 
-      // Delete main texture if exists
       if (pass.texture) {
         gl.deleteTexture(pass.texture);
       }
 
-      // Delete pong framebuffer if exists
       if (pass.framebufferPong) {
         gl.deleteFramebuffer(pass.framebufferPong);
       }
 
-      // Delete pong texture if exists
       if (pass.texturePong) {
         gl.deleteTexture(pass.texturePong);
       }
 
-      // Delete program
-      gl.useProgram(null);
+      // Delete program and shaders
       const shaders = gl.getAttachedShaders(pass.program);
       if (shaders) {
         shaders.forEach(shader => {

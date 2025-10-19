@@ -1,43 +1,72 @@
+// Minimal shader card with 4:3 thumbnail and thin title footer
+// Features: Client-side rendered thumbnail, pulsing loading animation, crisp shadow styling
+
 import { Link } from 'react-router-dom';
+import { useState, useRef } from 'react';
 
 interface ShaderCardProps {
   id: string;
   title: string;
   slug: string;
-  description?: string;
-  thumbnail?: string;
-  author: {
-    id: string;
-    username: string;
-  };
-  createdAt: string;
-  forkedFrom?: string;
+  thumbnailDataURL?: string | null;
+  isLoading?: boolean;
 }
 
-function ShaderCard({ id, title, slug, description, thumbnail, author, createdAt, forkedFrom }: ShaderCardProps) {
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
-    });
+function ShaderCard({ id, title, slug, thumbnailDataURL, isLoading = false }: ShaderCardProps) {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const currentThumbnailRef = useRef<string | null | undefined>(thumbnailDataURL);
+
+  // Reset image loaded state synchronously when thumbnail URL changes
+  // This prevents race condition where onLoad fires before useEffect runs
+  if (currentThumbnailRef.current !== thumbnailDataURL) {
+    currentThumbnailRef.current = thumbnailDataURL;
+    setImageLoaded(false);
+  }
+
+  const handleImageLoad = () => {
+    setImageLoaded(true);
+  };
+
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    console.error('[ShaderCard] Image failed to load for:', id, title, 'src:', thumbnailDataURL?.substring(0, 100));
   };
 
   return (
     <Link
       to={`/shader/${slug}`}
-      className="block bg-card-bg rounded-lg overflow-hidden hover:transform hover:scale-105 transition-transform duration-200 hover:shadow-lg border border-card-border hover:bg-card-hover"
+      className="block rounded-sm overflow-hidden hover:transform hover:scale-105 transition-transform duration-200 shadow-md hover:shadow-xl"
+      style={{
+        backgroundColor: 'transparent'
+      }}
     >
-      <div className="aspect-video bg-surface-sunken relative overflow-hidden">
-        {thumbnail ? (
+      {/* 4:3 Thumbnail Section */}
+      <div className="aspect-[4/3] bg-surface-sunken relative overflow-hidden">
+        {thumbnailDataURL && !isLoading ? (
           <img
-            src={thumbnail}
+            key={thumbnailDataURL}
+            src={thumbnailDataURL}
             alt={title}
-            className="w-full h-full object-cover"
+            className={`w-full h-full object-cover transition-opacity duration-300 ${
+              imageLoaded ? 'opacity-100' : 'opacity-0'
+            }`}
+            onLoad={handleImageLoad}
+            onError={handleImageError}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-muted-foreground/50">
+          // Pulsing loading animation
+          <div
+            className="w-full h-full"
+            style={{
+              background: 'linear-gradient(90deg, rgba(100,100,120,0.1) 0%, rgba(140,140,160,0.2) 50%, rgba(100,100,120,0.1) 100%)',
+              backgroundSize: '200% 100%',
+              animation: 'pulse-shimmer 2s ease-in-out infinite'
+            }}
+          />
+        )}
+
+        {/* Fallback placeholder when thumbnail fails to load */}
+        {!thumbnailDataURL && !isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/30">
             <svg
               className="w-12 h-12"
               fill="none"
@@ -47,33 +76,31 @@ function ShaderCard({ id, title, slug, description, thumbnail, author, createdAt
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth={2}
+                strokeWidth={1.5}
                 d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
               />
             </svg>
           </div>
         )}
-        {forkedFrom && (
-          <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded">
-            Forked
-          </div>
-        )}
       </div>
 
-      <div className="p-4">
-        <h3 className="text-lg font-semibold text-foreground mb-1 truncate">
+      {/* Thin Footer with Title */}
+      <div className="bg-card-bg px-3 py-2 border-t border-card-border">
+        <h3 className="text-sm font-medium text-foreground truncate">
           {title}
         </h3>
-        {description && (
-          <p className="text-muted-foreground text-sm mb-2 line-clamp-2">
-            {description}
-          </p>
-        )}
-        <div className="flex items-center justify-between text-sm text-muted-foreground/70">
-          <span>by {author.username}</span>
-          <span>{formatDate(createdAt)}</span>
-        </div>
       </div>
+
+      <style>{`
+        @keyframes pulse-shimmer {
+          0% {
+            background-position: 200% 0;
+          }
+          100% {
+            background-position: -200% 0;
+          }
+        }
+      `}</style>
     </Link>
   );
 }
