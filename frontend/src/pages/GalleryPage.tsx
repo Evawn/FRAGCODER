@@ -209,7 +209,7 @@ function Gallery() {
         <div
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full"
           style={{
-            background: 'radial-gradient(circle, hsla(38, 92%, 50%, 0.5) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, hsla(38, 92%, 50%, 0.4) 0%, transparent 70%)',
             filter: 'blur(400px)',
           }}
         />
