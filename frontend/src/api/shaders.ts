@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { apiClient } from './client';
 import type {
   SaveShaderRequest,
   SaveShaderResponse,
@@ -7,20 +7,19 @@ import type {
   Shader,
 } from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
 /**
  * Save a new shader
  * @param shaderData - Shader data including tabs and compilation status
  * @param token - JWT authentication token
  * @returns Saved shader data and URL
+ * @throws ApiError with message and status code on failure
  */
 export async function saveShader(
   shaderData: SaveShaderRequest,
   token: string
 ): Promise<SaveShaderResponse> {
-  const response = await axios.post(
-    `${API_BASE_URL}/api/shaders`,
+  const response = await apiClient.post(
+    '/api/shaders',
     shaderData,
     {
       headers: {
@@ -35,9 +34,10 @@ export async function saveShader(
  * Get shader by slug
  * @param slug - Shader URL slug
  * @returns Shader data
+ * @throws ApiError with message and status code on failure (404 if not found, 403 if private)
  */
 export async function getShaderBySlug(slug: string): Promise<Shader> {
-  const response = await axios.get(`${API_BASE_URL}/api/shaders/${slug}`);
+  const response = await apiClient.get(`/api/shaders/${slug}`);
   return response.data.shader;
 }
 
@@ -47,14 +47,15 @@ export async function getShaderBySlug(slug: string): Promise<Shader> {
  * @param shaderData - Shader data to update (name, tabs, compilationStatus)
  * @param token - JWT authentication token
  * @returns Updated shader data
+ * @throws ApiError with message and status code on failure
  */
 export async function updateShader(
   slug: string,
   shaderData: UpdateShaderRequest,
   token: string
 ): Promise<UpdateShaderResponse> {
-  const response = await axios.put(
-    `${API_BASE_URL}/api/shaders/${slug}`,
+  const response = await apiClient.put(
+    `/api/shaders/${slug}`,
     shaderData,
     {
       headers: {
@@ -70,13 +71,14 @@ export async function updateShader(
  * @param slug - Shader URL slug
  * @param token - JWT authentication token
  * @returns Success message
+ * @throws ApiError with message and status code on failure
  */
 export async function deleteShader(
   slug: string,
   token: string
 ): Promise<{ message: string }> {
-  const response = await axios.delete(
-    `${API_BASE_URL}/api/shaders/${slug}`,
+  const response = await apiClient.delete(
+    `/api/shaders/${slug}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -91,13 +93,14 @@ export async function deleteShader(
  * @param slug - Shader URL slug to clone
  * @param token - JWT authentication token
  * @returns Cloned shader data and URL
+ * @throws ApiError with message and status code on failure
  */
 export async function cloneShader(
   slug: string,
   token: string
 ): Promise<SaveShaderResponse> {
-  const response = await axios.post(
-    `${API_BASE_URL}/api/shaders/${slug}/clone`,
+  const response = await apiClient.post(
+    `/api/shaders/${slug}/clone`,
     {},
     {
       headers: {

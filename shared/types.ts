@@ -143,3 +143,26 @@ export interface RegisterResponse {
   user: User;
   token: string;
 }
+
+// ============================================================================
+// Error Types
+// ============================================================================
+
+/**
+ * Standardized error response from API
+ * All API errors follow this format for consistent frontend error handling
+ */
+export interface ErrorResponse {
+  error: string;
+  stack?: string; // Only included in development
+}
+
+/**
+ * Client-side API error with structured information
+ * Used by frontend to handle API errors in a type-safe manner
+ */
+export interface ApiError {
+  message: string;
+  statusCode: number;
+  details?: any;
+}

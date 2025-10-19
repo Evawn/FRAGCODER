@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { prisma } from './db';
 import authRoutes from './routes/auth';
 import shaderRoutes from './routes/shaders';
+import { errorMiddleware, notFoundHandler, asyncHandler } from './middleware/errorHandler';
 
 dotenv.config();
 
@@ -29,14 +30,16 @@ app.get('/health', (_req, res) => {
 });
 
 // Database connection test endpoint
-app.get('/db-test', async (_req, res) => {
-    try {
-        await prisma.$connect();
-        res.json({ database: 'Connected successfully!' });
-    } catch (error) {
-        res.status(500).json({ error: 'Database connection failed', details: error });
-    }
-});
+app.get('/db-test', asyncHandler(async (_req, res) => {
+    await prisma.$connect();
+    res.json({ database: 'Connected successfully!' });
+}));
+
+// 404 handler for unmatched routes (must be after all valid routes)
+app.use(notFoundHandler);
+
+// Global error handler (must be last middleware)
+app.use(errorMiddleware);
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
