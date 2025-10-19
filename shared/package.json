@@ -1,0 +1,14 @@
+{
+  "name": "@fragcoder/shared",
+  "version": "1.0.0",
+  "description": "Shared type definitions for FRAGCODER frontend and backend",
+  "main": "types.ts",
+  "types": "types.ts",
+  "scripts": {},
+  "keywords": ["types", "typescript", "shared"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}

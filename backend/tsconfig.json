@@ -4,16 +4,20 @@
     "target": "ES2022",                    // Node 16+ supports ES2022
     "module": "commonjs",                  // Most compatible with Express/Node ecosystem
     "lib": ["ES2022"],                     // Available JS features
-    
+
     // File Organization
     "outDir": "./dist",                    // Compiled output directory
-    "rootDir": "./src",                    // Source code directory
-    
+    // Note: rootDir intentionally omitted to allow imports from shared package
+
     // Module Resolution
     "moduleResolution": "node",            // Node.js-style resolution
     "esModuleInterop": true,               // Import CommonJS modules easily
     "resolveJsonModule": true,             // Import JSON files
-    
+    "baseUrl": ".",                        // Base path for path mapping
+    "paths": {
+      "@fragcoder/shared": ["../shared/types"]
+    },
+
     // Type Checking
     "strict": true,                        // Enable all strict checks
     "skipLibCheck": true,                  // Skip .d.ts files in node_modules

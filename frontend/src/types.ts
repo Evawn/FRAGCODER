@@ -1,35 +1,47 @@
 /**
- * Centralized type definitions for the FRAGCODER frontend
- * Contains shared interfaces and types used across multiple modules
+ * Frontend-specific type definitions for FRAGCODER
+ * For shared types used by both frontend and backend, see @fragcoder/shared
  */
 
+// Re-export shared types for convenience
+export type {
+  CompilationError,
+  CompilationStatus,
+  TabData,
+  User,
+  Shader,
+  GoogleAuthResponse,
+  RegisterResponse,
+  SaveShaderRequest,
+  SaveShaderResponse,
+  UpdateShaderRequest,
+  UpdateShaderResponse,
+} from '@fragcoder/shared';
+
+// Import shared types for use in frontend-only types
+import type { CompilationError, TabData } from '@fragcoder/shared';
+
 // ============================================================================
-// Compilation & Error Types
+// Frontend-Only Types
 // ============================================================================
 
-export interface CompilationError {
-  line: number;
-  message: string;
-  type: 'error' | 'warning';
-  passName?: string;  // Which pass this error belongs to (Image, Buffer A-D, Common)
-  originalLine?: number;  // Original line number before adjustments
-  preprocessedLine?: number;  // Line number after preprocessing
-}
-
-export type CompilationStatus = 'SUCCESS' | 'ERROR' | 'WARNING' | 'PENDING';
-
-// ============================================================================
-// Tab & Shader Data Types
-// ============================================================================
-
+/**
+ * Extended tab interface with UI state
+ * Extends the shared TabData with frontend-specific properties
+ */
 export interface Tab {
   id: string;
   name: string;
   code: string;
-  isDeletable: boolean;
-  errors: CompilationError[];
+  isDeletable: boolean;  // UI state: whether tab can be deleted
+  errors: CompilationError[];  // UI state: current compilation errors for this tab
 }
 
+/**
+ * Legacy ShaderData interface - kept for compatibility
+ * Consider migrating usages to the Shader type from @fragcoder/shared
+ * @deprecated Use Shader from @fragcoder/shared instead
+ */
 export interface ShaderData {
   id: string;
   title: string;
@@ -39,83 +51,4 @@ export interface ShaderData {
   userId: string;
   forkedFrom?: string;
   creatorUsername?: string;
-}
-
-export interface TabData {
-  id: string;
-  name: string;
-  code: string;
-}
-
-// ============================================================================
-// API Types
-// ============================================================================
-
-export interface User {
-  id: string;
-  googleId: string;
-  email: string;
-  username: string;
-  name: string | null;
-  picture: string | null;
-  createdAt: string;
-}
-
-export interface GoogleAuthResponse {
-  exists: boolean;
-  user?: User;
-  token?: string;
-  profile?: {
-    googleId: string;
-    email: string;
-  };
-}
-
-export interface RegisterResponse {
-  user: User;
-  token: string;
-}
-
-export interface Shader {
-  id: string;
-  slug: string;
-  title: string;
-  description: string | null;
-  tabs: TabData[];
-  isPublic: boolean;
-  compilationStatus: CompilationStatus;
-  compilationErrors: CompilationError[] | null;
-  userId: string;
-  forkedFrom: string | null;
-  createdAt: string;
-  updatedAt: string;
-  lastSavedAt: string;
-  user: {
-    id: string;
-    username: string;
-  };
-}
-
-export interface SaveShaderRequest {
-  name: string;
-  tabs: TabData[];
-  isPublic?: boolean;
-  compilationStatus: CompilationStatus;
-  compilationErrors?: CompilationError[];
-  description?: string;
-}
-
-export interface SaveShaderResponse {
-  shader: Shader;
-  url: string;
-}
-
-export interface UpdateShaderRequest {
-  name: string;
-  tabs: TabData[];
-  compilationStatus: CompilationStatus;
-}
-
-export interface UpdateShaderResponse {
-  shader: Shader;
 }

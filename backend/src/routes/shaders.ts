@@ -1,5 +1,9 @@
 import express from 'express';
 import { CompilationStatus } from '@prisma/client';
+import type {
+  SaveShaderRequest,
+  UpdateShaderRequest,
+} from '@fragcoder/shared';
 import { prisma } from '../db';
 import { authenticateToken } from '../middleware/auth';
 import { generateUniqueSlug } from '../utils/slugGenerator';
@@ -93,34 +97,6 @@ router.get('/', async (req, res): Promise<any> => {
     res.status(500).json({ error: 'Failed to fetch shaders' });
   }
 });
-
-interface TabData {
-  id: string;
-  name: string;
-  code: string;
-}
-
-interface CompilationError {
-  line: number;
-  message: string;
-  type: 'error' | 'warning';
-  passName?: string;
-}
-
-interface SaveShaderRequest {
-  name: string;
-  tabs: TabData[];
-  isPublic?: boolean;
-  compilationStatus: 'SUCCESS' | 'ERROR' | 'WARNING' | 'PENDING';
-  compilationErrors?: CompilationError[];
-  description?: string;
-}
-
-interface UpdateShaderRequest {
-  name: string;
-  tabs: TabData[];
-  compilationStatus: 'SUCCESS' | 'ERROR' | 'WARNING' | 'PENDING';
-}
 
 /**
  * POST /api/shaders
