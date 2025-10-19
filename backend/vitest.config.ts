@@ -14,6 +14,9 @@ export default defineConfig({
     // Global test utilities (describe, it, expect, etc.)
     globals: true,
 
+    // Run test files sequentially to avoid database conflicts
+    fileParallelism: false,
+
     // Coverage configuration
     coverage: {
       provider: 'v8',
