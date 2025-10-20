@@ -75,6 +75,7 @@ describe('Slug Generator', () => {
     it('should increase slug length after 5 collision attempts', async () => {
       const generatedSlugs: string[] = [];
 
+      // @ts-expect-error - Mock implementation doesn't need full Prisma client type
       vi.mocked(prisma.shader.findUnique).mockImplementation(async (args: any) => {
         const slug = args.where.slug;
         generatedSlugs.push(slug);
@@ -95,6 +96,7 @@ describe('Slug Generator', () => {
     it('should cap length increase at 8 characters', async () => {
       const generatedSlugs: string[] = [];
 
+      // @ts-expect-error - Mock implementation doesn't need full Prisma client type
       vi.mocked(prisma.shader.findUnique).mockImplementation(async (args: any) => {
         const slug = args.where.slug;
         generatedSlugs.push(slug);
@@ -128,7 +130,8 @@ describe('Slug Generator', () => {
     it('should succeed on last possible retry', async () => {
       const maxRetries = 5;
 
-      vi.mocked(prisma.shader.findUnique).mockImplementation(async (args: any) => {
+      // @ts-expect-error - Mock implementation doesn't need full Prisma client type
+      vi.mocked(prisma.shader.findUnique).mockImplementation(async () => {
         const callCount = vi.mocked(prisma.shader.findUnique).mock.calls.length;
 
         if (callCount < maxRetries) {
