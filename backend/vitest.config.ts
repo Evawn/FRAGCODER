@@ -8,6 +8,12 @@ export default defineConfig({
     // Use Node environment (not jsdom - we're testing backend code)
     environment: 'node',
 
+    // Explicitly load test environment variables before running tests
+    env: {
+      // This ensures .env.test is loaded by dotenv in setup.ts
+      DOTENV_CONFIG_PATH: '.env.test',
+    },
+
     // Setup file runs before each test file
     setupFiles: ['./src/test/setup.ts'],
 

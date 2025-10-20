@@ -205,6 +205,17 @@ fragcoder/
 
 ## Testing
 
+**First-time setup:**
+```bash
+# 1. Create test environment file
+cp backend/.env.test.example backend/.env.test
+
+# 2. Initialize test database
+cd backend
+DATABASE_URL="file:./prisma/test.db" npx prisma migrate deploy
+cd ..
+```
+
 **Run all tests:**
 ```bash
 npm test
@@ -231,6 +242,8 @@ npm test -- auth.test.ts
 - `editorPageHelpers`: 100%
 - `useEditorState`: 87%
 - Backend routes and utils: 85%+
+
+**Note:** Tests use a separate `test.db` database to avoid affecting your development data in `dev.db`.
 
 ---
 
