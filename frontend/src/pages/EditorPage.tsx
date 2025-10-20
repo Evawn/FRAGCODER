@@ -239,6 +239,8 @@ function EditorPage() {
               // Compilation state
               compilationSuccess={editorState.compilationSuccess}
               compilationTime={editorState.compilationTime}
+              isCompiling={editorState.isCompiling}
+              lastCompilationTime={editorState.lastCompilationTime}
 
               // User/ownership
               isSavedShader={!!editorState.shaderUrl}

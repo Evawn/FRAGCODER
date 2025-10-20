@@ -18,6 +18,8 @@ interface ShaderEditorProps {
   // Compilation state
   compilationSuccess?: boolean;
   compilationTime: number;
+  isCompiling: boolean;
+  lastCompilationTime: number;
 
   // User/ownership
   isSavedShader: boolean;
@@ -50,6 +52,8 @@ function ShaderEditor({
   creatorUsername,
   compilationSuccess,
   compilationTime,
+  isCompiling,
+  lastCompilationTime,
   isSavedShader,
   isOwner,
   isSignedIn,
@@ -148,7 +152,29 @@ function ShaderEditor({
       <UniformsPanel />
 
       {/* Code Editor Area */}
-      <div className="flex-1 flex flex-col p-0 overflow-hidden min-h-0">
+      <div className="flex-1 flex flex-col p-0 overflow-hidden min-h-0 relative">
+        {/* Compilation feedback border flash */}
+        {compilationSuccess === true && (
+          <div
+            key={`success-${lastCompilationTime}`}
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              animation: 'borderFlashSuccess 1000ms ease-out forwards',
+              zIndex: 40
+            }}
+          />
+        )}
+        {compilationSuccess === false && (
+          <div
+            key={`fail-${lastCompilationTime}`}
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              animation: 'borderFlashFail 1000ms ease-out forwards',
+              zIndex: 40
+            }}
+          />
+        )}
+
         <CodeMirrorEditor
           value={activeTab?.code || ''}
           onChange={handleCodeChangeInternal}
@@ -164,6 +190,8 @@ function ShaderEditor({
       <EditorFooter
         compilationSuccess={compilationSuccess}
         compilationTime={compilationTime}
+        isCompiling={isCompiling}
+        lastCompilationTime={lastCompilationTime}
         showErrorDecorations={showErrorDecorations}
         onToggleErrorDecorations={setShowErrorDecorations}
         onCompile={handleCompileOrSave}

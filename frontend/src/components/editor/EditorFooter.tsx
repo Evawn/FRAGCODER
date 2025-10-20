@@ -6,6 +6,8 @@ import { Play } from 'lucide-react';
 interface EditorFooterProps {
   compilationSuccess?: boolean;
   compilationTime: number;
+  isCompiling: boolean;
+  lastCompilationTime: number;
   showErrorDecorations: boolean;
   onToggleErrorDecorations: (show: boolean) => void;
   onCompile: () => void;
@@ -15,21 +17,52 @@ interface EditorFooterProps {
 export function EditorFooter({
   compilationSuccess,
   compilationTime,
+  isCompiling,
+  lastCompilationTime,
   showErrorDecorations,
   onToggleErrorDecorations,
   onCompile,
   charCount,
 }: EditorFooterProps) {
+  // Determine button animation style based on compilation result
+  // Using lastCompilationTime as key to force animation restart
+  const getButtonAnimation = () => {
+    if (isCompiling) return undefined;
+    if (compilationSuccess === true) {
+      return 'compileSuccess 300ms ease-out';
+    }
+    if (compilationSuccess === false) {
+      return 'compileFail 300ms ease-out';
+    }
+    return undefined;
+  };
+
+  // Determine button animation class
+  let iconClassName = '!size-5';
+  if (isCompiling) {
+    iconClassName += ' animate-spin';
+  }
+
   return (
     <div className="relative bg-transparent flex items-center px-2 py-1 gap-2">
       <Button
+        key={`compile-btn-${lastCompilationTime}`}
         variant="outline"
         size="icon"
         onClick={onCompile}
-        className="w-6 h-6 p-1 bg-transparent focus:outline-none border-transparent text-success hover:bg-success hover:text-foreground-highlighted"
+        disabled={isCompiling}
+        className="w-6 h-6 p-1 bg-transparent focus:outline-none border-transparent text-success hover:bg-success hover:text-foreground-highlighted disabled:opacity-50"
         title="Compile Shader"
+        style={{
+          animation: getButtonAnimation()
+        }}
       >
-        <Play className='!size-5' />
+        <Play
+          className={iconClassName}
+          style={{
+            animation: isCompiling ? 'compileButtonSpin 1s linear infinite' : undefined
+          }}
+        />
       </Button>
       <Badge
         variant="outline"

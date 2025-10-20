@@ -44,6 +44,8 @@ interface UseEditorStateReturn {
   compilationTime: number;
   loading: boolean;
   isOwner: boolean;
+  isCompiling: boolean;
+  lastCompilationTime: number;
 
   // Dialog management
   dialogManager: ReturnType<typeof useDialogManager>;
@@ -86,6 +88,8 @@ export function useEditorState({
   const [compilationSuccess, setCompilationSuccess] = useState<boolean | undefined>(undefined);
   const [compilationTime, setCompilationTime] = useState<number>(0);
   const [loading, setLoading] = useState(false);
+  const [isCompiling, setIsCompiling] = useState(false);
+  const [lastCompilationTime, setLastCompilationTime] = useState<number>(0);
 
   // Tab management state
   const [tabs, setTabs] = useState<Tab[]>([
@@ -109,6 +113,7 @@ export function useEditorState({
     setCompilationErrors(errors);
     setCompilationSuccess(success);
     setCompilationTime(compilationTime);
+    setIsCompiling(false);
 
     // Call auto-play callback if compilation succeeds
     if (success && onAutoPlay) {
@@ -216,6 +221,10 @@ export function useEditorState({
   }, []);
 
   const handleCompile = useCallback(() => {
+    // Set compiling state and update timestamp
+    setIsCompiling(true);
+    setLastCompilationTime(Date.now());
+
     // Convert tabs to TabShaderData format and compile imperatively
     const tabsData = tabsToTabData(tabs);
     rendererCompile(tabsData);
@@ -402,6 +411,8 @@ export function useEditorState({
     compilationTime,
     loading,
     isOwner,
+    isCompiling,
+    lastCompilationTime,
 
     // Dialog management
     dialogManager,
