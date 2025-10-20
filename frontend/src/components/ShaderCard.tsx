@@ -4,6 +4,7 @@
 import { Link } from 'react-router-dom';
 import { useState, useRef } from 'react';
 import { GitBranchPlus } from 'lucide-react';
+import { logger } from '../utils/logger';
 
 interface ShaderCardProps {
   id: string;
@@ -31,7 +32,11 @@ function ShaderCard({ id, title, slug, thumbnailDataURL, isLoading = false, auth
   };
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    console.error('[ShaderCard] Image failed to load for:', id, title, 'src:', thumbnailDataURL?.substring(0, 100));
+    logger.error('Shader card thumbnail failed to load', undefined, {
+      shaderId: id,
+      shaderTitle: title,
+      thumbnailSrc: thumbnailDataURL?.substring(0, 100)
+    });
   };
 
   return (

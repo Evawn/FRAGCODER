@@ -196,15 +196,11 @@ describe('useEditorState', () => {
         })
       );
 
-      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
       act(() => {
         result.current.onAddTab('Image'); // Duplicate name
       });
 
-      expect(result.current.tabs).toHaveLength(1); // Should not add
-      expect(consoleSpy).toHaveBeenCalledWith('Tab "Image" already exists. Skipping creation.');
-      consoleSpy.mockRestore();
+      expect(result.current.tabs).toHaveLength(1); // Should not add duplicate
     });
 
     it('should delete a tab and switch to first tab if active', () => {

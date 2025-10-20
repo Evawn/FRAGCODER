@@ -4,6 +4,7 @@
  * Supports ping-pong buffers for feedback effects and mouse/time/resolution uniforms
  */
 import { createShader, VERTEX_SHADER_SOURCE, prepareShaderCode, PreprocessorCompilationError, type TabShaderData, type PassErrorInfo, type MultipassCompilationError } from './GLSLCompiler';
+import { logger } from './logger';
 
 const SHADER_UNIFORMS = {
   iResolution: 'iResolution',
@@ -75,7 +76,7 @@ export class WebGLRenderer {
     }) as WebGL2RenderingContext;
 
     if (!gl) {
-      console.error('WebGL 2.0 is not supported in your browser');
+      logger.error('WebGL 2.0 is not supported in browser');
       return false;
     }
 
@@ -88,7 +89,7 @@ export class WebGLRenderer {
     // Create vertex buffer for full-screen quad (shared across all shaders)
     this.positionBuffer = gl.createBuffer();
     if (!this.positionBuffer) {
-      console.error('Failed to create vertex buffer');
+      logger.error('Failed to create WebGL vertex buffer');
       return false;
     }
 

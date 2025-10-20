@@ -5,6 +5,7 @@
 
 import { Request, Response, NextFunction, RequestHandler } from 'express';
 import { AppError } from '../utils/errors';
+import { logger } from '../utils/logger';
 
 /**
  * Async handler wrapper that eliminates need for try-catch in route handlers
@@ -48,24 +49,14 @@ export function errorMiddleware(
     message = err.message || 'Internal server error';
   }
 
-  // Log error for debugging (with emoji for visibility in dev)
-  if (process.env.NODE_ENV === 'production') {
-    console.error('[ERROR]', {
-      statusCode,
-      message: err.message,
-      stack: err.stack,
-      path: req.path,
-      method: req.method,
-    });
-  } else {
-    console.error('❌ Error:', {
-      statusCode,
-      message: err.message,
-      stack: err.stack,
-      path: req.path,
-      method: req.method,
-    });
-  }
+  // Log error with structured logging and contextual metadata
+  logger.error(message, err, {
+    statusCode,
+    path: req.path,
+    method: req.method,
+    userAgent: req.get('user-agent'),
+    ip: req.ip,
+  });
 
   // Send error response
   res.status(statusCode).json({

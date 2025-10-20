@@ -2,6 +2,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import type { User } from './types';
 import { getCurrentUser, setAuthToken } from './api/auth';
+import { logger } from './utils/logger';
 
 interface AuthContextType {
   user: User | null;
@@ -33,7 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(currentUser);
           setToken(savedToken);
         } catch (error) {
-          console.error('Failed to load user:', error);
+          logger.error('Failed to load user from saved token', error);
           // Token invalid or expired, clear it
           localStorage.removeItem(TOKEN_STORAGE_KEY);
           setAuthToken(null);

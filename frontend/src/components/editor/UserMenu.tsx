@@ -44,13 +44,12 @@ export function UserMenu({
     },
     {
       text: 'My Shaders',
-      callback: () => console.log('Navigate to my shaders'),
+      callback: () => { /* TODO: Navigate to my shaders */ },
     },
     {
       text: 'Sign Out',
       callback: () => {
         onSignOut();
-        console.log('User signed out');
       },
     },
   ];

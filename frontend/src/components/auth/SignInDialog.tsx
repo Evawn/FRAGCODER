@@ -17,6 +17,7 @@ import { Input } from '../ui/input';
 import { useAuth } from '../../AuthContext';
 import { checkGoogleAuth, registerUser } from '../../api/auth';
 import { LogIn } from 'lucide-react';
+import { logger } from '../../utils/logger';
 
 interface SignInDialogProps {
   open: boolean;
@@ -39,7 +40,6 @@ export function SignInDialog({ open, onOpenChange, onSignInSuccess }: SignInDial
     : 'Sign in with your Google account to save and share your shaders';
 
   const handleGoogleSignIn = async (response: CredentialResponse) => {
-    console.log('Google Sign-In successful');
     setLoading(true);
     setError(null);
 
@@ -65,7 +65,7 @@ export function SignInDialog({ open, onOpenChange, onSignInSuccess }: SignInDial
         setShowUsernameInput(true);
       }
     } catch (err: any) {
-      console.error('Error during sign-in:', err);
+      logger.error('Error during Google sign-in', err);
       const message = err.response?.data?.error || 'Failed to sign in. Please try again.';
       setError(message);
     } finally {
@@ -74,7 +74,7 @@ export function SignInDialog({ open, onOpenChange, onSignInSuccess }: SignInDial
   };
 
   const handleGoogleError = () => {
-    console.error('Google Sign-In failed');
+    logger.error('Google Sign-In failed');
     setError('Failed to sign in with Google. Please try again.');
   };
 
@@ -105,7 +105,7 @@ export function SignInDialog({ open, onOpenChange, onSignInSuccess }: SignInDial
       signIn(result.user, result.token);
       handleClose();
     } catch (err: any) {
-      console.error('Error creating account:', err);
+      logger.error('Error creating new user account', err);
       const message = err.response?.data?.error || 'Failed to create account. Please try again.';
       setError(message);
     } finally {

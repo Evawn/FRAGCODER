@@ -8,6 +8,7 @@ import type { TabShaderData } from '../utils/GLSLCompiler';
 import { useAuth } from '../AuthContext';
 import { useDialogManager } from './useDialogManager';
 import { DEFAULT_SHADER_CODES, getDefaultCode } from '../utils/defaultShaderCode';
+import { logger } from '../utils/logger';
 import {
   getShaderBySlug,
   updateShader,
@@ -105,7 +106,6 @@ export function useEditorState({
 
   // Handle compilation results - updates state and calls auto-play callback
   const handleCompilationResult = useCallback((success: boolean, errors: CompilationError[], compilationTime: number) => {
-    console.log('Compilation result:', success ? 'success' : 'failed', errors, `${compilationTime}ms`);
     setCompilationErrors(errors);
     setCompilationSuccess(success);
     setCompilationTime(compilationTime);
@@ -158,7 +158,7 @@ export function useEditorState({
       setShaderUrl(slug);
 
     } catch (error) {
-      console.error('Error loading shader:', error);
+      logger.error('Failed to load shader', error);
       alert('Failed to load shader. It may not exist or may be private.');
       // Navigate back to new shader page on error
       navigate('/new');
@@ -184,7 +184,6 @@ export function useEditorState({
     // Prevent duplicate tabs - check if tab with this name already exists
     const tabExists = tabs.some(tab => tab.name === name);
     if (tabExists) {
-      console.warn(`Tab "${name}" already exists. Skipping creation.`);
       return;
     }
 
@@ -235,8 +234,6 @@ export function useEditorState({
 
   const handleSave = useCallback(async (titleOverride?: string) => {
     try {
-      console.log('Saving shader...');
-
       // Check if we have a shader and slug
       if (!shader || !slug) {
         throw new Error('No shader to save');
@@ -266,10 +263,9 @@ export function useEditorState({
 
       // Save via API
       await updateShader(slug, updateData, token);
-      console.log('Shader saved successfully!');
 
     } catch (error) {
-      console.error('Failed to save shader:', error);
+      logger.error('Failed to save shader', error);
       showErrorAlert(error, 'save shader');
     }
   }, [shader, slug, token, handleCompile, compilationSuccess, compilationErrors, localShaderTitle, tabs]);
@@ -294,8 +290,6 @@ export function useEditorState({
 
   const handleCloneShader = useCallback(async () => {
     try {
-      console.log('Cloning shader...');
-
       // Check if we have a shader and slug
       if (!shader || !slug) {
         throw new Error('No shader to clone');
@@ -308,14 +302,13 @@ export function useEditorState({
 
       // Clone via API
       const response = await cloneShader(slug, token);
-      console.log('Shader cloned successfully!', response);
 
       // Navigate to the cloned shader's URL
       const clonedSlug = response.shader.slug;
       navigate(`/shader/${clonedSlug}`);
 
     } catch (error) {
-      console.error('Failed to clone shader:', error);
+      logger.error('Failed to clone shader', error);
 
       // Re-throw error to be caught by dialog
       if (error instanceof Error) {
@@ -328,8 +321,6 @@ export function useEditorState({
 
   const handleDeleteShader = useCallback(async () => {
     try {
-      console.log('Deleting shader...');
-
       // Check if we have a shader and slug
       if (!shader || !slug) {
         throw new Error('No shader to delete');
@@ -342,13 +333,12 @@ export function useEditorState({
 
       // Delete via API
       await deleteShader(slug, token);
-      console.log('Shader deleted successfully!');
 
       // Navigate to home page
       navigate('/');
 
     } catch (error) {
-      console.error('Failed to delete shader:', error);
+      logger.error('Failed to delete shader', error);
 
       // Re-throw error to be caught by dialog
       if (error instanceof Error) {
@@ -361,8 +351,6 @@ export function useEditorState({
 
   const handleSaveShader = useCallback(async (shaderName: string) => {
     try {
-      console.log('Saving new shader:', shaderName);
-
       // Trigger compilation if not already compiled or if code has changed
       // This ensures we have accurate compilation status before saving
       if (compilationSuccess === undefined) {
@@ -391,14 +379,13 @@ export function useEditorState({
 
       // Save new shader via API
       const response = await saveShader(shaderData, token);
-      console.log('New shader created successfully!', response);
 
       // Navigate to the saved shader's URL
       const newSlug = response.shader.slug;
       navigate(`/shader/${newSlug}`);
 
     } catch (error) {
-      console.error('Failed to save shader:', error);
+      logger.error('Failed to save new shader', error);
       showErrorAlert(error, 'save shader');
     }
   }, [compilationSuccess, handleCompile, compilationErrors, tabs, token, navigate]);

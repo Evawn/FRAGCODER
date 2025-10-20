@@ -15,6 +15,7 @@ import { useAuth } from '../AuthContext';
 import { SignInDialog } from '../components/auth/SignInDialog';
 import { ThumbnailRenderer } from '../utils/ThumbnailRenderer';
 import type { TabShaderData } from '../utils/GLSLCompiler';
+import { logger } from '../utils/logger';
 
 // Animation timing constant - base delay after loading screen
 const ANIMATION_BASE_DELAY = 600; // ms
@@ -91,7 +92,7 @@ function Gallery() {
       setCurrentPage(data.page);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
-      console.error('Error fetching shaders:', err);
+      logger.error('Failed to fetch shaders from API', err);
     } finally {
       setLoading(false);
       setIsPaginationTransition(false);

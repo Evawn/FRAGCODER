@@ -4,6 +4,7 @@
 
 import { WebGLRenderer } from './WebGLRenderer';
 import type { TabShaderData } from './GLSLCompiler';
+import { logger } from './logger';
 
 interface ThumbnailRequest {
   shaderId: string;
@@ -31,7 +32,7 @@ export class ThumbnailRenderer {
     const initialized = this.renderer.initialize(this.canvas);
 
     if (!initialized) {
-      console.error('ThumbnailRenderer: Failed to initialize WebGL');
+      logger.error('ThumbnailRenderer failed to initialize WebGL');
     }
   }
 
@@ -119,7 +120,7 @@ export class ThumbnailRenderer {
       return dataURL;
     } catch (error) {
       // Compilation or rendering failed - return null
-      console.warn('[ThumbnailRenderer] Failed to render thumbnail', error);
+      logger.warn('ThumbnailRenderer failed to render thumbnail', { error });
       return null;
     }
   }

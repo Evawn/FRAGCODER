@@ -1,6 +1,7 @@
 /** Google OAuth verification using google-auth-library to validate credentials and extract user profiles. */
 import { OAuth2Client } from 'google-auth-library';
 import { config } from '../config/env';
+import { logger } from './logger';
 
 const client = new OAuth2Client(config.googleClientId);
 
@@ -23,13 +24,16 @@ export async function verifyGoogleToken(token: string): Promise<GoogleProfile | 
 
     const payload = ticket.getPayload();
     if (!payload) {
-      console.error('❌ Google token verification failed: No payload');
+      logger.error('Google token verification failed: No payload');
       return null;
     }
 
     // Validate required fields
     if (!payload.sub || !payload.email) {
-      console.error('❌ Google token missing required fields (sub or email)');
+      logger.error('Google token missing required fields', undefined, {
+        hasSub: !!payload.sub,
+        hasEmail: !!payload.email
+      });
       return null;
     }
 
@@ -38,7 +42,7 @@ export async function verifyGoogleToken(token: string): Promise<GoogleProfile | 
       email: payload.email,
     };
   } catch (error) {
-    console.error('❌ Error verifying Google token:', error);
+    logger.error('Error verifying Google token', error);
     return null;
   }
 }

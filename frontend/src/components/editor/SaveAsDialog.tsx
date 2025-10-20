@@ -4,6 +4,7 @@ import { ActionDialog } from '../ui/ActionDialog';
 import { Input } from '../ui/input';
 import { useDialogState } from '../../hooks/useDialogState';
 import { Save } from 'lucide-react';
+import { logger } from '../../utils/logger';
 
 interface SaveAsDialogProps {
   onSave: (shaderName: string) => void;
@@ -42,7 +43,7 @@ export function SaveAsDialog({ onSave, open, onOpenChange }: SaveAsDialogProps) 
       await onSave(shaderName.trim());
       onOpenChange(false);
     } catch (err: any) {
-      console.error('Error saving shader:', err);
+      logger.error('Failed to save shader', err);
       const message = err.message || 'Failed to save shader. Please try again.';
       setError(message);
     } finally {

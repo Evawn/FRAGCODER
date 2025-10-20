@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { RotateCcw, Play, Pause, Lock, Unlock, Maximize2, Minimize2 } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 interface ShaderPlayerProps {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -61,12 +62,6 @@ export default function ShaderPlayer({
         // Get the actual current panel width at the moment of locking
         // This ensures minWidth matches the exact current panel width (including all padding)
         const minWidth = (panelRef.current?.getBoundingClientRect().width || 0) + 16.9;
-        console.log('Resolution locked:', {
-          cssResolution: locked,
-          physicalResolution: { width: resolution.width, height: resolution.height },
-          minWidth,
-          devicePixelRatio: window.devicePixelRatio
-        });
 
         // Convert back to physical pixels for the callback
         const physicalResolution = {
@@ -76,10 +71,6 @@ export default function ShaderPlayer({
         onResolutionLockChange?.(true, physicalResolution, minWidth);
       } else {
         // Unlocking: clear locked resolution
-        console.log('Resolution unlocked:', {
-          wasLockedAt: lockedResolution,
-          currentResolution: { width: resolution.width, height: resolution.height }
-        });
         setLockedResolution(null);
         onResolutionLockChange?.(false);
       }
@@ -109,14 +100,14 @@ export default function ShaderPlayer({
         // Request fullscreen
         await containerRef.current.requestFullscreen();
       } catch (err) {
-        console.error('Failed to enter fullscreen:', err);
+        logger.error('Failed to enter fullscreen mode', err);
       }
     } else {
       // Exiting fullscreen
       try {
         await document.exitFullscreen();
       } catch (err) {
-        console.error('Failed to exit fullscreen:', err);
+        logger.error('Failed to exit fullscreen mode', err);
       }
     }
   };

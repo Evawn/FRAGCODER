@@ -61,8 +61,6 @@ const CodeMirrorEditorComponent: React.FC<CodeMirrorEditorProps> = ({
   }, [onCompile]);
 
   const extensions = useMemo(() => {
-    console.log('[CodeMirror] Recreating extensions (expensive!)');
-
     // Custom fold marker using Lucide chevron icons
     const createFoldMarker = (open: boolean): HTMLElement => {
       const marker = document.createElement('span');
@@ -355,7 +353,6 @@ const CodeMirrorEditorComponent: React.FC<CodeMirrorEditorProps> = ({
 
   // Update error decorations when errors change or when switching tabs
   useEffect(() => {
-    console.log('[CodeMirror] Updating error decorations');
     if (isEditorReady && editorRef.current?.view) {
       editorRef.current.view.dispatch({
         effects: setErrorsEffect.of(errors)
@@ -367,8 +364,6 @@ const CodeMirrorEditorComponent: React.FC<CodeMirrorEditorProps> = ({
     if (compilationSuccess === undefined) return 'border-gray-600';
     return compilationSuccess ? 'border-green-500' : 'border-red-500';
   };
-
-  console.log('[CodeMirror] Rendering component');
 
   return (
     <div className={`border-1 h-full rounded transition-colors duration-200 ${getBorderColor()}`}>

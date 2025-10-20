@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { ActionDialog } from '../ui/ActionDialog';
 import { useDialogState } from '../../hooks/useDialogState';
 import { Trash2 } from 'lucide-react';
+import { logger } from '../../utils/logger';
 
 interface DeleteShaderDialogProps {
   shaderName?: string;
@@ -29,7 +30,7 @@ export function DeleteShaderDialog({ shaderName, onDelete, open, onOpenChange }:
       await onDelete();
       onOpenChange(false);
     } catch (err: any) {
-      console.error('Error deleting shader:', err);
+      logger.error('Failed to delete shader', err);
       const message = err.message || 'Failed to delete shader. Please try again.';
       setError(message);
     } finally {

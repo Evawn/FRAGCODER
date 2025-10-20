@@ -7,6 +7,7 @@ import { StateField, StateEffect } from '@codemirror/state';
 import type { CompilationError } from '../../types';
 import type { DecorationSet } from '@codemirror/view';
 import { ERROR_WIDGET_BACKGROUND, ERROR_LINE_BACKGROUND, ERROR_TEXT } from '../../styles/editor_theme';
+import { logger } from '../../utils/logger';
 
 class ErrorWidget extends WidgetType {
   private error: CompilationError;
@@ -113,7 +114,7 @@ function buildDecorationsFromErrors(errors: CompilationError[], doc: any): any[]
         });
       } catch (e) {
         // Silently fail if we can't add general errors
-        console.warn('Failed to add general error decorations:', e);
+        logger.warn('Failed to add general error decorations', { error: e });
       }
     }
 
@@ -121,7 +122,7 @@ function buildDecorationsFromErrors(errors: CompilationError[], doc: any): any[]
     decorations.sort((a, b) => a.from - b.from);
     return decorations;
   } catch (e) {
-    console.error('Error building decorations:', e);
+    logger.error('Error building error decorations', e);
     return []; // Return empty array on failure
   }
 }
@@ -135,7 +136,6 @@ export const errorDecorations = StateField.define<DecorationSet>({
       // Rebuild decorations whenever errors are updated
       for (let effect of tr.effects) {
         if (effect.is(setErrorsEffect)) {
-          console.log('[ErrorDecorations] Rebuilding decorations (DOM manipulation)');
           const errors = effect.value;
           const newDecorations = buildDecorationsFromErrors(errors, tr.state.doc);
           return Decoration.set(newDecorations);
@@ -145,7 +145,7 @@ export const errorDecorations = StateField.define<DecorationSet>({
       // No need to track document changes - decorations are rebuilt from parent state
       return decorations;
     } catch (e) {
-      console.error('Error updating decorations:', e);
+      logger.error('Error updating error decorations', e);
       return Decoration.none;
     }
   },

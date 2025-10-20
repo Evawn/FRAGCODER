@@ -13,6 +13,7 @@ import authRoutes from './routes/auth';
 import shaderRoutes from './routes/shaders';
 import { errorMiddleware, notFoundHandler, asyncHandler } from './middleware/errorHandler';
 import { config } from './config/env';
+import { logger } from './utils/logger';
 
 dotenv.config();
 
@@ -71,7 +72,7 @@ app.use(errorMiddleware);
 // This allows tests to import the app without starting the server
 if (process.env.NODE_ENV !== 'test') {
     app.listen(PORT, () => {
-        console.log(`Server running on port ${PORT}`);
+        logger.info(`Server running on port ${PORT}`, { port: PORT, environment: process.env.NODE_ENV || 'development' });
     });
 }
 

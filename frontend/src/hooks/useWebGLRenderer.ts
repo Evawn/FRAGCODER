@@ -7,6 +7,7 @@ import { WebGLRenderer } from '../utils/WebGLRenderer';
 import { parseShaderError, parseMultipassShaderError, PreprocessorCompilationError } from '../utils/GLSLCompiler';
 import type { CompilationError } from '../types';
 import type { TabShaderData, MultipassCompilationError } from '../utils/GLSLCompiler';
+import { logger } from '../utils/logger';
 
 interface UseWebGLRendererProps {
   onCompilationResult?: (success: boolean, errors: CompilationError[], compilationTime: number) => void;
@@ -136,7 +137,7 @@ export function useWebGLRenderer({
   const compile = useCallback((tabs: TabShaderData[]) => {
     const renderer = rendererRef.current;
     if (!renderer) {
-      console.warn('Renderer not initialized');
+      logger.warn('WebGL renderer not initialized');
       return;
     }
 

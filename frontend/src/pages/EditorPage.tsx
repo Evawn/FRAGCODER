@@ -208,7 +208,6 @@ function EditorPage() {
                 isPlaying={isPlaying}
                 onPlayPause={() => setIsPlaying(!isPlaying)}
                 onReset={() => {
-                  console.log('Reset shader');
                   rendererReset();
                   setIsPlaying(false);
                 }}

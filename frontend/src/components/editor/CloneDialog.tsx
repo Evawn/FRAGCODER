@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { ActionDialog } from '../ui/ActionDialog';
 import { useDialogState } from '../../hooks/useDialogState';
 import { GitBranchPlus } from 'lucide-react';
+import { logger } from '../../utils/logger';
 
 interface CloneDialogProps {
   shaderName?: string;
@@ -29,7 +30,7 @@ export function CloneDialog({ shaderName, onClone, open, onOpenChange }: CloneDi
       await onClone();
       onOpenChange(false);
     } catch (err: any) {
-      console.error('Error cloning shader:', err);
+      logger.error('Failed to clone shader', err);
       const message = err.message || 'Failed to clone shader. Please try again.';
       setError(message);
     } finally {

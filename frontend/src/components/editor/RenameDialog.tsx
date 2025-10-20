@@ -4,6 +4,7 @@ import { ActionDialog } from '../ui/ActionDialog';
 import { Input } from '../ui/input';
 import { useDialogState } from '../../hooks/useDialogState';
 import { PencilLine } from 'lucide-react';
+import { logger } from '../../utils/logger';
 
 interface RenameDialogProps {
   currentName?: string;
@@ -49,7 +50,7 @@ export function RenameDialog({ currentName, onRename, open, onOpenChange }: Rena
       await onRename(shaderName.trim());
       onOpenChange(false);
     } catch (err: any) {
-      console.error('Error renaming shader:', err);
+      logger.error('Failed to rename shader', err);
       const message = err.message || 'Failed to rename shader. Please try again.';
       setError(message);
     } finally {
