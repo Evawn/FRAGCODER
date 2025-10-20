@@ -185,8 +185,7 @@ function HomePage() {
 
             {/* Description */}
             <p className="text-xl italic md:text-2xl text-foreground-muted max-w-2xl mx-auto leading-relaxed">
-              Create, edit, and share stunning GLSL fragment shaders with live WebGL rendering.
-              Inspired by Shadertoy, built for creators.
+              Create, explore, and share stunning GLSL fragment shaders directly from your browser. Inspired by Shadertoy.
             </p>
 
             {/* CTA Buttons */}

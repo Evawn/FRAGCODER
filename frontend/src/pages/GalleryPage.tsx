@@ -3,7 +3,7 @@
 // Layout: Header (logo left, Browse Shaders + search center, user menu right) → Thin Results Bar (pagination + count) → Shader Grid
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import SearchBar from '../components/SearchBar';
 import ShaderGrid from '../components/ShaderGrid';
 import Pagination from '../components/Pagination';
@@ -47,10 +47,15 @@ interface PaginatedResponse {
 
 function Gallery() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, signOut } = useAuth();
+
+  // Get initial search from URL query parameter
+  const initialSearch = searchParams.get('search') || '';
+
   const [shaders, setShaders] = useState<Shader[]>([]);
-  const [inputValue, setInputValue] = useState(''); // What user is typing
-  const [searchTerm, setSearchTerm] = useState(''); // Committed search term
+  const [inputValue, setInputValue] = useState(initialSearch); // What user is typing
+  const [searchTerm, setSearchTerm] = useState(initialSearch); // Committed search term
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -141,10 +146,10 @@ function Gallery() {
     });
   }, [shaders]);
 
-  // Initial load
+  // Initial load - use initial search from URL if present
   useEffect(() => {
-    fetchShaders(1, '');
-  }, [fetchShaders]);
+    fetchShaders(1, initialSearch);
+  }, [fetchShaders, initialSearch]);
 
   const handleInputChange = (value: string) => {
     setInputValue(value);

@@ -2,7 +2,8 @@
 import { Button } from '../ui/button';
 import { Dropdown } from '../ui/Dropdown';
 import type { DropdownOption } from '../ui/Dropdown';
-import { UserCircle } from 'lucide-react';
+import { UserCircle, Image, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface UserMenuProps {
   isSignedIn: boolean;
@@ -19,6 +20,8 @@ export function UserMenu({
   onSignIn,
   onSignOut,
 }: UserMenuProps) {
+  const navigate = useNavigate();
+
   if (!isSignedIn || !username) {
     // Show Sign In button when not signed in
     return (
@@ -39,18 +42,18 @@ export function UserMenu({
   // Show user menu when signed in
   const dropdownOptions: DropdownOption[] = [
     {
-      text: `@${username}`,
-      callback: () => { },
-    },
-    {
       text: 'My Shaders',
-      callback: () => { /* TODO: Navigate to my shaders */ },
+      callback: () => {
+        navigate(`/gallery?search=${username}`);
+      },
+      icon: Image,
     },
     {
       text: 'Sign Out',
       callback: () => {
         onSignOut();
       },
+      icon: LogOut,
     },
   ];
 
