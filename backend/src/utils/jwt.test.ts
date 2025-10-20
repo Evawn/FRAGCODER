@@ -24,7 +24,6 @@ describe('JWT Utilities', () => {
 
   describe('generateToken', () => {
     it('should generate a valid JWT token with userId and email', () => {
-      process.env.JWT_SECRET = 'test-secret';
       const userId = 'user123';
       const email = 'test@example.com';
 
@@ -38,35 +37,10 @@ describe('JWT Utilities', () => {
       expect(decoded.email).toBe(email);
       expect(decoded.exp - decoded.iat).toBe(604800); // 7 days in seconds
     });
-
-    it('should use development fallback when JWT_SECRET is missing in non-production', () => {
-      delete process.env.JWT_SECRET;
-      process.env.NODE_ENV = 'development';
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-      const token = generateToken('dev-user', 'dev@test.com');
-
-      expect(token).toBeDefined();
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('JWT_SECRET not set - using development fallback')
-      );
-
-      consoleWarnSpy.mockRestore();
-    });
-
-    it('should throw error when JWT_SECRET is missing in production', () => {
-      delete process.env.JWT_SECRET;
-      process.env.NODE_ENV = 'production';
-
-      expect(() => {
-        generateToken('user', 'test@example.com');
-      }).toThrow('JWT_SECRET must be set in production');
-    });
   });
 
   describe('verifyToken', () => {
     it('should verify and decode a valid token', () => {
-      process.env.JWT_SECRET = 'test-secret';
       const userId = 'verify-user';
       const email = 'verify@test.com';
 
@@ -79,9 +53,8 @@ describe('JWT Utilities', () => {
     });
 
     it('should return null for expired token', () => {
-      process.env.JWT_SECRET = 'test-secret';
-
-      const token = jwt.sign({ userId: 'user', email: 'test@test.com' }, 'test-secret', { expiresIn: '1s' });
+      const testSecret = process.env.JWT_SECRET || 'test-jwt-secret-key-for-testing-only';
+      const token = jwt.sign({ userId: 'user', email: 'test@test.com' }, testSecret, { expiresIn: '1s' });
 
       vi.useFakeTimers();
       vi.advanceTimersByTime(2000);
@@ -90,8 +63,6 @@ describe('JWT Utilities', () => {
     });
 
     it('should return null for malformed token', () => {
-      process.env.JWT_SECRET = 'test-secret';
-
       const malformedTokens = [
         'not-a-jwt-token',
         'invalid.token.format',
@@ -107,26 +78,9 @@ describe('JWT Utilities', () => {
     });
 
     it('should return null for token signed with wrong secret', () => {
-      process.env.JWT_SECRET = 'correct-secret';
-
       const token = jwt.sign({ userId: 'user', email: 'test@test.com' }, 'wrong-secret', { expiresIn: '7d' });
 
       expect(verifyToken(token)).toBeNull();
-    });
-
-    it('should successfully generate and verify token in development mode without JWT_SECRET', () => {
-      delete process.env.JWT_SECRET;
-      process.env.NODE_ENV = 'development';
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-      const token = generateToken('dev-user', 'dev@test.com');
-      const verified = verifyToken(token);
-
-      expect(verified).not.toBeNull();
-      expect(verified?.userId).toBe('dev-user');
-      expect(verified?.email).toBe('dev@test.com');
-
-      consoleWarnSpy.mockRestore();
     });
   });
 });

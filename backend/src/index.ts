@@ -5,15 +5,16 @@ import { prisma } from './db';
 import authRoutes from './routes/auth';
 import shaderRoutes from './routes/shaders';
 import { errorMiddleware, notFoundHandler, asyncHandler } from './middleware/errorHandler';
+import { config } from './config/env';
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = config.port;
 
 // Configure CORS for security
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: config.frontendUrl,
   credentials: true
 }));
 app.use(express.json());

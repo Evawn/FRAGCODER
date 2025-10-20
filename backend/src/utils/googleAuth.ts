@@ -1,6 +1,7 @@
 import { OAuth2Client } from 'google-auth-library';
+import { config } from '../config/env';
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const client = new OAuth2Client(config.googleClientId);
 
 export interface GoogleProfile {
   googleId: string;
@@ -14,14 +15,9 @@ export interface GoogleProfile {
  */
 export async function verifyGoogleToken(token: string): Promise<GoogleProfile | null> {
   try {
-    if (!process.env.GOOGLE_CLIENT_ID) {
-      console.error('❌ GOOGLE_CLIENT_ID not set in environment variables!');
-      return null;
-    }
-
     const ticket = await client.verifyIdToken({
       idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID,
+      audience: config.googleClientId,
     });
 
     const payload = ticket.getPayload();
