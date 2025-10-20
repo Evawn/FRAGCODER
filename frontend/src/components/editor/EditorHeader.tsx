@@ -1,3 +1,4 @@
+/** Editor header with title dropdown, navigation buttons, and user authentication menu. */
 import { TitleDropdown } from './TitleDropdown';
 import { BrowseButton } from './BrowseButton';
 import { NewShaderButton } from './NewShaderButton';

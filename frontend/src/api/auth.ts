@@ -1,3 +1,4 @@
+/** API client functions for Google OAuth authentication, user registration, and session verification. */
 import { apiClient, setAuthToken } from './client';
 import type { User, GoogleAuthResponse, RegisterResponse } from '../types';
 

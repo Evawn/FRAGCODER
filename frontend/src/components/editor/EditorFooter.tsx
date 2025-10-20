@@ -1,3 +1,4 @@
+// Editor footer bar with compile button, compilation status badge, and character count
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Play } from 'lucide-react';

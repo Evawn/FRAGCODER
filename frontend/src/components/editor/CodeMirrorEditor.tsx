@@ -1,3 +1,7 @@
+/**
+ * CodeMirror-based GLSL editor with syntax highlighting, error decorations, and custom keybindings
+ * Features minimap, code folding, autocomplete, and Shift+Enter to compile
+ */
 import React, { useMemo, useState, useEffect } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import { oneDark } from '@codemirror/theme-one-dark';

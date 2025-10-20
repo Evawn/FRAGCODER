@@ -1,3 +1,7 @@
+/**
+ * GLSL shader compiler with multipass support, preprocessing, error tracking, and line mapping.
+ * Handles Shadertoy-style shaders with Common code sharing, buffer passes, and mainImage validation.
+ */
 export interface CompilationError {
   line: number;
   message: string;

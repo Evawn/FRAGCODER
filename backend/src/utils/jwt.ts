@@ -1,3 +1,4 @@
+/** JWT token generation and verification utilities for user authentication sessions. */
 import jwt from 'jsonwebtoken';
 import { config } from '../config/env';
 

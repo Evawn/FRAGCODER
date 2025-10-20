@@ -1,3 +1,4 @@
+/** Google OAuth verification using google-auth-library to validate credentials and extract user profiles. */
 import { OAuth2Client } from 'google-auth-library';
 import { config } from '../config/env';
 

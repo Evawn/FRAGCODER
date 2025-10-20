@@ -1,3 +1,7 @@
+/**
+ * Express server entry point with security middleware, API routes, and error handling.
+ * Configures CORS, rate limiting, request logging, and mounts auth/shader route handlers.
+ */
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';

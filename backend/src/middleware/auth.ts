@@ -1,3 +1,4 @@
+/** Authentication middleware that verifies JWT tokens and attaches user data to requests. */
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../utils/jwt';
 import { prisma } from '../db';

@@ -1,3 +1,7 @@
+/**
+ * CodeMirror GLSL language support with syntax highlighting, folding, and autocomplete.
+ * Provides built-in GLSL completions and extracts user-defined symbols (variables, functions, structs, macros).
+ */
 import { LRLanguage, LanguageSupport, foldNodeProp, foldInside } from "@codemirror/language"
 import { styleTags, tags as t } from "@lezer/highlight"
 import { parser } from "lezer-glsl"

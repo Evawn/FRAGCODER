@@ -1,3 +1,4 @@
+/** React application entry point with router, Google OAuth, and auth context providers. */
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'

@@ -1,3 +1,7 @@
+/**
+ * Tab bar component for shader editor with multiple shader passes
+ * Features tab switching, error indicators, add/delete tabs, and curved active tab styling
+ */
 import { useState } from 'react';
 import { Button } from '../ui/button';
 import { Dropdown } from '../ui/Dropdown';

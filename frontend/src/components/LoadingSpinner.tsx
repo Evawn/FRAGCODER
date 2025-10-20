@@ -1,3 +1,4 @@
+// Simple loading spinner component with optional message display
 interface LoadingSpinnerProps {
   size?: 'small' | 'medium' | 'large';
   message?: string;

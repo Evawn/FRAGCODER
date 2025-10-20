@@ -1,3 +1,8 @@
+/**
+ * WebGL renderer for multipass GLSL shader compilation and rendering
+ * Manages shader programs, framebuffers, textures, animation loop, and Shadertoy-style uniforms
+ * Supports ping-pong buffers for feedback effects and mouse/time/resolution uniforms
+ */
 import { createShader, VERTEX_SHADER_SOURCE, prepareShaderCode, PreprocessorCompilationError, type TabShaderData, type PassErrorInfo, type MultipassCompilationError } from './GLSLCompiler';
 
 const SHADER_UNIFORMS = {

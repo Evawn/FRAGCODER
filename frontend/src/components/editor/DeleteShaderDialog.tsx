@@ -1,3 +1,4 @@
+// Confirmation dialog for permanently deleting a shader with warning message
 import { useEffect } from 'react';
 import { ActionDialog } from '../ui/ActionDialog';
 import { useDialogState } from '../../hooks/useDialogState';

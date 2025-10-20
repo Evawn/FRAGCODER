@@ -1,3 +1,4 @@
+// Dialog for saving a new shader with name validation
 import { useState, useEffect } from 'react';
 import { ActionDialog } from '../ui/ActionDialog';
 import { Input } from '../ui/input';

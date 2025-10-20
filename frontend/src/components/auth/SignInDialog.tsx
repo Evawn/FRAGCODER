@@ -1,3 +1,7 @@
+/**
+ * Sign-in dialog with Google OAuth integration
+ * Handles both existing user authentication and new user registration with username selection
+ */
 import { useState } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import type { CredentialResponse } from '@react-oauth/google';

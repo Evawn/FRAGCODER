@@ -1,3 +1,4 @@
+/** Root application component with route definitions for home, gallery, editor, and test pages. */
 import { Routes, Route } from 'react-router-dom'
 import HomePage from './pages/HomePage'
 import Gallery from './pages/GalleryPage'

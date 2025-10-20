@@ -1,3 +1,4 @@
+/** Helper utilities for EditorPage: tab management, error distribution, format conversion, and status determination. */
 import type { CompilationError, Tab, ShaderData, TabData, CompilationStatus, Shader } from '../types';
 import { DEFAULT_SHADER_CODES } from './defaultShaderCode';
 

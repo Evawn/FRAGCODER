@@ -1,3 +1,4 @@
+/** Main shader editor component with code editor, tab management, and compilation controls. */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import CodeMirrorEditor from './CodeMirrorEditor';
 import { EditorHeader } from './EditorHeader';

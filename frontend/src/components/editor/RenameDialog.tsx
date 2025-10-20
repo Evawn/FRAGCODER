@@ -1,3 +1,4 @@
+// Dialog for renaming a saved shader with validation
 import { useState, useEffect } from 'react';
 import { ActionDialog } from '../ui/ActionDialog';
 import { Input } from '../ui/input';

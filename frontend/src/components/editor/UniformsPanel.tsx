@@ -1,3 +1,4 @@
+/** Collapsible panel displaying available GLSL shader uniforms with syntax highlighting. */
 import { useState } from 'react';
 import { Button } from '../ui/button';
 import { ChevronDown } from 'lucide-react';

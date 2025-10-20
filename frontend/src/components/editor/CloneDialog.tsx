@@ -1,3 +1,4 @@
+// Dialog for cloning an existing shader to the user's account
 import { useEffect } from 'react';
 import { ActionDialog } from '../ui/ActionDialog';
 import { useDialogState } from '../../hooks/useDialogState';

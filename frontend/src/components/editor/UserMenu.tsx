@@ -1,3 +1,4 @@
+// User menu component showing sign in button or user dropdown with profile options
 import { Button } from '../ui/button';
 import { Dropdown } from '../ui/Dropdown';
 import type { DropdownOption } from '../ui/Dropdown';

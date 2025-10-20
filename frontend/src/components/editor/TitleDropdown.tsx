@@ -1,3 +1,7 @@
+/**
+ * Shader title dropdown with context-sensitive actions
+ * Shows different options based on shader state (new/saved) and ownership
+ */
 import { useMemo } from 'react';
 import { Button } from '../ui/button';
 import { Dropdown } from '../ui/Dropdown';

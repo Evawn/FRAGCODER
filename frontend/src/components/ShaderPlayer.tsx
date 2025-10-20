@@ -1,3 +1,4 @@
+/** WebGL canvas player with playback controls, resolution locking, fullscreen support, and real-time stats display. */
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

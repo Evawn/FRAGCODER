@@ -1,4 +1,7 @@
-// Validates required environment variables at startup and exports a type-safe configuration object
+/**
+ * Environment configuration - validates required environment variables at startup
+ * and exports a type-safe configuration object for use throughout the application.
+ */
 export const config = {
   port: process.env.PORT || 3001,
   jwtSecret: requireEnv('JWT_SECRET'),

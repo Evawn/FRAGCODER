@@ -1,3 +1,4 @@
+// Search input component with icon and Enter key support for triggering search
 import { Search } from 'lucide-react';
 
 interface SearchBarProps {

@@ -1,3 +1,4 @@
+/** API client functions for shader CRUD operations: save, fetch, update, delete, and clone. */
 import { apiClient } from './client';
 import type {
   SaveShaderRequest,

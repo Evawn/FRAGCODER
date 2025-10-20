@@ -1,3 +1,4 @@
+/** Authentication API routes for Google OAuth sign-in, user registration, and session management. */
 import express from 'express';
 import { prisma } from '../db';
 import { verifyGoogleToken } from '../utils/googleAuth';

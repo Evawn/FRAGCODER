@@ -1,3 +1,7 @@
+/**
+ * CodeMirror error decorations for displaying compilation errors inline
+ * Renders error messages as block widgets below error lines with custom styling
+ */
 import { EditorView, Decoration, WidgetType } from '@codemirror/view';
 import { StateField, StateEffect } from '@codemirror/state';
 import type { CompilationError } from '../../types';

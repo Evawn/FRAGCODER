@@ -1,3 +1,4 @@
+// Confirmation dialog for deleting a shader tab
 import { ActionDialog } from '../ui/ActionDialog';
 import { Trash2 } from 'lucide-react';
 
