@@ -2,7 +2,7 @@
  * CodeMirror GLSL language support with syntax highlighting, folding, and autocomplete.
  * Provides built-in GLSL completions and extracts user-defined symbols (variables, functions, structs, macros).
  */
-import { LRLanguage, LanguageSupport, foldNodeProp, foldInside } from "@codemirror/language"
+import { LRLanguage, LanguageSupport, foldNodeProp, foldInside, syntaxTree } from "@codemirror/language"
 import { styleTags, tags as t } from "@lezer/highlight"
 import { parser } from "lezer-glsl"
 import { completeFromList } from "@codemirror/autocomplete"
@@ -415,6 +415,12 @@ function extractUserDefinedSymbols(code: string): Completion[] {
 
 // Dynamic completion function that combines static and user-defined completions
 function glslCompletion(context: CompletionContext): CompletionResult | Promise<CompletionResult | null> | null {
+  // Check if cursor is in a comment - if so, disable autocomplete
+  const nodeBefore = syntaxTree(context.state).resolveInner(context.pos, -1)
+  if (nodeBefore.name === "LineComment" || nodeBefore.name === "BlockComment") {
+    return null
+  }
+
   const code = context.state.doc.toString()
   const userDefinedSymbols = extractUserDefinedSymbols(code)
 

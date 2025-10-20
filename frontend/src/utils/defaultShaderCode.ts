@@ -9,23 +9,23 @@ const defaultMainImageCode = `void mainImage(out vec4 fragColor, in vec2 fragCoo
 }`;
 
 export const DEFAULT_SHADER_CODES = {
-  Image: `// Image - Display all buffers in quadrants
+  Image: `// Main Image - Displays to screen
 
 ${defaultMainImageCode}`,
 
-  'Buffer A': `// Buffer A - Red pulsing circle
+  'Buffer A': `// Buffer A - Runs before main image
 
 ${defaultMainImageCode}`,
 
-  'Buffer B': `// Buffer B - Green rotating square
+  'Buffer B': `// Buffer B - Runs before Buffer A
 
 ${defaultMainImageCode}`,
 
-  'Buffer C': `// Buffer C - Blue animated triangle
+  'Buffer C': `// Buffer C - Runs before Buffer B
 
 ${defaultMainImageCode}`,
 
-  'Buffer D': `// Buffer D - Yellow/orange gradient waves
+  'Buffer D': `// Buffer D -  Runs before Buffer C
 
 ${defaultMainImageCode}`,
 
