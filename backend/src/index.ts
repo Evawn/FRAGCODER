@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import morgan from 'morgan';
 import { prisma } from './db';
 import authRoutes from './routes/auth';
 import shaderRoutes from './routes/shaders';
@@ -23,6 +24,10 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+
+// Request logging middleware - logs all HTTP requests for debugging and monitoring
+// Uses 'dev' format in development (colorized, concise) and 'combined' in production (Apache-style, detailed)
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 // Rate limiting middleware - protects against abuse and DoS attacks
 const limiter = rateLimit({
