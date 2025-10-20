@@ -23,12 +23,11 @@ interface Shader {
 
 interface ShaderGridProps {
   shaders: Shader[];
-  thumbnails: Map<string, string | null>;
-  loadingThumbnails: Set<string>;
+  thumbnailStates: Map<string, { dataURL: string | null; isLoading: boolean }>;
   currentPage?: number; // Used as key to trigger page transition animations
 }
 
-function ShaderGrid({ shaders, thumbnails, loadingThumbnails, currentPage }: ShaderGridProps) {
+function ShaderGrid({ shaders, thumbnailStates, currentPage }: ShaderGridProps) {
   if (shaders.length === 0) {
     return (
       <div className="text-center py-16">
@@ -47,26 +46,29 @@ function ShaderGrid({ shaders, thumbnails, loadingThumbnails, currentPage }: Sha
         opacity: 0
       }}
     >
-      {shaders.map((shader, index) => (
-        <div
-          key={shader.id}
-          style={{
-            animation: 'fadeInScale 0.25s ease-out forwards',
-            opacity: 0,
-            animationDelay: `${Math.min(index * 30, 300)}ms`
-          }}
-        >
-          <ShaderCard
-            id={shader.id}
-            title={shader.title}
-            slug={shader.slug}
-            thumbnailDataURL={thumbnails.get(shader.id) || null}
-            isLoading={loadingThumbnails.has(shader.id)}
-            author={shader.user.username}
-            isForked={!!shader.forkedFrom}
-          />
-        </div>
-      ))}
+      {shaders.map((shader, index) => {
+        const thumbnailState = thumbnailStates.get(shader.id);
+        return (
+          <div
+            key={shader.id}
+            style={{
+              animation: 'fadeInScale 0.25s ease-out forwards',
+              opacity: 0,
+              animationDelay: `${Math.min(index * 30, 300)}ms`
+            }}
+          >
+            <ShaderCard
+              id={shader.id}
+              title={shader.title}
+              slug={shader.slug}
+              thumbnailDataURL={thumbnailState?.dataURL || null}
+              isLoading={thumbnailState?.isLoading || false}
+              author={shader.user.username}
+              isForked={!!shader.forkedFrom}
+            />
+          </div>
+        );
+      })}
 
       <style>{`
         @keyframes slideInFromRight {

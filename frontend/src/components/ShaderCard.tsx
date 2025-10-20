@@ -1,8 +1,9 @@
 // Minimal shader card with 4:3 thumbnail and thin title footer
 // Features: Client-side rendered thumbnail, pulsing loading animation, crisp shadow styling, hover overlay with author and fork icon
+// Memoized to prevent unnecessary re-renders when props unchanged
 
 import { Link } from 'react-router-dom';
-import { useState, useRef } from 'react';
+import { useState, useRef, memo } from 'react';
 import { GitBranchPlus } from 'lucide-react';
 import { logger } from '../utils/logger';
 
@@ -16,7 +17,7 @@ interface ShaderCardProps {
   isForked?: boolean;
 }
 
-function ShaderCard({ id, title, slug, thumbnailDataURL, isLoading = false, author, isForked = false }: ShaderCardProps) {
+const ShaderCard = memo(function ShaderCard({ id, title, slug, thumbnailDataURL, isLoading = false, author, isForked = false }: ShaderCardProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const currentThumbnailRef = useRef<string | null | undefined>(thumbnailDataURL);
 
@@ -112,7 +113,7 @@ function ShaderCard({ id, title, slug, thumbnailDataURL, isLoading = false, auth
 
       {/* Thin Footer with Title */}
       <div className="bg-background-header px-3 py-2">
-        <h3 className="text-sm font-normal text-foreground truncate">
+        <h3 className="text-sm font-light text-foreground truncate">
           {title}
         </h3>
       </div>
@@ -129,6 +130,6 @@ function ShaderCard({ id, title, slug, thumbnailDataURL, isLoading = false, auth
       `}</style>
     </Link>
   );
-}
+});
 
 export default ShaderCard;

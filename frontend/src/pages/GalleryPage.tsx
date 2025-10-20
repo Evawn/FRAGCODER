@@ -2,7 +2,7 @@
 // Features: centered header with logo/title/search, server-side search, paginated results, staggered animations
 // Layout: Header (logo left, Browse Shaders + search center, user menu right) → Thin Results Bar (pagination + count) → Shader Grid
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, startTransition } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import SearchBar from '../components/SearchBar';
 import ShaderGrid from '../components/ShaderGrid';
@@ -64,9 +64,8 @@ function Gallery() {
   const [error, setError] = useState<string | null>(null);
   const [isSignInDialogOpen, setIsSignInDialogOpen] = useState(false);
 
-  // Thumbnail management state
-  const [thumbnails, setThumbnails] = useState<Map<string, string | null>>(new Map());
-  const [loadingThumbnails, setLoadingThumbnails] = useState<Set<string>>(new Set());
+  // Thumbnail management state - combined to reduce re-renders
+  const [thumbnailStates, setThumbnailStates] = useState<Map<string, { dataURL: string | null; isLoading: boolean }>>(new Map());
   const thumbnailRendererRef = useRef<ThumbnailRenderer | null>(null);
 
   // Ref to store Logo rotation function
@@ -104,11 +103,8 @@ function Gallery() {
     }
   }, []);
 
-  // Initialize ThumbnailRenderer on mount
+  // Cleanup ThumbnailRenderer on unmount
   useEffect(() => {
-    thumbnailRendererRef.current = new ThumbnailRenderer();
-
-    // Cleanup on unmount
     return () => {
       if (thumbnailRendererRef.current) {
         thumbnailRendererRef.current.dispose();
@@ -117,30 +113,37 @@ function Gallery() {
     };
   }, []);
 
-  // Generate thumbnails for fetched shaders
+  // Generate thumbnails for fetched shaders (lazy initialization of renderer)
   useEffect(() => {
-    if (!thumbnailRendererRef.current || shaders.length === 0) return;
+    if (shaders.length === 0) return;
+
+    // Lazy initialize ThumbnailRenderer only when needed (defers expensive WebGL setup)
+    if (!thumbnailRendererRef.current) {
+      thumbnailRendererRef.current = new ThumbnailRenderer();
+    }
 
     const renderer = thumbnailRendererRef.current;
 
-    // Mark all shaders as loading
-    setLoadingThumbnails(new Set(shaders.map(s => s.id)));
-
-    // Queue each shader for thumbnail generation
-    shaders.forEach(shader => {
-      renderer.queueThumbnail(shader.id, shader.tabs, (dataURL) => {
-        // Update thumbnails map
-        setThumbnails(prev => {
-          const next = new Map(prev);
-          next.set(shader.id, dataURL);
-          return next;
+    // Defer initial state update to allow browser to paint first
+    startTransition(() => {
+      // Initialize all shaders as loading in a single state update
+      setThumbnailStates(prev => {
+        const next = new Map(prev);
+        shaders.forEach(shader => {
+          next.set(shader.id, { dataURL: null, isLoading: true });
         });
+        return next;
+      });
 
-        // Remove from loading set
-        setLoadingThumbnails(prev => {
-          const next = new Set(prev);
-          next.delete(shader.id);
-          return next;
+      // Queue each shader for thumbnail generation
+      shaders.forEach(shader => {
+        renderer.queueThumbnail(shader.id, shader.tabs, (dataURL) => {
+          // Single state update combining both thumbnail data and loading status
+          setThumbnailStates(prev => {
+            const next = new Map(prev);
+            next.set(shader.id, { dataURL, isLoading: false });
+            return next;
+          });
         });
       });
     });
@@ -333,8 +336,7 @@ function Gallery() {
         <div className="h-full">
           <ShaderGrid
             shaders={shaders}
-            thumbnails={thumbnails}
-            loadingThumbnails={loadingThumbnails}
+            thumbnailStates={thumbnailStates}
             currentPage={currentPage}
           />
         </div>
