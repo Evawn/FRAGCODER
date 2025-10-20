@@ -7,11 +7,9 @@ import LogoTestPage from './pages/LogoTestPage'
 function App() {
   return (
     <div className="relative min-h-screen bg-background text-foreground w-full overflow-x-clip">
-      {/* <Navigation /> */}
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/gallery" element={<Gallery />} />
-        {/* <Route path="/editor" element={<ShaderEditor />} /> */}
         <Route path="/new" element={<EditorPage />} />
         <Route path="/shader/:slug" element={<EditorPage />} />
         <Route path="/logo" element={<LogoTestPage />} />
