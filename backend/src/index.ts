@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import { prisma } from './db';
 import authRoutes from './routes/auth';
 import shaderRoutes from './routes/shaders';
@@ -12,12 +14,26 @@ dotenv.config();
 const app = express();
 const PORT = config.port;
 
+// Security headers middleware
+app.use(helmet());
+
 // Configure CORS for security
 app.use(cors({
   origin: config.frontendUrl,
   credentials: true
 }));
 app.use(express.json());
+
+// Rate limiting middleware - protects against abuse and DoS attacks
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
+// Apply rate limiting to all API routes
+app.use('/api/', limiter);
 
 // Mount auth routes
 app.use('/api/auth', authRoutes);
