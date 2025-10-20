@@ -1,0 +1,49 @@
+# Dependencies
+node_modules
+npm-debug.log*
+
+# Testing
+coverage
+*.test.ts
+__tests__
+
+# Development files
+*.md
+.env
+.env.local
+.env.test
+.env.test.example
+
+# Build output
+dist
+
+# Database files (SQLite)
+*.db
+*.db-journal
+prisma/dev.db
+prisma/test.db
+prisma/migrations/*_dev
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Git
+.git
+.gitignore
+
+# Logs
+logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml

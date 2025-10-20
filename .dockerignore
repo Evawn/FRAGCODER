@@ -1,0 +1,65 @@
+# Root .dockerignore for Shader Playground
+# Excludes files not needed in Docker images
+
+# Dependencies
+**/node_modules
+**/npm-debug.log*
+**/package-lock.json
+
+# Testing
+**/coverage
+**/*.test.ts
+**/*.test.tsx
+**/__tests__
+
+# Development files
+**/*.md
+!README-DOCKER.md
+**/.env
+**/.env.local
+**/.env.test
+.env.test.example
+
+# Build outputs
+**/dist
+backend/dist
+
+# Database files (SQLite - not used in Docker)
+**/*.db
+**/*.db-journal
+backend/prisma/dev.db
+backend/prisma/test.db
+backend/prisma/migrations/*_dev
+
+# IDE
+.vscode
+.idea
+**/*.swp
+**/*.swo
+**/*~
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Logs
+**/logs
+**/*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# CI/CD
+.github
+
+# Docker files themselves
+Dockerfile
+**/Dockerfile
+.dockerignore
+**/.dockerignore
+docker-compose*.yml
+
+# Vite cache
+frontend/.vite

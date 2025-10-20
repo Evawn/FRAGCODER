@@ -114,11 +114,43 @@ FRAGCODER is a Shadertoy-inspired platform that enables developers and artists t
 
 ## Getting Started
 
-### Prerequisites
+### Quick Start with Docker (Recommended)
+
+The easiest way to run FRAGCODER is with Docker. This method requires no manual dependency installation or database setup.
+
+**Prerequisites:**
+- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/)
+- [Google OAuth Client ID](https://console.cloud.google.com/)
+
+**Steps:**
+```bash
+# 1. Clone the repository
+git clone https://github.com/your-username/fragcoder.git
+cd fragcoder
+
+# 2. Configure environment variables
+cp backend/.env.docker.example .env
+# Edit .env and add your GOOGLE_CLIENT_ID and JWT_SECRET
+
+# 3. Start the application
+docker-compose up --build
+
+# Access at http://localhost:5173
+```
+
+**See [README-DOCKER.md](README-DOCKER.md) for detailed Docker documentation.**
+
+---
+
+### Local Development Setup
+
+If you prefer to run the application locally without Docker:
+
+#### Prerequisites
 - **Node.js** 18+ and npm
 - **Git** for cloning the repository
 
-### Installation
+#### Installation
 
 1. **Clone the repository:**
    ```bash
@@ -157,7 +189,7 @@ FRAGCODER is a Shadertoy-inspired platform that enables developers and artists t
    cd ..
    ```
 
-### Running the Application
+#### Running the Application
 
 **Development mode (both frontend and backend):**
 ```bash
