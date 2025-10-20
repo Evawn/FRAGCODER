@@ -27,10 +27,14 @@ interface ConditionalState {
   line: number; // line where conditional started
 }
 
+// ============ PHASE 1: LINE SPLICING ============
+
 /**
  * Phase 1: Line splicing (backslash-newline continuation)
  * Joins lines ending with \ before any other preprocessing
  * This is done at the character level to preserve line structure for mapping
+ * Example: "vec3 color = \" -> "vec3 color = vec3(1.0, 0.0, 0.0);"
+ *          "  vec3(1.0, 0.0, 0.0);"
  */
 function performLineSplicing(source: string): { code: string; lineMapping: Map<number, number> } {
   const lines = source.split('\n');
@@ -62,8 +66,14 @@ function performLineSplicing(source: string): { code: string; lineMapping: Map<n
   };
 }
 
+// ============ MAIN PREPROCESSOR ============
+
 /**
  * Main preprocessor function
+ * Processes GLSL code in three phases:
+ * 1. Line splicing (backslash continuation)
+ * 2. Directive processing (#define, #ifdef, etc.)
+ * 3. Macro expansion (replace macro invocations with their definitions)
  */
 export function preprocessGLSL(source: string): PreprocessorResult {
   // Phase 1: Line splicing (handle backslash-newline continuation)
@@ -77,14 +87,18 @@ export function preprocessGLSL(source: string): PreprocessorResult {
   const errors: PreprocessorError[] = [];
   const macros = new Map<string, Macro>();
 
-  // Stack for nested conditionals
+  // Stack for nested conditionals (#ifdef, #ifndef, #if, #elif, #else, #endif)
+  // Supports nesting: #ifdef FOO ... #ifdef BAR ... #endif ... #endif
   const conditionalStack: ConditionalState[] = [];
 
   // Helper to check if we should include the current line
+  // Returns true only if ALL nested conditionals are active
   const shouldInclude = (): boolean => {
     if (conditionalStack.length === 0) return true;
     return conditionalStack.every(state => state.isActive);
   };
+
+  // ============ PHASE 2: DIRECTIVE PROCESSING ============
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -96,7 +110,7 @@ export function preprocessGLSL(source: string): PreprocessorResult {
     // Track output line number for error mapping
     const outputLineNum = output.length + 1;
 
-    // Handle preprocessor directives
+    // Handle preprocessor directives (#define, #ifdef, #if, etc.)
     if (trimmed.startsWith('#')) {
       const directive = trimmed.substring(1).trim();
 
@@ -174,7 +188,7 @@ export function preprocessGLSL(source: string): PreprocessorResult {
         continue;
       }
 
-      // #elif directive
+      // #elif directive (else-if: alternative conditional branch)
       if (directive.startsWith('elif ')) {
         if (conditionalStack.length === 0) {
           errors.push({
@@ -183,7 +197,7 @@ export function preprocessGLSL(source: string): PreprocessorResult {
           });
         } else {
           const current = conditionalStack[conditionalStack.length - 1];
-          // Only evaluate if no previous branch has matched
+          // Only evaluate if no previous branch has matched (short-circuit evaluation)
           if (!current.hasMatched) {
             const condition = directive.substring(5).trim();
             const conditionResult = evaluateExpression(condition, macros, originalLineNum, errors);
@@ -234,7 +248,7 @@ export function preprocessGLSL(source: string): PreprocessorResult {
         continue;
       }
 
-      // Unknown directive - pass through (could be GLSL #version or #extension)
+      // Unknown directive - pass through (could be GLSL-specific like #version or #extension)
       if (shouldInclude()) {
         output.push(line);
         lineMapping.set(outputLineNum, originalLineNum);
@@ -245,7 +259,7 @@ export function preprocessGLSL(source: string): PreprocessorResult {
       continue;
     }
 
-    // Regular line - store as-is if in active conditional
+    // Regular line (not a preprocessor directive) - store as-is if in active conditional
     if (shouldInclude()) {
       output.push(line);
       lineMapping.set(outputLineNum, originalLineNum);
@@ -256,7 +270,7 @@ export function preprocessGLSL(source: string): PreprocessorResult {
     }
   }
 
-  // Check for unclosed conditionals
+  // Check for unclosed conditionals (missing #endif)
   if (conditionalStack.length > 0) {
     conditionalStack.forEach(state => {
       errors.push({
@@ -266,8 +280,11 @@ export function preprocessGLSL(source: string): PreprocessorResult {
     });
   }
 
+  // ============ PHASE 3: MACRO EXPANSION ============
+
   // Phase 3: Macro expansion on the entire output (after directive processing)
   // This allows macro invocations to span multiple lines
+  // Example: MAX(\n  a,\n  b\n) -> ((a) > (b) ? (a) : (b))
   const codeBeforeExpansion = output.join('\n');
   const expandedCode = expandMacrosInText(codeBeforeExpansion, macros, lineMapping, errors);
 
@@ -278,8 +295,12 @@ export function preprocessGLSL(source: string): PreprocessorResult {
   };
 }
 
+// ============ MACRO EXPANSION ============
+
 /**
  * Expand macros in entire text (handles multi-line macro invocations)
+ * Iteratively expands macros until no more expansions are possible
+ * This supports nested macros: #define A B, #define B 5 -> A expands to 5
  */
 function expandMacrosInText(
   text: string,
@@ -288,7 +309,7 @@ function expandMacrosInText(
   errors: PreprocessorError[]
 ): string {
   let result = text;
-  let maxIterations = 100;
+  let maxIterations = 100; // Prevent infinite loops from circular macro definitions
   let iteration = 0;
   let changed = true;
 
@@ -297,11 +318,13 @@ function expandMacrosInText(
     iteration++;
 
     // Sort macros by name length (longest first) to avoid partial replacements
+    // Example: If we have "FOOBAR" and "FOO" macros, expand "FOOBAR" first
     const sortedMacros = Array.from(macros.values()).sort((a, b) => b.name.length - a.name.length);
 
     for (const macro of sortedMacros) {
       if (macro.params === undefined) {
         // Constant macro - simple text replacement with word boundaries
+        // Example: #define PI 3.14159 -> replace all "PI" with "3.14159"
         const regex = new RegExp(`\\b${escapeRegex(macro.name)}\\b`, 'g');
         const newResult = result.replace(regex, macro.value);
         if (newResult !== result) {
@@ -310,6 +333,7 @@ function expandMacrosInText(
         }
       } else {
         // Function-like macro - find invocations and replace with expanded value
+        // Example: #define MAX(a,b) ((a)>(b)?(a):(b)) -> MAX(x,y) becomes ((x)>(y)?(x):(y))
         const regex = new RegExp(`\\b${escapeRegex(macro.name)}\\s*\\(`, 'g');
         let match;
 
@@ -370,11 +394,14 @@ function expandMacrosInText(
   return result;
 }
 
+// ============ DIRECTIVE PARSING ============
+
 /**
  * Parse a #define directive
  * Supports both constant and function-like macros:
- * - #define PI 3.14159
- * - #define MAX(a, b) ((a) > (b) ? (a) : (b))
+ * - #define PI 3.14159                         (constant macro)
+ * - #define MAX(a, b) ((a) > (b) ? (a) : (b)) (function-like macro)
+ * - #define DEBUG                              (flag macro, value = "1")
  */
 function parseDefine(defineContent: string, line: number): Macro | null {
   // Match function-like macro: NAME(params) value
@@ -498,6 +525,7 @@ function expandMacros(
 /**
  * Extract function arguments from a string starting after the opening parenthesis
  * Returns array of argument strings and total length consumed, or null if invalid
+ * Handles nested parentheses: MAX(MIN(a, b), c) correctly extracts ["MIN(a, b)", "c"]
  */
 function extractFunctionArgs(
   str: string,
@@ -555,14 +583,17 @@ function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+// ============ CONDITIONAL EXPRESSION EVALUATION ============
+
 /**
- * Evaluate a preprocessor conditional expression
+ * Evaluate a preprocessor conditional expression (#if, #elif)
  * Supports:
  * - defined(MACRO) and !defined(MACRO)
  * - Numeric literals and macro values
  * - Comparison operators: ==, !=, <, >, <=, >=
  * - Logical operators: &&, ||, !
  * - Parentheses for grouping
+ * Example: #if defined(DEBUG) && (LEVEL >= 2)
  */
 function evaluateExpression(
   expr: string,
@@ -603,14 +634,21 @@ function evaluateExpression(
 
 /**
  * Evaluate a boolean expression with operators
+ * Uses recursive descent parser with proper operator precedence:
+ * 1. Logical OR (||)      - lowest precedence
+ * 2. Logical AND (&&)
+ * 3. Equality (==, !=)
+ * 4. Comparison (<, >, <=, >=)
+ * 5. Unary (!, -)
+ * 6. Primary (numbers, parentheses) - highest precedence
  */
 function evaluateBooleanExpression(expr: string, macros: Map<string, Macro>): boolean {
-  // Handle defined() function
+  // Handle defined() function - replace with 1 or 0
   expr = expr.replace(/defined\s*\(\s*(\w+)\s*\)/g, (_, macroName) => {
     return macros.has(macroName) ? '1' : '0';
   });
 
-  // Remove whitespace for easier parsing
+  // Tokenize and parse with recursive descent parser
   const tokens = tokenizeExpression(expr);
   const result = parseLogicalOr(tokens, 0);
 
@@ -624,6 +662,7 @@ interface ParseResult {
 
 /**
  * Tokenize expression into meaningful parts
+ * Splits "a >= 5 && b < 10" into ["a", ">=", "5", "&&", "b", "<", "10"]
  */
 function tokenizeExpression(expr: string): string[] {
   const tokens: string[] = [];

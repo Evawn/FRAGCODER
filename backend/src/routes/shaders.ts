@@ -1,3 +1,8 @@
+/**
+ * Shader Routes
+ * Handles all shader CRUD operations, search, and cloning functionality
+ */
+
 import express from 'express';
 import { CompilationStatus } from '@prisma/client';
 import type {
@@ -11,6 +16,8 @@ import { asyncHandler } from '../middleware/errorHandler';
 import { ValidationError, ForbiddenError, NotFoundError } from '../utils/errors';
 
 const router = express.Router();
+
+// ============ PUBLIC SHADER LISTING ============
 
 /**
  * GET /api/shaders
@@ -30,16 +37,18 @@ const router = express.Router();
  * }
  */
 router.get('/', asyncHandler(async (req, res) => {
-  // Parse query parameters
+  // Parse query parameters with defaults
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 16;
   const search = (req.query.search as string) || '';
 
   // Build where clause with search filtering
+  // Only public shaders are shown in the gallery
   const where: any = {
     isPublic: true
   };
 
+  // Search across title, description, and author username
   if (search) {
     where.OR = [
       { title: { contains: search } },
@@ -48,7 +57,7 @@ router.get('/', asyncHandler(async (req, res) => {
     ];
   }
 
-  // Execute queries in parallel
+  // Execute queries in parallel for better performance
   const [shaders, total] = await Promise.all([
     prisma.shader.findMany({
       where,
@@ -79,7 +88,7 @@ router.get('/', asyncHandler(async (req, res) => {
     prisma.shader.count({ where })
   ]);
 
-  // Parse tabs JSON for each shader
+  // Parse tabs JSON for each shader (stored as JSON string in database)
   const parsedShaders = shaders.map(shader => ({
     ...shader,
     tabs: JSON.parse(shader.tabs)
@@ -94,6 +103,8 @@ router.get('/', asyncHandler(async (req, res) => {
     limit
   });
 }));
+
+// ============ SHADER CREATION ============
 
 /**
  * POST /api/shaders
@@ -136,17 +147,17 @@ router.post('/', asyncHandler(authenticateToken), asyncHandler(async (req, res) 
     throw new ValidationError('Invalid compilation status. Must be SUCCESS, ERROR, WARNING, or PENDING');
   }
 
-  // Validate tabs structure
+  // Validate tabs structure (ensure each tab has required fields)
   for (const tab of tabs) {
     if (!tab.id || !tab.name || typeof tab.code !== 'string') {
       throw new ValidationError('Invalid tab structure. Each tab must have id, name, and code');
     }
   }
 
-  // Generate unique slug for URL
+  // Generate unique slug for URL (e.g., "colorful-unicorn-42")
   const slug = await generateUniqueSlug();
 
-  // Create shader in database
+  // Create shader in database with all metadata
   const shader = await prisma.shader.create({
     data: {
       title: name,
@@ -184,7 +195,7 @@ router.post('/', asyncHandler(authenticateToken), asyncHandler(async (req, res) 
     },
   });
 
-  // Construct full URL
+  // Construct full URL for client (used for sharing/copying)
   const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
   const shaderUrl = `${baseUrl}/shader/${slug}`;
 
@@ -199,6 +210,8 @@ router.post('/', asyncHandler(authenticateToken), asyncHandler(async (req, res) 
     url: shaderUrl,
   });
 }));
+
+// ============ SHADER RETRIEVAL ============
 
 /**
  * GET /api/shaders/:slug
@@ -239,8 +252,9 @@ router.get('/:slug', asyncHandler(async (req, res) => {
   }
 
   // Check if shader is public or user has access
+  // Private shaders are only accessible to their owner
   if (!shader.isPublic) {
-    // Get user from token if available (optional authentication)
+    // Get user from token if available (optional authentication for this endpoint)
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
@@ -248,7 +262,7 @@ router.get('/:slug', asyncHandler(async (req, res) => {
       const { verifyToken } = await import('../utils/jwt');
       const payload = verifyToken(token);
 
-      // Allow access if user is the owner
+      // Allow access if user is the owner of the private shader
       if (payload && payload.userId === shader.userId) {
         return res.json({
           shader: {
@@ -276,6 +290,8 @@ router.get('/:slug', asyncHandler(async (req, res) => {
   });
 }));
 
+// ============ SHADER UPDATES ============
+
 /**
  * PUT /api/shaders/:slug
  * Update an existing shader
@@ -301,7 +317,7 @@ router.put('/:slug', asyncHandler(authenticateToken), asyncHandler(async (req, r
     throw new ValidationError('Missing required fields: name, tabs, and compilationStatus are required');
   }
 
-  // Find shader
+  // Find shader and check ownership
   const existingShader = await prisma.shader.findUnique({
     where: { slug },
     select: { id: true, userId: true }
@@ -311,7 +327,7 @@ router.put('/:slug', asyncHandler(authenticateToken), asyncHandler(async (req, r
     throw new NotFoundError('Shader');
   }
 
-  // Check ownership
+  // Check ownership - users can only update their own shaders
   if (existingShader.userId !== req.user!.id) {
     throw new ForbiddenError('You do not have permission to update this shader');
   }
@@ -376,6 +392,8 @@ router.put('/:slug', asyncHandler(authenticateToken), asyncHandler(async (req, r
   });
 }));
 
+// ============ SHADER DELETION ============
+
 /**
  * DELETE /api/shaders/:slug
  * Delete an existing shader
@@ -386,7 +404,7 @@ router.put('/:slug', asyncHandler(authenticateToken), asyncHandler(async (req, r
 router.delete('/:slug', asyncHandler(authenticateToken), asyncHandler(async (req, res) => {
   const { slug } = req.params;
 
-  // Find shader
+  // Find shader and check ownership
   const existingShader = await prisma.shader.findUnique({
     where: { slug },
     select: { id: true, userId: true, title: true }
@@ -396,12 +414,12 @@ router.delete('/:slug', asyncHandler(authenticateToken), asyncHandler(async (req
     throw new NotFoundError('Shader');
   }
 
-  // Check ownership
+  // Check ownership - users can only delete their own shaders
   if (existingShader.userId !== req.user!.id) {
     throw new ForbiddenError('You do not have permission to delete this shader');
   }
 
-  // Delete shader from database
+  // Delete shader from database (permanent deletion, no soft delete)
   await prisma.shader.delete({
     where: { slug }
   });
@@ -409,9 +427,11 @@ router.delete('/:slug', asyncHandler(authenticateToken), asyncHandler(async (req
   res.json({ message: 'Shader deleted successfully' });
 }));
 
+// ============ SHADER CLONING ============
+
 /**
  * POST /api/shaders/:slug/clone
- * Clone an existing shader
+ * Clone an existing shader (fork functionality)
  *
  * Requires: Authorization: Bearer <token>
  * Response: { shader: Shader, url: string }
@@ -440,6 +460,7 @@ router.post('/:slug/clone', asyncHandler(authenticateToken), asyncHandler(async 
   }
 
   // Check if shader is public or user is the owner
+  // Users can clone their own private shaders or any public shader
   if (!originalShader.isPublic && originalShader.userId !== req.user!.id) {
     throw new ForbiddenError('This shader is private and cannot be cloned');
   }
@@ -447,7 +468,7 @@ router.post('/:slug/clone', asyncHandler(authenticateToken), asyncHandler(async 
   // Generate unique slug for the cloned shader
   const newSlug = await generateUniqueSlug();
 
-  // Create the cloned shader
+  // Create the cloned shader with reference to original (forkedFrom)
   const clonedShader = await prisma.shader.create({
     data: {
       title: `${originalShader.title} (Clone)`,
@@ -457,8 +478,8 @@ router.post('/:slug/clone', asyncHandler(authenticateToken), asyncHandler(async 
       isPublic: originalShader.isPublic,
       compilationStatus: originalShader.compilationStatus,
       compilationErrors: originalShader.compilationErrors,
-      userId: req.user!.id,
-      forkedFrom: originalShader.slug,
+      userId: req.user!.id,  // Cloned shader belongs to the current user
+      forkedFrom: originalShader.slug,  // Track shader genealogy
       lastSavedAt: new Date(),
     },
     select: {

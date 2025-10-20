@@ -140,7 +140,8 @@ export function parseShaderError(error: string, userCodeStartLine: number = 0, l
   const lines = error.split('\n').filter(line => line.trim());
 
   for (const line of lines) {
-    // WebGL error pattern: "ERROR: 0:15: 'variable' : undeclared identifier"
+    // Match WebGL error format: "ERROR: 0:15: 'variable' : undeclared identifier"
+    // Captures: file(1), line(2), message(3)
     const errorMatch = line.match(/ERROR:\s*(\d+):(\d+):\s*(.+)/i);
     if (errorMatch) {
       const compilerLine = parseInt(errorMatch[2], 10);
@@ -154,7 +155,8 @@ export function parseShaderError(error: string, userCodeStartLine: number = 0, l
       continue;
     }
 
-    // Warning pattern: "WARNING: 0:15: ..."
+    // Match WebGL warning format: "WARNING: 0:15: ..."
+    // Captures: file(1), line(2), message(3)
     const warningMatch = line.match(/WARNING:\s*(\d+):(\d+):\s*(.+)/i);
     if (warningMatch) {
       const compilerLine = parseInt(warningMatch[2], 10);
@@ -184,6 +186,9 @@ export function parseShaderError(error: string, userCodeStartLine: number = 0, l
 /**
  * Calculates the adjusted line number for multipass shaders with Common code prepending
  * Now supports preprocessor line mapping
+ *
+ * When Common code is prepended to a pass (e.g., Buffer A), errors from the compiler
+ * need to be attributed to either the Common tab or the pass tab based on line position.
  * Returns: { line: adjusted line number, isInCommon: whether error is in Common code }
  */
 function calculateMultipassLineNumber(
@@ -254,7 +259,8 @@ export function parseMultipassShaderError(
       continue;
     }
 
-    // Warning pattern: "WARNING: 0:15: ..."
+    // Match WebGL warning format: "WARNING: 0:15: ..."
+    // Captures: file(1), line(2), message(3) - same as error format
     const warningMatch = line.match(/WARNING:\s*(\d+):(\d+):\s*(.+)/i);
     if (warningMatch) {
       const compilerLine = parseInt(warningMatch[2], 10);
@@ -294,20 +300,22 @@ export function parseMultipassShaderError(
 
 /**
  * Formats error messages to be more user-friendly, concise, and professional
+ * Converts verbose WebGL compiler errors into readable diagnostic messages
  */
 export function formatErrorMessage(message: string): string {
   // Normalize the message
   let normalized = message.trim();
 
-  // Remove redundant quotes around identifiers
+  // Remove redundant quotes around identifiers (e.g., 'foo' -> foo)
   normalized = normalized.replace(/['"`]([^'"`]+)['"`]/g, '$1');
 
   // Remove excessive colons and whitespace
   normalized = normalized.replace(/\s*:\s*/g, ': ').replace(/\s+/g, ' ');
 
-  // Error pattern mappings - more comprehensive and professional
+  // Error pattern mappings - transforms common WebGL errors into user-friendly messages
+  // Each pattern matches a specific error type and provides a clearer explanation
   const patterns: Array<{ regex: RegExp; format: (match: RegExpMatchArray) => string }> = [
-    // Undeclared identifier
+    // Undeclared identifier (variable or function not defined)
     {
       regex: /(.+?):\s*undeclared identifier/i,
       format: (m) => `Undeclared identifier: ${m[1]}`
@@ -398,10 +406,11 @@ export function formatErrorMessage(message: string): string {
 
 /**
  * Validates that the shader code contains a properly-formed mainImage function
+ * All FRAGCODER shaders must define: void mainImage(out vec4 fragColor, vec2 fragCoord)
  * @throws PreprocessorCompilationError if mainImage is missing or has incorrect signature
  */
 function validateMainImageSignature(code: string, passName: string): void {
-  // Check if mainImage function exists
+  // Check if mainImage function exists (basic check, refined below)
   const mainImageRegex = /void\s+mainImage\s*\(/;
 
   if (!mainImageRegex.test(code)) {
@@ -413,6 +422,7 @@ function validateMainImageSignature(code: string, passName: string): void {
 
   // Check for correct signature: void mainImage(out vec4 ..., vec2 ...)
   // Allow flexible whitespace, ignore parameter names, and make "in" keyword optional
+  // This ensures compatibility with Shadertoy-style shaders
   const correctSignatureRegex = /void\s+mainImage\s*\(\s*out\s+vec4\s+\w+\s*,\s*(?:in\s+)?vec2\s+\w+\s*\)/;
 
   if (!correctSignatureRegex.test(code)) {
@@ -438,10 +448,12 @@ function validateMainImageSignature(code: string, passName: string): void {
  * Used for all shader passes (Image, Buffer A-D) with optional Common code sharing
  *
  * IMPORTANT: Common code is prepended BEFORE preprocessing so that macros and definitions
- * from Common are available when preprocessing the user code.
+ * from Common are available when preprocessing the user code. This enables sharing constants
+ * and helper functions across all passes.
  */
 export function prepareShaderCode(commonCode: string, userCode: string, passName: string): { code: string; userCodeStartLine: number; commonLineCount: number; lineMapping?: Map<number, number> } {
   // Calculate raw Common line count (before preprocessing) for error attribution
+  // This helps us determine if a preprocessor error originated in Common or user code
   const rawCommonLineCount = commonCode.trim() ? commonCode.trim().split('\n').length : 0;
 
   // Combine Common and user code BEFORE preprocessing
@@ -454,6 +466,7 @@ export function prepareShaderCode(commonCode: string, userCode: string, passName
   const preprocessResult = preprocessGLSL(combinedRawCode);
 
   // Handle preprocessor errors - attribute to correct tab based on line number
+  // Errors in Common (lines 1-N) are shown in Common tab; user code errors in pass tab
   if (preprocessResult.errors.length > 0) {
     const commonErrors: Array<{ line: number; message: string }> = [];
     const userErrors: Array<{ line: number; message: string }> = [];
@@ -487,9 +500,10 @@ export function prepareShaderCode(commonCode: string, userCode: string, passName
   validateMainImageSignature(processedCombinedCode, passName);
 
   // Calculate processed Common line count for error reporting during GLSL compilation
+  // The preprocessed Common may have different line count than raw Common due to macro expansion
   let processedCommonLineCount = 0;
   if (commonCode.trim()) {
-    // Count how many lines the Common code became after preprocessing
+    // Count how many lines the Common code became after preprocessing (macros expand, #defines removed)
     const commonPreprocessResult = preprocessGLSL(commonCode.trim());
     processedCommonLineCount = commonPreprocessResult.code.trim()
       ? commonPreprocessResult.code.trim().split('\n').length + 1
@@ -498,7 +512,8 @@ export function prepareShaderCode(commonCode: string, userCode: string, passName
 
   const combinedCode = processedCombinedCode;
 
-  // Extract and handle precision declaration
+  // Extract and handle precision declaration (e.g., "precision mediump float;")
+  // Must come after #version in WebGL 2.0, so we extract and reposition it
   const precisionRegex = /^\s*(precision\s+(lowp|mediump|highp)\s+(float|int)\s*;)/im;
   const precisionMatch = combinedCode.match(precisionRegex);
 
