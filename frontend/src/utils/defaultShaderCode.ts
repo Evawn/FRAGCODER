@@ -5,7 +5,7 @@
 
 const defaultMainImageCode = `void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec2 uv = fragCoord / iResolution.xy;
-    fragColor = vec4(uv, 1.0, 1.0);
+    fragColor = vec4(uv, 0.5 + 0.5*sin(3.0 * iTime), 1.0);
 }`;
 
 export const DEFAULT_SHADER_CODES = {

@@ -128,7 +128,7 @@ function HomePage() {
 
         {/* Bottom Glow Gradient - Positioned at bottom of page */}
         <div
-          className="absolute bottom-[-70vw] left-1/2 -translate-x-1/2"
+          className="absolute bottom-[-65vw] left-1/2 -translate-x-1/2"
           style={{
             width: '95vw',
             aspectRatio: '1',
@@ -138,7 +138,7 @@ function HomePage() {
           <div
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full"
             style={{
-              background: 'radial-gradient(circle, hsla(38, 92%, 50%, 0.3) 0%, transparent 70%)',
+              background: 'radial-gradient(circle, hsla(38, 92%, 50%, 0.15) 0%, transparent 70%)',
               filter: 'blur(400px)',
             }}
           />
