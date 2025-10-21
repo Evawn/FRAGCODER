@@ -16,7 +16,7 @@ const ANIMATION_BASE_DELAY = 600; // ms
 // Background logo positioning and sizing configuration
 const BACKGROUND_LOGO_CONFIG = {
   size: '95vw',           // Width of the logo
-  topPosition: '-75vw',   // Vertical position (negative = above viewport)
+  topPosition: '-76vw',   // Vertical position (negative = above viewport)
   glowOpacity: 0.9,       // Opacity of the glow effect
   glowBlur: '200px',       // Blur amount for glow
   pulseDuration: '0s',    // Duration of pulse animation
