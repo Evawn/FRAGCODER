@@ -199,11 +199,24 @@ const CodeMirrorEditorComponent: React.FC<CodeMirrorEditorProps> = ({
         '.cm-scroller': {
           height: '100%',
           maxHeight: '100%',
-          overflow: 'auto',
+          overflowY: 'hidden', // Hide vertical scrollbar (minimap serves this purpose)
+          overflowX: 'auto',   // Show horizontal scrollbar when needed
           backgroundColor: BACKGROUND_EDITOR,
-          scrollbarWidth: 'none', // Firefox
+          scrollbarWidth: 'thin', // Firefox: show thin scrollbar
+          scrollbarColor: 'rgba(255, 255, 255, 0.3) transparent', // Firefox: scrollbar color
           '&::-webkit-scrollbar': {
-            display: 'none' // Chrome, Safari, Edge
+            height: '8px', // Horizontal scrollbar height
+            width: '0px'   // Hide vertical scrollbar (0 width)
+          },
+          '&::-webkit-scrollbar-track': {
+            backgroundColor: 'transparent'
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: 'rgba(255, 255, 255, 0.3)',
+            borderRadius: '4px',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.5)'
+            }
           }
         },
         '.cm-gutter': {
@@ -229,7 +242,7 @@ const CodeMirrorEditorComponent: React.FC<CodeMirrorEditorProps> = ({
           backgroundColor: '#FFFFFF06',
         },
         '.cm-activeLineGutter': {
-          backgroundColor: '#FFFFFF06',
+          backgroundColor: BACKGROUND_GUTTER,
           color: 'white'
         },
         '.cm-selectionBackground': {
@@ -315,8 +328,7 @@ const CodeMirrorEditorComponent: React.FC<CodeMirrorEditorProps> = ({
           textDecoration: 'none',
         },
       }, { dark: true }),
-      oneDark,
-      EditorView.lineWrapping
+      oneDark
     ];
 
     // Add document change listener if callback is provided

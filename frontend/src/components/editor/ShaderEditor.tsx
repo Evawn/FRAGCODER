@@ -74,6 +74,7 @@ function ShaderEditor({
 }: ShaderEditorProps) {
   const [showErrorDecorations, setShowErrorDecorations] = useState(true);
   const isSwitchingTabsRef = useRef(false);
+  const [tabSwitchTime, setTabSwitchTime] = useState(Date.now());
 
   // Get active tab
   const activeTab = tabs.find(tab => tab.id === activeTabId);
@@ -90,10 +91,13 @@ function ShaderEditor({
     // This is just a placeholder to maintain the interface with CodeMirrorEditor
   }, []); // No dependencies - this function doesn't need to change
 
-  // Handle tab switch - prevent error line tracking during switch
+  // Handle tab switch - prevent error line tracking during switch and trigger flash
   useEffect(() => {
     // Set flag to ignore document changes during tab switch
     isSwitchingTabsRef.current = true;
+
+    // Update timestamp to trigger flash animation
+    setTabSwitchTime(Date.now());
 
     // Clear the flag after a short delay to allow CodeMirror to settle
     const timeout = setTimeout(() => {
@@ -153,6 +157,16 @@ function ShaderEditor({
 
       {/* Code Editor Area */}
       <div className="flex-1 flex flex-col p-0 overflow-hidden min-h-0 relative">
+        {/* Tab switch flash - subtle feedback when switching tabs */}
+        <div
+          key={`tab-switch-${tabSwitchTime}`}
+          className="absolute inset-0 pointer-events-none rounded"
+          style={{
+            animation: 'tabSwitchFlash 450ms ease-out forwards',
+            zIndex: 30
+          }}
+        />
+
         {/* Compilation feedback border flash */}
         {compilationSuccess === true && (
           <div

@@ -68,56 +68,80 @@ function HomePage() {
       {/* Professional Loading Screen */}
       <LoadingScreen isLoading={loading} />
 
-      {/* Background Logo with Glow Effect - Entrance Animation */}
+      {/* Background Glows - Top and Bottom */}
       <div
-        className="absolute inset-0 pointer-events-none overflow-visible"
+        className="absolute inset-0 pointer-events-none overflow-hidden"
         style={{
           zIndex: 0,
-          animation: !hasPlayedInitialAnimationRef.current
-            ? `fadeInDownLarge 2.0s ease-in-out forwards`
-            : undefined,
-          animationDelay: !hasPlayedInitialAnimationRef.current ? `${ANIMATION_BASE_DELAY}ms` : '0ms',
-          opacity: !hasPlayedInitialAnimationRef.current ? 0 : 1
         }}
       >
-        {/* Logo and glow container - all positioning controlled by BACKGROUND_LOGO_CONFIG */}
+        {/* Top Background Logo with Glow Effect - Entrance Animation */}
         <div
-          className="absolute left-1/2 -translate-x-1/2"
+          className="absolute inset-0"
           style={{
-            top: BACKGROUND_LOGO_CONFIG.topPosition,
-            width: BACKGROUND_LOGO_CONFIG.size,
+            animation: !hasPlayedInitialAnimationRef.current
+              ? `fadeInDownLarge 2.0s ease-in-out forwards`
+              : undefined,
+            animationDelay: !hasPlayedInitialAnimationRef.current ? `${ANIMATION_BASE_DELAY}ms` : '0ms',
+            opacity: !hasPlayedInitialAnimationRef.current ? 0 : 1
+          }}
+        >
+          {/* Logo and glow container - all positioning controlled by BACKGROUND_LOGO_CONFIG */}
+          <div
+            className="absolute left-1/2 -translate-x-1/2"
+            style={{
+              top: BACKGROUND_LOGO_CONFIG.topPosition,
+              width: BACKGROUND_LOGO_CONFIG.size,
+              aspectRatio: '1',
+            }}
+          >
+            {/* Static glow */}
+            <div
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full"
+              style={{
+                background: `radial-gradient(circle, hsla(38, 92%, 50%, ${BACKGROUND_LOGO_CONFIG.glowOpacity}) 0%, transparent 70%)`,
+                filter: `blur(${BACKGROUND_LOGO_CONFIG.glowBlur})`,
+              }}
+            />
+
+            {/* Large rotating logo - CSS animation for smooth visual rotation */}
+            <div
+              className="absolute top-1/2 left-1/2 w-full h-full"
+              style={{
+                transform: 'translate(-50%, -50%) scaleY(-1) rotate(-45deg)',
+                willChange: 'transform',
+                animation: `backgroundLogoRotate ${360 / BACKGROUND_LOGO_CONFIG.rotationSpeed}s linear infinite`,
+              }}
+            >
+              <Logo
+                id="background-logo"
+                width={undefined}
+                height={undefined}
+                className="w-full h-full"
+                topLayerOpacity={0.85}
+                constantRotation={true}
+                rotationSpeed={BACKGROUND_LOGO_CONFIG.rotationSpeed}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Glow Gradient - Positioned at bottom of page */}
+        <div
+          className="absolute bottom-[-70vw] left-1/2 -translate-x-1/2"
+          style={{
+            width: '95vw',
             aspectRatio: '1',
           }}
         >
-          {/* Pulsing glow */}
+          {/* Static glow gradient */}
           <div
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full rounded-full"
             style={{
-              background: `radial-gradient(circle, hsla(38, 92%, 50%, ${BACKGROUND_LOGO_CONFIG.glowOpacity}) 0%, transparent 70%)`,
-              filter: `blur(${BACKGROUND_LOGO_CONFIG.glowBlur})`,
-              animation: `pulseBeam ${BACKGROUND_LOGO_CONFIG.pulseDuration} ease-in-out infinite`,
+              background: 'radial-gradient(circle, hsla(38, 92%, 50%, 0.3) 0%, transparent 70%)',
+              filter: 'blur(400px)',
             }}
           />
-
-          {/* Large rotating logo - CSS animation for smooth visual rotation */}
-          <div
-            className="absolute top-1/2 left-1/2 w-full h-full"
-            style={{
-              transform: 'translate(-50%, -50%) scaleY(-1) rotate(-45deg)',
-              willChange: 'transform',
-              animation: `backgroundLogoRotate ${360 / BACKGROUND_LOGO_CONFIG.rotationSpeed}s linear infinite`,
-            }}
-          >
-            <Logo
-              id="background-logo"
-              width={undefined}
-              height={undefined}
-              className="w-full h-full"
-              topLayerOpacity={0.85}
-              constantRotation={true}
-              rotationSpeed={BACKGROUND_LOGO_CONFIG.rotationSpeed}
-            />
-          </div>
         </div>
       </div>
 
@@ -212,21 +236,36 @@ function HomePage() {
           style={{
             animation: 'fadeInDown 0.6s ease-out forwards',
             opacity: 0,
-            animationDelay: `${ANIMATION_BASE_DELAY + 800}ms`
+            animationDelay: `${ANIMATION_BASE_DELAY + 600}ms`
           }}
         >
-          <div className="max-w-6xl mx-auto">
-            {/* Video Preview Placeholder */}
+          <div className="max-w-5xl mx-auto">
+            {/* Video Preview - Looping Background Video */}
             <div
-              className="w-full bg-background-highlighted border-2 border-lines rounded-lg flex items-center justify-center"
+              className="w-full rounded-lg overflow-hidden"
               style={{
                 aspectRatio: '16 / 9',
-                minHeight: '400px'
+                minHeight: '400px',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 10px 20px -5px rgba(0, 0, 0, 0.6)'
               }}
             >
-              <span className="text-3xl text-foreground-muted font-light tracking-widest">
-                VIDEO PREVIEW
-              </span>
+              <video
+                autoPlay
+                muted
+                loop
+                playsInline
+                disablePictureInPicture
+                className="w-full h-full object-cover"
+                style={{ pointerEvents: 'none' }}
+              >
+                <source src="/videos/home_page_1.mp4" type="video/mp4" />
+                {/* Fallback for browsers that don't support video */}
+                <div className="w-full h-full bg-background-highlighted flex items-center justify-center">
+                  <span className="text-3xl text-foreground-muted font-light tracking-widest">
+                    VIDEO PREVIEW
+                  </span>
+                </div>
+              </video>
             </div>
           </div>
         </div>

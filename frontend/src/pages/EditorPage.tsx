@@ -179,7 +179,7 @@ function EditorPage() {
 
       <ResizablePanelGroup direction="horizontal" className="flex-1" onLayout={handlePanelResize}>
         {/* Shader Viewer - Left Panel */}
-        <ResizablePanel defaultSize={30} minSize={leftPanelMinSize}>
+        <ResizablePanel defaultSize={40} minSize={leftPanelMinSize}>
           <div className="h-full flex flex-col gap-0 p-0">
             {/* Header */}
             <div ref={playerHeaderRef} className="w-full flex items-center justify-between px-2 py-0.5 relative" style={{ zIndex: 20 }}>
@@ -227,7 +227,7 @@ function EditorPage() {
         <ResizableHandle className="w-0.5 bg-lines" />
 
         {/* Shader Editor - Right Panel */}
-        <ResizablePanel defaultSize={70} minSize={30}>
+        <ResizablePanel defaultSize={60} minSize={30}>
           <div className="h-full flex flex-col bg-background">
             <ShaderEditor
               // Display data
