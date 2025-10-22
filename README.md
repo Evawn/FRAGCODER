@@ -74,7 +74,7 @@ FRAGCODER is a Shadertoy-inspired platform that enables developers and artists t
 ### Backend
 - **Express 5** with TypeScript for RESTful API
 - **Prisma 6** ORM for type-safe database queries
-- **SQLite** (development) / **PostgreSQL** (production)
+- **PostgreSQL** for reliable, production-ready data storage
 - **JWT** for authentication and authorization
 - **Google OAuth** for third-party authentication
 - **CORS** configured for secure cross-origin requests
@@ -167,7 +167,7 @@ If you prefer to run the application locally without Docker:
 
    Create `backend/.env`:
    ```bash
-   DATABASE_URL="file:./dev.db"
+   DATABASE_URL="postgresql://shader_user:shader_password@localhost:5432/shader_playground"
    JWT_SECRET="your-secret-key-generate-a-strong-one"
    GOOGLE_CLIENT_ID="your-google-oauth-client-id"
    PORT=3001
@@ -182,10 +182,16 @@ If you prefer to run the application locally without Docker:
 
    *See `.env.example` files in each directory for more details.*
 
-4. **Initialize the database:**
+4. **Start PostgreSQL database:**
+   ```bash
+   # Start just the PostgreSQL service from Docker Compose
+   docker-compose up postgres -d
+   ```
+
+5. **Initialize the database:**
    ```bash
    cd backend
-   npx prisma migrate dev
+   npx prisma migrate deploy
    cd ..
    ```
 
