@@ -23,9 +23,9 @@ const PORT = config.port;
 // Security headers middleware
 app.use(helmet());
 
-// Configure CORS for security
+// Configure CORS for security - supports multiple origins
 app.use(cors({
-  origin: config.frontendUrl,
+  origin: config.frontendUrls,
   credentials: true
 }));
 app.use(express.json());

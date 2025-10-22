@@ -40,8 +40,8 @@ services:
       PORT: 3001
       NODE_ENV: production
 
-      # CORS configuration
-      FRONTEND_URL: http://localhost:5173
+      # CORS configuration (comma-separated for multiple origins)
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
 
       # JWT secret - CHANGE THIS IN PRODUCTION!
       JWT_SECRET: ${JWT_SECRET:-change-this-to-a-secure-random-32-char-string}
@@ -74,6 +74,8 @@ services:
       args:
         # Pass Google Client ID to frontend build (required for OAuth)
         VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+        # Pass backend API URL to frontend build (defaults to localhost for local Docker)
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3001}
     container_name: shader-playground-frontend
     restart: unless-stopped
     ports:
