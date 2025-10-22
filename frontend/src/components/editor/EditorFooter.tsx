@@ -19,8 +19,6 @@ export function EditorFooter({
   compilationTime,
   isCompiling,
   lastCompilationTime,
-  showErrorDecorations,
-  onToggleErrorDecorations,
   onCompile,
   charCount,
 }: EditorFooterProps) {

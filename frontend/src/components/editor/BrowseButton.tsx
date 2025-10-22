@@ -1,6 +1,5 @@
 // Button for navigating to the shader gallery
 import { Button } from '../ui/button';
-import { LayoutGrid } from 'lucide-react';
 
 interface BrowseButtonProps {
   onClick: () => void;

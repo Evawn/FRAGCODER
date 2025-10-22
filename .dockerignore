@@ -4,7 +4,6 @@
 # Dependencies
 **/node_modules
 **/npm-debug.log*
-**/package-lock.json
 
 # Testing
 **/coverage
@@ -41,7 +40,7 @@ backend/prisma/migrations/*_dev
 # Git
 .git
 .gitignore
-.gitattributes
+# .gitattributes is needed for line ending normalization in containers
 
 # Logs
 **/logs
@@ -55,8 +54,6 @@ Thumbs.db
 .github
 
 # Docker files themselves
-Dockerfile
-**/Dockerfile
 .dockerignore
 **/.dockerignore
 docker-compose*.yml

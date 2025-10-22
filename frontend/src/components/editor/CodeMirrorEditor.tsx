@@ -7,7 +7,7 @@ import CodeMirror from '@uiw/react-codemirror';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { EditorView, keymap } from '@codemirror/view';
 import { indentOnInput, bracketMatching, foldGutter, codeFolding, indentUnit } from '@codemirror/language';
-import { lineNumbers, highlightActiveLineGutter } from '@codemirror/view';
+import { lineNumbers } from '@codemirror/view';
 import { acceptCompletion, completionStatus, closeCompletion } from '@codemirror/autocomplete';
 import { indentMore, insertNewlineAndIndent, selectAll, cursorDocStart, cursorDocEnd, cursorLineStart, cursorLineEnd, deleteCharBackward, deleteCharForward } from '@codemirror/commands';
 import type { Transaction, Extension } from '@codemirror/state';
@@ -161,9 +161,9 @@ const CodeMirrorEditorComponent: React.FC<CodeMirrorEditorProps> = ({
       }),
       indentUnit.of("    "), // 4 spaces
       ...createErrorDecorationExtensions(),
-      showMinimap.compute(['doc'], (state) => {
+      showMinimap.compute(['doc'], () => {
         return {
-          create: (view: EditorView) => {
+          create: () => {
             const dom = document.createElement('div');
             return { dom };
           },

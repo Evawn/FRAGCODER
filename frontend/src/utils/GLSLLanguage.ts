@@ -3,7 +3,6 @@
  * Provides built-in GLSL completions and extracts user-defined symbols (variables, functions, structs, macros).
  */
 import { LRLanguage, LanguageSupport, foldNodeProp, foldInside, syntaxTree } from "@codemirror/language"
-import { styleTags, tags as t } from "@lezer/highlight"
 import { parser } from "lezer-glsl"
 import { completeFromList } from "@codemirror/autocomplete"
 import type { Completion, CompletionContext, CompletionResult } from "@codemirror/autocomplete"
@@ -305,7 +304,6 @@ function extractUserDefinedSymbols(code: string): Completion[] {
   while ((macroMatch = macroPattern.exec(code)) !== null) {
     const macroName = macroMatch[1]
     const params = macroMatch[2]
-    const value = macroMatch[3]
 
     if (macroName && !glslCompletions.some(comp => comp.label === macroName)) {
       const signature = params ? `${macroName}(${params})` : macroName
@@ -366,7 +364,6 @@ function extractUserDefinedSymbols(code: string): Completion[] {
 
   let functionMatch
   while ((functionMatch = functionPattern.exec(code)) !== null) {
-    const returnType = functionMatch[1].trim()
     const funcName = functionMatch[2]
     const params = functionMatch[3].trim()
 
@@ -396,7 +393,7 @@ function extractUserDefinedSymbols(code: string): Completion[] {
   }))
 
   // Convert structs to completion objects
-  const structCompletions = Array.from(structs.entries()).map(([structName, definition]) => ({
+  const structCompletions = Array.from(structs.entries()).map(([structName]) => ({
     label: structName,
     type: "type",
     detail: "user-defined struct"

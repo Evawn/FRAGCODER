@@ -2,7 +2,7 @@
  * React Error Boundary component that catches runtime errors and displays fallback UI.
  * Integrates with logger utility for error tracking and provides user-friendly recovery options.
  */
-import { Component, ReactNode, ErrorInfo } from 'react';
+import { Component, type ReactNode, type ErrorInfo } from 'react';
 import { logger } from '../utils/logger';
 
 interface ErrorBoundaryProps {

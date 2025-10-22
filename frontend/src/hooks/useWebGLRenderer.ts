@@ -2,7 +2,7 @@
  * React hook for managing WebGL shader compilation and rendering with multipass support.
  * Provides imperative controls (compile, play, pause, reset) and real-time stats (FPS, time, resolution).
  */
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { WebGLRenderer } from '../utils/WebGLRenderer';
 import { parseShaderError, parseMultipassShaderError, PreprocessorCompilationError } from '../utils/GLSLCompiler';
 import type { CompilationError } from '../types';

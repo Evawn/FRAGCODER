@@ -204,7 +204,7 @@ export class WebGLRenderer {
 
       try {
         // Prepare shader code with Common prepended
-        const { code: preparedCode, userCodeStartLine, lineMapping } = prepareShaderCode(commonCode, tab.code, passName);
+        const { code: preparedCode } = prepareShaderCode(commonCode, tab.code, passName);
 
         // Create program for this pass
         const program = this.createProgram(preparedCode);

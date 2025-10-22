@@ -11,7 +11,7 @@ echo "⏳ Waiting for PostgreSQL to be ready..."
 timeout=30
 counter=0
 
-until npx prisma db execute --stdin <<< "SELECT 1" > /dev/null 2>&1 || [ $counter -eq $timeout ]; do
+until echo "SELECT 1" | npx prisma db execute --stdin > /dev/null 2>&1 || [ $counter -eq $timeout ]; do
   counter=$((counter + 1))
   echo "  PostgreSQL is unavailable - sleeping (${counter}/${timeout})"
   sleep 1

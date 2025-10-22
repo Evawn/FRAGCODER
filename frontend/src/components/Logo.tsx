@@ -86,15 +86,6 @@ const getOctagonPoints = (cx: number, cy: number, radius: number) => {
 // Render base layer content - simple pinwheel with radial segments + 45-degree rotated square
 const renderBaseLayer = (centerX: number, centerY: number, outerRadius: number, rotationAngle: number = 0, noTransform: boolean = false) => {
     const octagonPoints = getOctagonPoints(centerX, centerY, outerRadius);
-    const innerSquareRadius = 35; // Distance from center to corner of rotated square
-
-    // Calculate 45-degree rotated square vertices
-    const innerSquare = [
-        [centerX, centerY - innerSquareRadius],           // Top
-        [centerX + innerSquareRadius, centerY],           // Right
-        [centerX, centerY + innerSquareRadius],           // Bottom
-        [centerX - innerSquareRadius, centerY]            // Left
-    ];
 
     // Color keyframes for pinwheel triangles (8 keyframes at 0°, 45°, 90°, etc.)
     // Creates a single bright spectral highlight that rotates around the pinwheel

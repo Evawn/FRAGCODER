@@ -77,7 +77,7 @@ function log(level: LogLevel, message: string, context?: LogContext): void {
     // Extract error details if present
     if (context?.error) {
       const err = context.error as Error;
-      logEntry['error'] = {
+      (logEntry as Record<string, unknown>)['error'] = {
         name: err.name,
         message: err.message,
         stack: err.stack,

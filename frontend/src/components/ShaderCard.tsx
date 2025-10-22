@@ -32,7 +32,7 @@ const ShaderCard = memo(function ShaderCard({ id, title, slug, thumbnailDataURL,
     setImageLoaded(true);
   };
 
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+  const handleImageError = () => {
     logger.error('Shader card thumbnail failed to load', undefined, {
       shaderId: id,
       shaderTitle: title,

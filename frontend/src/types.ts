@@ -19,7 +19,7 @@ export type {
 } from '@fragcoder/shared';
 
 // Import shared types for use in frontend-only types
-import type { CompilationError, TabData } from '@fragcoder/shared';
+import type { CompilationError } from '@fragcoder/shared';
 
 // ============================================================================
 // Frontend-Only Types

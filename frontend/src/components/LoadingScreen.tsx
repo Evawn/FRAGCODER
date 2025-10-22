@@ -15,7 +15,6 @@ type AnimationStage = 'entering' | 'loading' | 'exiting' | 'hidden';
 export const LoadingScreen = ({ isLoading }: LoadingScreenProps) => {
   const [stage, setStage] = useState<AnimationStage>('hidden');
   const logoRotateRef = useRef<((targetOffset: number) => void) | null>(null);
-  const beamRotationRef = useRef<number>(0);
   const animationFrameRef = useRef<number | null>(null);
   const entranceCompleteRef = useRef<boolean>(false);
   const entranceTimerRef = useRef<NodeJS.Timeout | null>(null);

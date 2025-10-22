@@ -8,42 +8,57 @@ RUN apk add --no-cache python3 make g++ openssl
 
 WORKDIR /app
 
-# Copy package files for dependency installation
-COPY package*.json ./
-COPY shared/package*.json ./shared/
+# Copy shared package first (needed for dependency resolution)
+COPY shared ./shared
 
-# Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Copy package files for dependency installation
+COPY backend/package*.json ./backend/
+
+# Install ALL dependencies (including devDependencies needed for TypeScript build)
+WORKDIR /app/backend
+RUN npm ci && npm cache clean --force
 
 # Copy Prisma schema for client generation
-COPY prisma ./prisma
+COPY backend/prisma ./prisma
 
 # Generate Prisma client
 RUN npx prisma generate
 
 # Copy source code
-COPY . .
+COPY backend/src ./src
+COPY backend/tsconfig.json ./
 
-# Build TypeScript
+# Build TypeScript (devDependencies like @types/* are needed here)
 RUN npm run build
 
 # Production stage
 FROM node:20-alpine AS production
 
-# Install openssl for Prisma
-RUN apk add --no-cache openssl
+# Install openssl for Prisma and dos2unix for line ending normalization
+RUN apk add --no-cache openssl python3 make g++ dos2unix
 
 WORKDIR /app
 
-# Copy built application and dependencies from base stage
-COPY --from=base /app/node_modules ./node_modules
-COPY --from=base /app/dist ./dist
-COPY --from=base /app/prisma ./prisma
-COPY --from=base /app/package*.json ./
+# Copy shared package first
+COPY shared ./shared
 
-# Copy entrypoint script
-COPY docker-entrypoint.sh ./
-RUN chmod +x docker-entrypoint.sh
+# Copy package files
+COPY backend/package*.json ./backend/
+
+# Install ONLY production dependencies
+WORKDIR /app/backend
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy Prisma schema and generate client for production
+COPY backend/prisma ./prisma
+RUN npx prisma generate
+
+# Copy built application from base stage
+COPY --from=base /app/backend/dist ./dist
+
+# Copy entrypoint script and ensure Unix line endings
+COPY backend/docker-entrypoint.sh ./
+RUN dos2unix docker-entrypoint.sh && chmod +x docker-entrypoint.sh
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \

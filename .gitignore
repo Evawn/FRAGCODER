@@ -32,5 +32,4 @@ node_modules/
 CLAUDE.md
 .claude/
 temp/
-PROJECT_ARCHITECTURE.md
 backend/prisma/prisma/test.db

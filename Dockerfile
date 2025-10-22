@@ -6,15 +6,15 @@ FROM node:20-alpine AS build
 
 WORKDIR /app
 
-# Copy package files for all workspaces
-COPY package*.json ./
-COPY shared/package*.json ./shared/
+# Copy package files
 COPY frontend/package*.json ./frontend/
 
-# Install dependencies
+# Install frontend dependencies
+WORKDIR /app/frontend
 RUN npm ci && npm cache clean --force
 
-# Copy shared package
+# Copy shared package (no dependencies to install, just types)
+WORKDIR /app
 COPY shared ./shared
 
 # Copy frontend source
