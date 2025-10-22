@@ -20,8 +20,13 @@ COPY shared ./shared
 # Copy frontend source
 COPY frontend ./frontend
 
-# Build frontend
+# Build frontend with Google Client ID
 WORKDIR /app/frontend
+
+# Accept Google Client ID as build argument and expose to Vite
+ARG VITE_GOOGLE_CLIENT_ID
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+
 RUN npm run build
 
 # Production stage

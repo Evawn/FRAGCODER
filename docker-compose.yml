@@ -71,6 +71,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # Pass Google Client ID to frontend build (required for OAuth)
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
     container_name: shader-playground-frontend
     restart: unless-stopped
     ports:
