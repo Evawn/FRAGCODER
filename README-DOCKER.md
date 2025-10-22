@@ -69,10 +69,10 @@ cp .env.codespaces.example .env
 
 ```bash
 # Build and start all services
-docker-compose up --build
+docker compose up --build
 
 # Or run in detached mode (background)
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 This command will:
@@ -92,10 +92,10 @@ This command will:
 
 ```bash
 # Stop all services
-docker-compose down
+docker compose down
 
 # Stop and remove all data (including database)
-docker-compose down -v
+docker compose down -v
 ```
 
 ## Architecture
@@ -160,60 +160,60 @@ The Docker setup consists of three interconnected services:
 
 ```bash
 # View running containers
-docker-compose ps
+docker compose ps
 
 # View logs from all services
-docker-compose logs
+docker compose logs
 
 # View logs from specific service
-docker-compose logs frontend
-docker-compose logs backend
-docker-compose logs postgres
+docker compose logs frontend
+docker compose logs backend
+docker compose logs postgres
 
 # Follow logs in real-time
-docker-compose logs -f
+docker compose logs -f
 
 # Restart a specific service
-docker-compose restart backend
+docker compose restart backend
 
 # Rebuild a specific service
-docker-compose up -d --build backend
+docker compose up -d --build backend
 
 # Execute commands in running container
-docker-compose exec backend sh
-docker-compose exec postgres psql -U shader_user -d shader_playground
+docker compose exec backend sh
+docker compose exec postgres psql -U shader_user -d shader_playground
 ```
 
 ### Database Management
 
 ```bash
 # Access PostgreSQL CLI
-docker-compose exec postgres psql -U shader_user -d shader_playground
+docker compose exec postgres psql -U shader_user -d shader_playground
 
 # Run Prisma migrations manually
-docker-compose exec backend npx prisma migrate deploy
+docker compose exec backend npx prisma migrate deploy
 
 # Open Prisma Studio (database GUI)
-docker-compose exec backend npx prisma studio
+docker compose exec backend npx prisma studio
 
 # Create a database backup
-docker-compose exec postgres pg_dump -U shader_user shader_playground > backup.sql
+docker compose exec postgres pg_dump -U shader_user shader_playground > backup.sql
 
 # Restore from backup
-docker-compose exec -T postgres psql -U shader_user -d shader_playground < backup.sql
+docker compose exec -T postgres psql -U shader_user -d shader_playground < backup.sql
 ```
 
 ### Cleanup
 
 ```bash
 # Remove stopped containers
-docker-compose down
+docker compose down
 
 # Remove containers and volumes (deletes all data)
-docker-compose down -v
+docker compose down -v
 
 # Remove containers, volumes, and images
-docker-compose down -v --rmi all
+docker compose down -v --rmi all
 
 # Remove all unused Docker resources
 docker system prune -a
@@ -226,8 +226,8 @@ docker system prune -a
 **Problem:** Backend shows "PostgreSQL is unavailable" errors
 
 **Solution:**
-- Ensure PostgreSQL is healthy: `docker-compose ps`
-- Check PostgreSQL logs: `docker-compose logs postgres`
+- Ensure PostgreSQL is healthy: `docker compose ps`
+- Check PostgreSQL logs: `docker compose logs postgres`
 - Wait 30-60 seconds for PostgreSQL to initialize on first run
 
 ### "GOOGLE_CLIENT_ID is required" error
@@ -237,7 +237,7 @@ docker system prune -a
 **Solution:**
 - Ensure you created a `.env` file in the root directory
 - Verify `GOOGLE_CLIENT_ID` is set in the `.env` file
-- Restart the backend: `docker-compose restart backend`
+- Restart the backend: `docker compose restart backend`
 
 ### Port already in use
 
@@ -267,7 +267,7 @@ lsof -i :3001
 sudo usermod -aG docker $USER
 
 # Log out and back in, then:
-docker-compose up --build
+docker compose up --build
 ```
 
 ### Database migration failures
@@ -277,11 +277,11 @@ docker-compose up --build
 **Solution:**
 ```bash
 # Reset database and run migrations
-docker-compose down -v
-docker-compose up --build
+docker compose down -v
+docker compose up --build
 
 # Or run migrations manually
-docker-compose exec backend npx prisma migrate reset
+docker compose exec backend npx prisma migrate reset
 ```
 
 ## GitHub Codespaces Setup
@@ -345,10 +345,10 @@ These URLs are **different for each Codespace** and must be configured in the `.
 6. **Build and Start Services**
    ```bash
    # Build images (this may take 5-10 minutes first time)
-   docker-compose up --build
+   docker compose up --build
 
    # Or run in background
-   docker-compose up -d --build
+   docker compose up -d --build
    ```
 
 7. **Access the Application**
@@ -366,11 +366,11 @@ These URLs are **different for each Codespace** and must be configured in the `.
 
 **CORS errors in browser console:**
 - Verify `FRONTEND_URL` in `.env` matches your actual Codespace frontend URL
-- Rebuild backend: `docker-compose up -d --build backend`
+- Rebuild backend: `docker compose up -d --build backend`
 
 **"Failed to fetch" errors:**
 - Verify `VITE_API_URL` in `.env` matches your actual Codespace backend URL
-- Rebuild frontend: `docker-compose up -d --build frontend`
+- Rebuild frontend: `docker compose up -d --build frontend`
 
 **Google OAuth errors:**
 - Ensure you added your Codespace URL to Google OAuth authorized origins
@@ -441,6 +441,6 @@ This provides faster feedback loops with hot module replacement.
 If you encounter issues not covered in this guide:
 
 1. Check the [GitHub Issues](https://github.com/yourusername/shader-playground/issues)
-2. Review Docker logs: `docker-compose logs`
+2. Review Docker logs: `docker compose logs`
 3. Verify your environment configuration
 4. Open a new issue with detailed error messages and steps to reproduce

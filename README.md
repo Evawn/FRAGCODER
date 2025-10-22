@@ -133,7 +133,7 @@ cp backend/.env.docker.example .env
 # Edit .env and add your GOOGLE_CLIENT_ID and JWT_SECRET
 
 # 3. Start the application
-docker-compose up --build
+docker compose up --build
 
 # Access at http://localhost:5173
 ```
@@ -185,7 +185,7 @@ If you prefer to run the application locally without Docker:
 4. **Start PostgreSQL database:**
    ```bash
    # Start just the PostgreSQL service from Docker Compose
-   docker-compose up postgres -d
+   docker compose up postgres -d
    ```
 
 5. **Initialize the database:**
