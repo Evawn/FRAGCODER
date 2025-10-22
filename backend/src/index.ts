@@ -25,7 +25,7 @@ app.use(helmet());
 
 // Configure CORS for security - supports multiple origins
 app.use(cors({
-  origin: config.frontendUrls,
+  origin: config.frontendUrl,
   credentials: true
 }));
 app.use(express.json());
@@ -53,13 +53,13 @@ app.use('/api/shaders', shaderRoutes);
 
 // Health check endpoint
 app.get('/health', (_req, res) => {
-    res.json({ status: 'OK' });
+  res.json({ status: 'OK' });
 });
 
 // Database connection test endpoint
 app.get('/db-test', asyncHandler(async (_req, res) => {
-    await prisma.$connect();
-    res.json({ database: 'Connected successfully!' });
+  await prisma.$connect();
+  res.json({ database: 'Connected successfully!' });
 }));
 
 // 404 handler for unmatched routes (must be after all valid routes)
@@ -71,9 +71,9 @@ app.use(errorMiddleware);
 // Only start server if not in test environment
 // This allows tests to import the app without starting the server
 if (process.env.NODE_ENV !== 'test') {
-    app.listen(PORT, () => {
-        logger.info(`Server running on port ${PORT}`, { port: PORT, environment: process.env.NODE_ENV || 'development' });
-    });
+  app.listen(PORT, () => {
+    logger.info(`Server running on port ${PORT}`, { port: PORT, environment: process.env.NODE_ENV || 'development' });
+  });
 }
 
 // Export app for testing
