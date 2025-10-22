@@ -1,12 +1,14 @@
 {
   "name": "Shader Playground",
   "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
-
   "mounts": [
     "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
   ],
-
-  "forwardPorts": [3001, 5173, 5432],
+  "forwardPorts": [
+    3001,
+    5173,
+    5432
+  ],
   "portsAttributes": {
     "3001": {
       "label": "Backend API",
@@ -21,16 +23,13 @@
       "onAutoForward": "silent"
     }
   },
-
   "postCreateCommand": "npm run install:all",
-
   "customizations": {
     "vscode": {
       "extensions": [
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
         "Prisma.prisma",
-        "ms-azuretools.vscode-docker"
       ],
       "settings": {
         "editor.formatOnSave": true,
