@@ -199,7 +199,7 @@ const CodeMirrorEditorComponent: React.FC<CodeMirrorEditorProps> = ({
         '.cm-scroller': {
           height: '100%',
           maxHeight: '100%',
-          overflowY: 'hidden', // Hide vertical scrollbar (minimap serves this purpose)
+          overflowY: 'auto', // Hide vertical scrollbar (minimap serves this purpose)
           overflowX: 'auto',   // Show horizontal scrollbar when needed
           backgroundColor: BACKGROUND_EDITOR,
           scrollbarWidth: 'thin', // Firefox: show thin scrollbar
