@@ -6,7 +6,7 @@
 import axios, { AxiosError } from 'axios';
 import type { ErrorResponse, ApiError } from '@fragcoder/shared';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3021';
 
 /**
  * Axios instance configured with base URL and interceptors
