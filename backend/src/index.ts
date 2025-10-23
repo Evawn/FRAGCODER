@@ -24,6 +24,8 @@ const PORT = config.port;
 app.use(helmet());
 
 // Configure CORS for security - supports multiple origins
+app.use(cors({ origin: ['http://localhost:5173', 'https://fragcoder.vercel.app'] }));
+
 app.use(cors({
   origin: config.frontendUrl,
   credentials: true
