@@ -309,7 +309,7 @@ function expandMacrosInText(
   errors: PreprocessorError[]
 ): string {
   let result = text;
-  let maxIterations = 100; // Prevent infinite loops from circular macro definitions
+  const maxIterations = 100; // Prevent infinite loops from circular macro definitions
   let iteration = 0;
   let changed = true;
 
@@ -445,7 +445,7 @@ function expandMacros(
   errors: PreprocessorError[]
 ): string {
   let result = line;
-  let maxIterations = 100; // Prevent infinite recursion
+  const maxIterations = 100; // Prevent infinite recursion
   let iteration = 0;
   let changed = true;
 

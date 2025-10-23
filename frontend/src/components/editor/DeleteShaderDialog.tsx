@@ -29,9 +29,9 @@ export function DeleteShaderDialog({ shaderName, onDelete, open, onOpenChange }:
     try {
       await onDelete();
       onOpenChange(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error('Failed to delete shader', err);
-      const message = err.message || 'Failed to delete shader. Please try again.';
+      const message = err instanceof Error ? err.message : 'Failed to delete shader. Please try again.';
       setError(message);
     } finally {
       setLoading(false);

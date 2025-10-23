@@ -6,6 +6,7 @@ import { EditorView, Decoration, WidgetType } from '@codemirror/view';
 import { StateField, StateEffect } from '@codemirror/state';
 import type { CompilationError } from '../../types';
 import type { DecorationSet } from '@codemirror/view';
+import type { Text, Range } from '@codemirror/state';
 import { ERROR_WIDGET_BACKGROUND, ERROR_LINE_BACKGROUND, ERROR_TEXT } from '../../styles/editor_theme';
 import { logger } from '../../utils/logger';
 
@@ -53,7 +54,7 @@ export const errorState = StateField.define<CompilationError[]>({
     return [];
   },
   update(errors, tr) {
-    for (let effect of tr.effects) {
+    for (const effect of tr.effects) {
       if (effect.is(setErrorsEffect)) {
         return effect.value;
       }
@@ -64,9 +65,9 @@ export const errorState = StateField.define<CompilationError[]>({
 });
 
 // Helper function to build decorations from errors with error boundary
-function buildDecorationsFromErrors(errors: CompilationError[], doc: any): any[] {
+function buildDecorationsFromErrors(errors: CompilationError[], doc: Text): Range<Decoration>[] {
   try {
-    const decorations: any[] = [];
+    const decorations: Range<Decoration>[] = [];
     const generalErrors: CompilationError[] = [];
 
     errors.forEach(error => {
@@ -134,7 +135,7 @@ export const errorDecorations = StateField.define<DecorationSet>({
   update(decorations, tr) {
     try {
       // Rebuild decorations whenever errors are updated
-      for (let effect of tr.effects) {
+      for (const effect of tr.effects) {
         if (effect.is(setErrorsEffect)) {
           const errors = effect.value;
           const newDecorations = buildDecorationsFromErrors(errors, tr.state.doc);

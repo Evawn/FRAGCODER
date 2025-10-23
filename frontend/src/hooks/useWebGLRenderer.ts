@@ -9,6 +9,16 @@ import type { CompilationError } from '../types';
 import type { TabShaderData, MultipassCompilationError } from '../utils/GLSLCompiler';
 import { logger } from '../utils/logger';
 
+// Type for error objects with shader compilation metadata
+interface ShaderErrorWithMetadata {
+  passErrors?: MultipassCompilationError[];
+  passName?: string;
+  userCodeStartLine?: number;
+  commonLineCount?: number;
+  lineMapping?: Map<number, number>;
+  message?: string;
+}
+
 interface UseWebGLRendererProps {
   onCompilationResult?: (success: boolean, errors: CompilationError[], compilationTime: number) => void;
 }
@@ -201,10 +211,11 @@ export function useWebGLRenderer({
         }
       } else {
         // Check if error has single-pass metadata (legacy support)
-        const passName = (err as any).passName;
-        const userCodeStartLine = (err as any).userCodeStartLine;
-        const commonLineCount = (err as any).commonLineCount;
-        const lineMapping = (err as any).lineMapping;
+        const metadata = err as ShaderErrorWithMetadata;
+        const passName = metadata.passName;
+        const userCodeStartLine = metadata.userCodeStartLine;
+        const commonLineCount = metadata.commonLineCount;
+        const lineMapping = metadata.lineMapping;
 
         if (passName && userCodeStartLine !== undefined && commonLineCount !== undefined) {
           allErrors = parseMultipassShaderError(errorMessage, passName, userCodeStartLine, commonLineCount, lineMapping);
@@ -292,7 +303,7 @@ export function useWebGLRenderer({
   // Create a stable return object reference
   // Methods are memoized with useCallback, so we create the object once
   // and only update it when methods change (which should be never or rarely)
-  const methodsRef = useRef<any>(null);
+  const methodsRef = useRef<UseWebGLRendererReturn | null>(null);
 
   if (!methodsRef.current) {
     methodsRef.current = {
@@ -302,26 +313,33 @@ export function useWebGLRenderer({
       pause,
       reset,
       updateViewport,
-      setResolutionLock
+      setResolutionLock,
+      compilationSuccess,
+      error,
+      uTime,
+      fps,
+      resolution
     };
   }
 
   // Update method references if they change (rare, only on certain re-mounts)
-  methodsRef.current.compile = compile;
-  methodsRef.current.play = play;
-  methodsRef.current.pause = pause;
-  methodsRef.current.reset = reset;
-  methodsRef.current.updateViewport = updateViewport;
-  methodsRef.current.setResolutionLock = setResolutionLock;
+  if (methodsRef.current) {
+    methodsRef.current.compile = compile;
+    methodsRef.current.play = play;
+    methodsRef.current.pause = pause;
+    methodsRef.current.reset = reset;
+    methodsRef.current.updateViewport = updateViewport;
+    methodsRef.current.setResolutionLock = setResolutionLock;
 
-  // Update reactive state values
-  methodsRef.current.compilationSuccess = compilationSuccess;
-  methodsRef.current.error = error;
-  methodsRef.current.uTime = uTime;
-  methodsRef.current.fps = fps;
-  methodsRef.current.resolution = resolution;
+    // Update reactive state values
+    methodsRef.current.compilationSuccess = compilationSuccess;
+    methodsRef.current.error = error;
+    methodsRef.current.uTime = uTime;
+    methodsRef.current.fps = fps;
+    methodsRef.current.resolution = resolution;
+  }
 
   // Return the same object reference every time
   // This prevents downstream components from re-rendering unnecessarily
-  return methodsRef.current;
+  return methodsRef.current as UseWebGLRendererReturn;
 }

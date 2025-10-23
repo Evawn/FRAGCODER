@@ -48,7 +48,7 @@ const mockWebGLContext = {
   uniform2ui: vi.fn(),
   uniform3ui: vi.fn(),
   uniform4ui: vi.fn(),
-} as any;
+};
 
 // Override HTMLCanvasElement.getContext to return mock WebGL context
 HTMLCanvasElement.prototype.getContext = vi.fn((contextId: string) => {
@@ -56,7 +56,7 @@ HTMLCanvasElement.prototype.getContext = vi.fn((contextId: string) => {
     return mockWebGLContext;
   }
   return null;
-}) as any;
+}) as typeof HTMLCanvasElement.prototype.getContext;
 
 // Mock window.matchMedia (used by some UI components)
 Object.defineProperty(window, 'matchMedia', {

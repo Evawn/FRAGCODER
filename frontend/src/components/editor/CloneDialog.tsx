@@ -29,9 +29,9 @@ export function CloneDialog({ shaderName, onClone, open, onOpenChange }: CloneDi
     try {
       await onClone();
       onOpenChange(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error('Failed to clone shader', err);
-      const message = err.message || 'Failed to clone shader. Please try again.';
+      const message = err instanceof Error ? err.message : 'Failed to clone shader. Please try again.';
       setError(message);
     } finally {
       setLoading(false);

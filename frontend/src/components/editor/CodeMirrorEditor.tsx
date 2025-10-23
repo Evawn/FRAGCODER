@@ -3,7 +3,7 @@
  * Features minimap, code folding, autocomplete, and Shift+Enter to compile
  */
 import React, { useMemo, useState, useEffect } from 'react';
-import CodeMirror from '@uiw/react-codemirror';
+import CodeMirror, { type ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { EditorView, keymap } from '@codemirror/view';
 import { indentOnInput, bracketMatching, foldGutter, codeFolding, indentUnit } from '@codemirror/language';
@@ -345,7 +345,7 @@ const CodeMirrorEditorComponent: React.FC<CodeMirrorEditorProps> = ({
     return baseExtensions;
   }, [onDocumentChange]); // onCompile removed - it's used in keymap but doesn't need to trigger recreation
 
-  const editorRef = React.useRef<any>(null);
+  const editorRef = React.useRef<ReactCodeMirrorRef>(null);
   const [isEditorReady, setIsEditorReady] = useState(false);
 
   // Track when editor is ready
