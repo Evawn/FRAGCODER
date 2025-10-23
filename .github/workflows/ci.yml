@@ -133,7 +133,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     env:
-      DATABASE_URL: file:./prisma/test.db/test_user:test_password@localhost:5432/shader_playground_test
+      DATABASE_URL: postgresql://test_user:test_password@localhost:5432/shader_playground_test
       JWT_SECRET: test-jwt-secret-for-ci
       GOOGLE_CLIENT_ID: test-client-id
       GOOGLE_CLIENT_SECRET: test-client-secret

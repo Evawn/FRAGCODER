@@ -18,19 +18,37 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Safety check: prevent accidentally using dev database
-if (process.env.DATABASE_URL.includes('dev.db')) {
-  throw new Error(
-    'Tests are configured to use dev.db! This would clear your development data. ' +
-    'Please update .env.test to use DATABASE_URL="file:./prisma/test.db"'
-  );
-}
+// Safety checks: prevent accidentally using dev/production database
+// Support both SQLite (local) and PostgreSQL (CI) test databases
+const dbUrl = process.env.DATABASE_URL;
+const isSQLite = dbUrl.startsWith('file:');
+const isPostgreSQL = dbUrl.startsWith('postgresql://') || dbUrl.startsWith('postgres://');
 
-// Additional safety check: ensure test database is in the correct location
-if (!process.env.DATABASE_URL.includes('test.db')) {
+if (isSQLite) {
+  // SQLite safety checks (local development)
+  if (dbUrl.includes('dev.db')) {
+    throw new Error(
+      'Tests are configured to use dev.db! This would clear your development data. ' +
+      'Please update .env.test to use DATABASE_URL="file:./prisma/test.db"'
+    );
+  }
+  if (!dbUrl.includes('test.db')) {
+    throw new Error(
+      'DATABASE_URL must point to test.db for testing. ' +
+      'Please update .env.test to use DATABASE_URL="file:./prisma/test.db"'
+    );
+  }
+} else if (isPostgreSQL) {
+  // PostgreSQL safety checks (CI or remote test database)
+  if (!dbUrl.includes('test')) {
+    throw new Error(
+      'DATABASE_URL must contain "test" in the database name for testing. ' +
+      'This prevents accidentally using production/development databases.'
+    );
+  }
+} else {
   throw new Error(
-    'DATABASE_URL must point to test.db for testing. ' +
-    'Please update .env.test to use DATABASE_URL="file:./prisma/test.db"'
+    'Unsupported DATABASE_URL format. Must be either SQLite (file:) or PostgreSQL (postgresql://)'
   );
 }
 
