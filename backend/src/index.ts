@@ -24,8 +24,24 @@ const PORT = config.port;
 app.use(helmet());
 
 // Configure CORS for security - supports multiple origins
+// Uses FRONTEND_URL environment variable for production deployment
+const allowedOrigins = [
+  'http://localhost:5173', // Local development
+  config.frontendUrl,      // Production frontend (set via FRONTEND_URL env var)
+];
+
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://fragcoder.vercel.app'],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, Postman, or curl)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      logger.warn(`CORS blocked request from origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 app.use(express.json());
