@@ -14,36 +14,12 @@ import { NewShaderButton } from '../components/editor/NewShaderButton';
 import { useAuth } from '../AuthContext';
 import { SignInDialog } from '../components/auth/SignInDialog';
 import { ThumbnailRenderer } from '../utils/ThumbnailRenderer';
-import type { TabShaderData } from '../utils/GLSLCompiler';
 import { logger } from '../utils/logger';
+import { getPublicShaders } from '../api/shaders';
+import type { Shader } from '../types';
 
 // Animation timing constant - base delay after loading screen
 const ANIMATION_BASE_DELAY = 600; // ms
-
-interface Shader {
-  id: string;
-  title: string;
-  slug: string;
-  description?: string;
-  tabs: TabShaderData[];
-  userId: string;
-  user: {
-    id: string;
-    username: string;
-  };
-  createdAt: string;
-  updatedAt: string;
-  forkedFrom?: string;
-  isPublic: boolean;
-}
-
-interface PaginatedResponse {
-  shaders: Shader[];
-  total: number;
-  page: number;
-  totalPages: number;
-  limit: number;
-}
 
 function Gallery() {
   const navigate = useNavigate();
@@ -77,19 +53,8 @@ function Gallery() {
       setLoading(true);
       setError(null);
 
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: '12',
-        ...(search && { search })
-      });
+      const data = await getPublicShaders(page, 12, search || undefined);
 
-      const response = await fetch(`http://localhost:3001/api/shaders?${params}`);
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch shaders');
-      }
-
-      const data: PaginatedResponse = await response.json();
       setShaders(data.shaders);
       setTotalPages(data.totalPages);
       setTotal(data.total);

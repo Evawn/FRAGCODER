@@ -2,24 +2,7 @@
 // Responsive grid: 1-4 columns based on screen size, with smooth entrance animations
 
 import ShaderCard from './ShaderCard';
-import type { TabShaderData } from '../utils/GLSLCompiler';
-
-interface Shader {
-  id: string;
-  title: string;
-  slug: string;
-  description?: string;
-  tabs: TabShaderData[];
-  userId: string;
-  user: {
-    id: string;
-    username: string;
-  };
-  createdAt: string;
-  updatedAt: string;
-  forkedFrom?: string;
-  isPublic: boolean;
-}
+import type { Shader } from '../types';
 
 interface ShaderGridProps {
   shaders: Shader[];

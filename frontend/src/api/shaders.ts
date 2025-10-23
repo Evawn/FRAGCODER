@@ -111,3 +111,32 @@ export async function cloneShader(
   );
   return response.data;
 }
+
+/**
+ * Get public shaders with pagination and search
+ * @param page - Page number (default: 1)
+ * @param limit - Results per page (default: 12)
+ * @param search - Optional search term for title, description, or author
+ * @returns Paginated shader list with metadata
+ * @throws ApiError with message and status code on failure
+ */
+export async function getPublicShaders(
+  page: number = 1,
+  limit: number = 12,
+  search?: string
+): Promise<{
+  shaders: Shader[];
+  total: number;
+  page: number;
+  totalPages: number;
+  limit: number;
+}> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+    ...(search && { search })
+  });
+
+  const response = await apiClient.get(`/api/shaders?${params}`);
+  return response.data;
+}
