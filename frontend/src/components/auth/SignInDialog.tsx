@@ -64,9 +64,9 @@ export function SignInDialog({ open, onOpenChange, onSignInSuccess }: SignInDial
         // New user - show username input
         setShowUsernameInput(true);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error('Error during Google sign-in', err);
-      const message = err.response?.data?.error || 'Failed to sign in. Please try again.';
+      const message = (err as { response?: { data?: { error?: string } } }).response?.data?.error || 'Failed to sign in. Please try again.';
       setError(message);
     } finally {
       setLoading(false);
@@ -104,9 +104,9 @@ export function SignInDialog({ open, onOpenChange, onSignInSuccess }: SignInDial
       // Success - sign in the user
       signIn(result.user, result.token);
       handleClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error('Error creating new user account', err);
-      const message = err.response?.data?.error || 'Failed to create account. Please try again.';
+      const message = (err as { response?: { data?: { error?: string } } }).response?.data?.error || 'Failed to create account. Please try again.';
       setError(message);
     } finally {
       setLoading(false);

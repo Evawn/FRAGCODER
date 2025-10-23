@@ -64,8 +64,8 @@ describe('useEditorState', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (useNavigate as any).mockReturnValue(mockNavigate);
-    (useAuth as any).mockReturnValue({
+    vi.mocked(useNavigate).mockReturnValue(mockNavigate);
+    vi.mocked(useAuth).mockReturnValue({
       user: null,
       token: null,
     });
@@ -127,7 +127,7 @@ describe('useEditorState', () => {
         user: { id: 'user-1', username: 'tester' },
       };
 
-      (shaderApi.getShaderBySlug as any).mockResolvedValue(mockShader);
+      vi.mocked(shaderApi.getShaderBySlug).mockResolvedValue(mockShader);
 
       const { result } = renderHook(() =>
         useEditorState({
@@ -150,7 +150,7 @@ describe('useEditorState', () => {
     });
 
     it('should handle shader load error and navigate to /new', async () => {
-      (shaderApi.getShaderBySlug as any).mockRejectedValue(new Error('Not found'));
+      vi.mocked(shaderApi.getShaderBySlug).mockRejectedValue(new Error('Not found'));
       const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
       renderHook(() =>
@@ -346,7 +346,7 @@ describe('useEditorState', () => {
 
   describe('Shader Operations (Authenticated)', () => {
     beforeEach(() => {
-      (useAuth as any).mockReturnValue({
+      vi.mocked(useAuth).mockReturnValue({
         user: { id: 'user-1', username: 'testuser' },
         token: 'test-token',
       });
@@ -370,8 +370,8 @@ describe('useEditorState', () => {
         user: { id: 'user-1', username: 'testuser' },
       };
 
-      (shaderApi.getShaderBySlug as any).mockResolvedValue(mockShader);
-      (shaderApi.updateShader as any).mockResolvedValue({ success: true });
+      vi.mocked(shaderApi.getShaderBySlug).mockResolvedValue(mockShader);
+      vi.mocked(shaderApi.updateShader).mockResolvedValue({ success: true });
 
       const { result } = renderHook(() =>
         useEditorState({
@@ -424,8 +424,8 @@ describe('useEditorState', () => {
         user: { id: 'user-1', username: 'testuser' },
       };
 
-      (shaderApi.getShaderBySlug as any).mockResolvedValue(mockShader);
-      (shaderApi.updateShader as any).mockRejectedValue(new Error('Network error'));
+      vi.mocked(shaderApi.getShaderBySlug).mockResolvedValue(mockShader);
+      vi.mocked(shaderApi.updateShader).mockRejectedValue(new Error('Network error'));
 
       const { result } = renderHook(() =>
         useEditorState({
@@ -465,8 +465,8 @@ describe('useEditorState', () => {
         user: { id: 'user-2', username: 'otheruser' },
       };
 
-      (shaderApi.getShaderBySlug as any).mockResolvedValue(mockShader);
-      (shaderApi.cloneShader as any).mockResolvedValue({
+      vi.mocked(shaderApi.getShaderBySlug).mockResolvedValue(mockShader);
+      vi.mocked(shaderApi.cloneShader).mockResolvedValue({
         shader: { slug: 'cloned-shader' },
       });
 
@@ -507,8 +507,8 @@ describe('useEditorState', () => {
         user: { id: 'user-1', username: 'testuser' },
       };
 
-      (shaderApi.getShaderBySlug as any).mockResolvedValue(mockShader);
-      (shaderApi.deleteShader as any).mockResolvedValue({ success: true });
+      vi.mocked(shaderApi.getShaderBySlug).mockResolvedValue(mockShader);
+      vi.mocked(shaderApi.deleteShader).mockResolvedValue({ success: true });
 
       const { result } = renderHook(() =>
         useEditorState({
@@ -530,7 +530,7 @@ describe('useEditorState', () => {
     });
 
     it('should save new shader and navigate to new URL', async () => {
-      (shaderApi.saveShader as any).mockResolvedValue({
+      vi.mocked(shaderApi.saveShader).mockResolvedValue({
         shader: { slug: 'new-shader-slug' },
       });
 
@@ -584,8 +584,8 @@ describe('useEditorState', () => {
         user: { id: 'user-1', username: 'testuser' },
       };
 
-      (shaderApi.getShaderBySlug as any).mockResolvedValue(mockShader);
-      (shaderApi.updateShader as any).mockResolvedValue({ success: true });
+      vi.mocked(shaderApi.getShaderBySlug).mockResolvedValue(mockShader);
+      vi.mocked(shaderApi.updateShader).mockResolvedValue({ success: true });
 
       const { result } = renderHook(() =>
         useEditorState({
@@ -618,7 +618,7 @@ describe('useEditorState', () => {
 
   describe('Dialog Interactions', () => {
     it('should open save as dialog when user is authenticated', async () => {
-      (useAuth as any).mockReturnValue({
+      vi.mocked(useAuth).mockReturnValue({
         user: { id: 'user-1', username: 'testuser' },
         token: 'test-token',
       });
@@ -643,7 +643,7 @@ describe('useEditorState', () => {
     });
 
     it('should open signin dialog first when user not authenticated for save as', async () => {
-      (useAuth as any).mockReturnValue({
+      vi.mocked(useAuth).mockReturnValue({
         user: null,
         token: null,
       });
@@ -668,7 +668,7 @@ describe('useEditorState', () => {
     });
 
     it('should open clone dialog when user is authenticated', async () => {
-      (useAuth as any).mockReturnValue({
+      vi.mocked(useAuth).mockReturnValue({
         user: { id: 'user-1', username: 'testuser' },
         token: 'test-token',
       });
@@ -693,7 +693,7 @@ describe('useEditorState', () => {
     });
 
     it('should open signin dialog first when user not authenticated for clone', async () => {
-      (useAuth as any).mockReturnValue({
+      vi.mocked(useAuth).mockReturnValue({
         user: null,
         token: null,
       });
@@ -740,7 +740,7 @@ describe('useEditorState', () => {
 
   describe('Computed State', () => {
     it('should calculate isOwner as true when user owns shader', async () => {
-      (useAuth as any).mockReturnValue({
+      vi.mocked(useAuth).mockReturnValue({
         user: { id: 'user-1', username: 'testuser' },
         token: 'test-token',
       });
@@ -762,7 +762,7 @@ describe('useEditorState', () => {
         user: { id: 'user-1', username: 'testuser' },
       };
 
-      (shaderApi.getShaderBySlug as any).mockResolvedValue(mockShader);
+      vi.mocked(shaderApi.getShaderBySlug).mockResolvedValue(mockShader);
 
       const { result } = renderHook(() =>
         useEditorState({
@@ -777,7 +777,7 @@ describe('useEditorState', () => {
     });
 
     it('should calculate isOwner as false when user does not own shader', async () => {
-      (useAuth as any).mockReturnValue({
+      vi.mocked(useAuth).mockReturnValue({
         user: { id: 'user-1', username: 'testuser' },
         token: 'test-token',
       });
@@ -799,7 +799,7 @@ describe('useEditorState', () => {
         user: { id: 'user-2', username: 'otheruser' },
       };
 
-      (shaderApi.getShaderBySlug as any).mockResolvedValue(mockShader);
+      vi.mocked(shaderApi.getShaderBySlug).mockResolvedValue(mockShader);
 
       const { result } = renderHook(() =>
         useEditorState({
@@ -814,7 +814,7 @@ describe('useEditorState', () => {
     });
 
     it('should calculate isOwner as false when user is not authenticated', async () => {
-      (useAuth as any).mockReturnValue({
+      vi.mocked(useAuth).mockReturnValue({
         user: null,
         token: null,
       });
@@ -852,7 +852,7 @@ describe('useEditorState', () => {
         user: { id: 'user-1', username: 'testuser' },
       };
 
-      (shaderApi.getShaderBySlug as any).mockResolvedValue(mockShader);
+      vi.mocked(shaderApi.getShaderBySlug).mockResolvedValue(mockShader);
 
       const { result } = renderHook(() =>
         useEditorState({

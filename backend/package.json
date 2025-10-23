@@ -11,6 +11,8 @@
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:db:migrate": "dotenv -e .env.test -- prisma migrate deploy",
+    "test:db:reset": "dotenv -e .env.test -- prisma migrate reset --force",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio"
@@ -44,6 +46,7 @@
     "@types/supertest": "^6.0.3",
     "@vitest/coverage-v8": "^3.2.4",
     "@vitest/ui": "^3.2.4",
+    "dotenv-cli": "^7.4.2",
     "nodemon": "^3.1.10",
     "supertest": "^7.1.4",
     "ts-node": "^10.9.2",

@@ -532,7 +532,7 @@ export function prepareShaderCode(commonCode: string, userCode: string, passName
     versionAndPrecision = '#version 300 es\nprecision mediump float;';
   }
 
-  let wrapper = FRAGMENT_SHADER_WRAPPER.replace('{VERSION_AND_PRECISION}', versionAndPrecision);
+  const wrapper = FRAGMENT_SHADER_WRAPPER.replace('{VERSION_AND_PRECISION}', versionAndPrecision);
   const wrapperLines = wrapper.split('\n');
   const userCodeStartLine = wrapperLines.findIndex(line => line.includes('{USER_CODE}'));
   const finalCode = wrapper.replace('{USER_CODE}', cleanedCode);

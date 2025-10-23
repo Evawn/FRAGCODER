@@ -49,9 +49,9 @@ export function RenameDialog({ currentName, onRename, open, onOpenChange }: Rena
     try {
       await onRename(shaderName.trim());
       onOpenChange(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error('Failed to rename shader', err);
-      const message = err.message || 'Failed to rename shader. Please try again.';
+      const message = err instanceof Error ? err.message : 'Failed to rename shader. Please try again.';
       setError(message);
     } finally {
       setLoading(false);

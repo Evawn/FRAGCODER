@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /** Authentication context provider managing user sessions, JWT tokens, and localStorage persistence. */
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import type { User } from './types';

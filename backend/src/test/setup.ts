@@ -14,23 +14,30 @@ process.env.NODE_ENV = 'test';
 // Ensure we're using a test database, not the dev database
 if (!process.env.DATABASE_URL) {
   throw new Error(
-    'DATABASE_URL is not set. Please create a .env.test file with DATABASE_URL="file:./test.db"'
+    'DATABASE_URL is not set. Please create a .env.test file with PostgreSQL test database URL.\n' +
+    'Example: DATABASE_URL="postgresql://shader_user:shader_password@localhost:5432/shader_playground_test"'
   );
 }
 
-// Safety check: prevent accidentally using dev database
-if (process.env.DATABASE_URL.includes('dev.db')) {
+// Safety checks: prevent accidentally using dev/production database
+const dbUrl = process.env.DATABASE_URL;
+const isPostgreSQL = dbUrl.startsWith('postgresql://') || dbUrl.startsWith('postgres://');
+
+if (!isPostgreSQL) {
   throw new Error(
-    'Tests are configured to use dev.db! This would clear your development data. ' +
-    'Please update .env.test to use DATABASE_URL="file:./prisma/test.db"'
+    'DATABASE_URL must be a PostgreSQL connection string (postgresql://).\n' +
+    'Tests now use PostgreSQL to match dev/production environments.\n' +
+    'Make sure PostgreSQL is running: docker compose up postgres -d'
   );
 }
 
-// Additional safety check: ensure test database is in the correct location
-if (!process.env.DATABASE_URL.includes('test.db')) {
+// PostgreSQL safety checks - prevent using dev/production database
+if (!dbUrl.includes('test')) {
   throw new Error(
-    'DATABASE_URL must point to test.db for testing. ' +
-    'Please update .env.test to use DATABASE_URL="file:./prisma/test.db"'
+    'DATABASE_URL must contain "test" in the database name for testing.\n' +
+    'This prevents accidentally using production/development databases.\n' +
+    'Expected: shader_playground_test\n' +
+    'Got: ' + dbUrl
   );
 }
 

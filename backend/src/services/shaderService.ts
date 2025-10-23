@@ -52,9 +52,9 @@ export async function listPublicShaders(params: PaginationParams): Promise<Pagin
   // Search across title, description, and author username
   if (search) {
     where.OR = [
-      { title: { contains: search } },
-      { description: { contains: search } },
-      { user: { username: { contains: search } } }
+      { title: { contains: search, mode: 'insensitive' } },
+      { description: { contains: search, mode: 'insensitive' } },
+      { user: { username: { contains: search, mode: 'insensitive' } } }
     ];
   }
 

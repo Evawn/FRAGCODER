@@ -42,9 +42,9 @@ export function SaveAsDialog({ onSave, open, onOpenChange }: SaveAsDialogProps) 
     try {
       await onSave(shaderName.trim());
       onOpenChange(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error('Failed to save shader', err);
-      const message = err.message || 'Failed to save shader. Please try again.';
+      const message = err instanceof Error ? err.message : 'Failed to save shader. Please try again.';
       setError(message);
     } finally {
       setLoading(false);
