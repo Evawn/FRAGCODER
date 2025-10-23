@@ -14,7 +14,7 @@ export default defineConfig({
   // Explicitly define environment variables for Vercel deployment
   // Vite replaces these with string literals at build time
   define: {
-    'import.meta.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || 'http://localhost:3001'),
+    'import.meta.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || 'http://localhost:3031'),
     'import.meta.env.VITE_GOOGLE_CLIENT_ID': JSON.stringify(process.env.VITE_GOOGLE_CLIENT_ID || ''),
   },
 })
