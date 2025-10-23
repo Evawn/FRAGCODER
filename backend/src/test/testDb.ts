@@ -4,13 +4,8 @@ import { PrismaClient } from '@prisma/client';
 
 // Create a separate Prisma client for test database operations
 // This allows tests to clean up data without affecting the main application
-export const testPrisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL || 'file:./test.db',
-    },
-  },
-});
+// NOTE: DATABASE_URL is loaded from .env.test by the test setup
+export const testPrisma = new PrismaClient();
 
 /**
  * Clears all data from the database
