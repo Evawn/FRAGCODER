@@ -22,7 +22,7 @@ export default tseslint.config([
     "rules": {
       "@typescript-eslint/no-unused-vars": "off",
       "no-useless-escape": "off",
-      "eslintprefer-const": "1"
+      "eslintprefer-const": "warn"
     }
   },
 ])
