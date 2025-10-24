@@ -15,8 +15,8 @@ const ANIMATION_BASE_DELAY = 600; // ms
 
 // Background logo positioning and sizing configuration
 const BACKGROUND_LOGO_CONFIG = {
-  size: '95vw',           // Width of the logo
-  topPosition: '-76vw',   // Vertical position (negative = above viewport)
+  size: 'calc(110vw + 100px)',           // Width of the logo
+  topPosition: 'calc(-95vw + 30px)',   // Vertical position (negative = above viewport)
   glowOpacity: 0.9,       // Opacity of the glow effect
   glowBlur: '200px',       // Blur amount for glow
   pulseDuration: '0s',    // Duration of pulse animation
@@ -147,7 +147,7 @@ function HomePage() {
 
       {/* Header - Group 1 Animation */}
       <div
-        className="w-full bg-transparent px-2 py-0.5 relative"
+        className="w-full bg-background-header border-b-2 border-accent sm:border-none sm:bg-transparent px-2 py-0.5 relative"
         style={{
           animation: 'fadeInDown 0.6s ease-out forwards',
           opacity: 0,
@@ -194,7 +194,7 @@ function HomePage() {
       <div className="flex-1 flex flex-col relative" style={{ zIndex: 10 }}>
         {/* Hero Section - Group 2 Animation */}
         <div
-          className="w-full px-8 py-16 md:py-24"
+          className="w-full px-8 py-16 sm:py-24"
           style={{
             animation: 'fadeInDown 0.6s ease-out forwards',
             opacity: 0,
@@ -203,12 +203,16 @@ function HomePage() {
         >
           <div className="max-w-4xl mx-auto text-center space-y-6">
             {/* Large Title */}
-            <h1 className="text-6xl md:text-7xl font-bold text-foreground-highlighted tracking-tighter">
-              FRAGCODER
+            <h1 className="text-6xl select-none sm:text-8xl font-bold text-foreground-highlighted tracking-tighter">
+              {'FRAGCODER'.split('').map((letter, index) => (
+                <span key={index} className="letter-hover hover:text-accent">
+                  {letter}
+                </span>
+              ))}
             </h1>
 
             {/* Description */}
-            <p className="text-xl italic md:text-2xl text-foreground-muted max-w-2xl mx-auto leading-relaxed">
+            <p className="text-lg italic sm:text-2xl text-foreground-muted max-w-2xl mx-auto leading-relaxed">
               Create, explore, and share stunning GLSL fragment shaders directly from your browser. Inspired by Shadertoy.
             </p>
 
@@ -232,7 +236,7 @@ function HomePage() {
 
         {/* Video Preview Section - Group 3 Animation */}
         <div
-          className="w-full px-8 pb-16"
+          className="w-full px-0 sm:px-8 pb-16"
           style={{
             animation: 'fadeInDown 0.6s ease-out forwards',
             opacity: 0,
@@ -245,7 +249,6 @@ function HomePage() {
               className="w-full rounded-lg overflow-hidden"
               style={{
                 aspectRatio: '16 / 9',
-                minHeight: '400px',
                 boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 10px 20px -5px rgba(0, 0, 0, 0.6)'
               }}
             >
