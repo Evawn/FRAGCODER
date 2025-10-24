@@ -1,9 +1,8 @@
-/** Root application component with route definitions for home, gallery, editor, and test pages. */
+/** Root application component with route definitions for home, gallery, and editor pages. */
 import { Routes, Route } from 'react-router-dom'
 import HomePage from './pages/HomePage'
 import Gallery from './pages/GalleryPage'
 import EditorPage from './pages/EditorPage'
-import LogoTestPage from './pages/LogoTestPage'
 
 function App() {
   return (
@@ -13,7 +12,6 @@ function App() {
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/new" element={<EditorPage />} />
         <Route path="/shader/:slug" element={<EditorPage />} />
-        <Route path="/logo" element={<LogoTestPage />} />
       </Routes>
     </div>
   )
