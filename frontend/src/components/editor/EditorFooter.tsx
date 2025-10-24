@@ -76,8 +76,8 @@ export function EditorFooter({
       </Badge>
       <div className="flex-1" />
 
-      {/* Centered character count badge */}
-      <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+      {/* Character count badge - centered on md+, right-aligned on mobile */}
+      <div className="md:absolute md:left-1/2 md:top-1/2 md:transform md:-translate-x-1/2 md:-translate-y-1/2 pointer-events-none">
         <Badge
           variant="outline"
           className="bg-transparent border-transparent font-mono font-light text-xs px-2 py-0 text-foreground"

@@ -17,6 +17,7 @@ import { DeleteShaderDialog } from '../components/editor/DeleteShaderDialog';
 import { CloneDialog } from '../components/editor/CloneDialog';
 import { calculatePanelMinSize } from '../utils/editorPageHelpers';
 import { PageHeader } from '../components/editor/PageHeader';
+import { TitleDropdown } from '../components/editor/TitleDropdown';
 import { LoadingScreen } from '../components/LoadingScreen';
 
 function EditorPage() {
@@ -249,6 +250,23 @@ function EditorPage() {
         onSignIn={editorState.dialogManager.openSignIn}
         onSignOut={signOut}
       />
+
+      {/* Mobile Title Dropdown Bar (below header) */}
+      {isMobile && (
+        <div className="w-full flex items-center justify-center px-2 py-0 bg-transparent relative" style={{ zIndex: 19 }}>
+          <TitleDropdown
+            title={editorState.localShaderTitle}
+            creatorUsername={editorState.shader?.creatorUsername}
+            isSavedShader={!!editorState.shaderUrl}
+            isOwner={editorState.isOwner}
+            onSave={editorState.onSave}
+            onSaveAs={editorState.onSaveAs}
+            onRename={editorState.dialogManager.openRename}
+            onClone={editorState.onClone}
+            onDelete={editorState.onDelete}
+          />
+        </div>
+      )}
 
       {/* Conditional Layout Rendering */}
       {isMobile ? (

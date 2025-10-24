@@ -15,8 +15,8 @@ export function NewShaderButton({ onClick }: NewShaderButtonProps) {
       style={{ outline: 'none', border: 'none' }}
       onClick={onClick}
     >
-      <span className="text-large">New</span>
-      <Plus className="w-4 h-4 ml-1" />
+      <span className="text-large hidden md:inline">New</span>
+      <Plus className="w-4 h-4 md:ml-1" />
     </Button>
   );
 }

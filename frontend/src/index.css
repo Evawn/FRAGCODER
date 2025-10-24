@@ -106,7 +106,7 @@
 @keyframes fadeInDownLarge {
   from {
     opacity: 0;
-    transform: translateY(-110vw);
+    transform: translateY(-130vw);
     scale: 0.5;
   }
 

@@ -73,8 +73,8 @@ export function PageHeader({
         <span>FRAGCODER</span>
       </button>
 
-      {/* Center - Title Dropdown */}
-      <div className="flex-1 flex items-center justify-center">
+      {/* Center - Title Dropdown (desktop only) */}
+      <div className="hidden md:flex flex-1 items-center justify-center min-w-0">
         <TitleDropdown
           title={localShaderTitle}
           creatorUsername={creatorUsername}
@@ -89,7 +89,7 @@ export function PageHeader({
       </div>
 
       {/* Right side - Navigation and user controls */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 md:gap-2 ml-auto md:ml-0">
         <BrowseButton onClick={() => window.location.href = '/gallery'} />
         <NewShaderButton onClick={() => window.location.href = '/new'} />
         <UserMenu
