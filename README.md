@@ -10,7 +10,7 @@
 
 #### **[LIVE DEMO → fragcoder.vercel.app](https://fragcoder.vercel.app)**
 
-Built as a passion-portfolio project, [FRAGCODER](https://fragcoder.vercel.app) provides the same in-browser shader coding experience as [Shadertoy](https://shadertoy.com) - with a modernized, responsive UI with many add quality-of-life features, including improved compilation times, autocompletion tooltips, resizeable UI panels, and much more!
+Built as a passion-portfolio project, [FRAGCODER](https://fragcoder.vercel.app) provides the same in-browser shader coding experience as [Shadertoy](https://shadertoy.com) - with a modernized, responsive UI with many added quality-of-life features, including improved compilation times, autocompletion tooltips, resizeable UI panels, and many more!
 
 ![Shader Gallery](images/Editor%20Slide.png)
 
