@@ -50,7 +50,9 @@ Built as a passion-portfolio project, [FRAGCODER](https://fragcoder.vercel.app) 
 ![Technical Architecture](images/Technical%20Architecture.png)
 
 ## Getting Started
-The easiest way to run FRAGCODER is with Docker. This method requires no manual dependency installation or database setup.
+[LIVE DEMO → fragcoder.vercel.app](https://fragcoder.vercel.app)
+
+If you want to run FRAGCODER yourself, the easiest way is with Docker. This method requires no manual dependency installation or database setup.
 
 **Prerequisites:**
 - [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/)
