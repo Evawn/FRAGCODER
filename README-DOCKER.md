@@ -1,6 +1,6 @@
-# Docker Setup Guide for Shader Playground
+# Docker Setup Guide for FRAGCODER
 
-This guide will help you run Shader Playground using Docker and Docker Compose. The setup includes three services: PostgreSQL database, Express backend API, and React frontend served by nginx.
+This guide will help you run FRAGCODER using Docker and Docker Compose. The setup includes three services: PostgreSQL database, Express backend API, and React frontend served by nginx.
 
 ## Prerequisites
 
@@ -13,7 +13,7 @@ This guide will help you run Shader Playground using Docker and Docker Compose. 
 **Step 1**
 ```bash
 # Clone the repository
-git clone https://github.com/Evawn/Shader-Playground.git
+git clone https://github.com/Evawn/FRAGCODER.git
 cd fragcoder
 ```
 

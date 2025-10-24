@@ -61,7 +61,7 @@ If you want to run FRAGCODER yourself, the easiest way is with Docker. This meth
 **Step 1**
 ```bash
 # Clone the repository
-git clone https://github.com/Evawn/Shader-Playground.git
+git clone https://github.com/Evawn/FRAGCODER.git
 cd fragcoder
 ```
 
@@ -126,4 +126,4 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 
 Built with <3 by **Evan Azari** (2025) | [GitHub](https://github.com/Evawn/) | [LinkedIn](https://www.linkedin.com/in/eazari/)
 
-Questions? [Open an issue](https://github.com/Evawn/Shader-Playground/issues)
+Questions? [Open an issue](https://github.com/Evawn/FRAGCODER/issues)
