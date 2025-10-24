@@ -2,7 +2,40 @@
 
 This project uses **Vitest** for both frontend and backend testing. Vitest is a fast, modern test runner built for Vite projects.
 
+## Prerequisites
+
+- **Docker**: Required for running PostgreSQL test database
+- **Node.js**: v18 or higher
+- **Backend tests require PostgreSQL to be running**
+
 ## Quick Start
+
+### 1. Start PostgreSQL (Required for Backend Tests)
+
+```bash
+# Start PostgreSQL container with both dev and test databases
+docker compose up postgres -d
+```
+
+This starts PostgreSQL with two databases:
+- `shader_playground` (development)
+- `shader_playground_test` (testing)
+
+### 2. First-Time Test Setup
+
+**Only needed once after starting PostgreSQL for the first time:**
+
+```bash
+# Set up test database configuration
+cp backend/.env.test.example backend/.env.test
+
+# Apply database schema to test database
+cd backend
+npm run test:db:migrate
+cd ..
+```
+
+### 3. Run Tests
 
 ```bash
 # Run all tests (frontend + backend)
@@ -23,7 +56,38 @@ cd frontend && npm run test:ui
 cd backend && npm run test:ui
 ```
 
-## Project Structure
+## Test Database Setup
+
+Backend tests use a separate PostgreSQL test database (`shader_playground_test`) to match the development and production environments.
+
+### Database Configuration
+
+1. The test database is created automatically by Docker on first startup
+2. Database URL: `postgresql://shader_user:shader_password@localhost:5432/shader_playground_test`
+3. Configuration is stored in `backend/.env.test`
+
+### Test Database Management
+
+```bash
+cd backend
+
+# Apply migrations to test database
+npm run test:db:migrate
+
+# Reset test database (drop all data and reapply migrations)
+npm run test:db:reset
+```
+
+### Test Helper Functions
+
+Use the helper functions from `backend/src/test/testDb.ts`:
+- `clearDatabase()` - Remove all data
+- `createTestUser()` - Create a test user
+- `createTestShader()` - Create a test shader
+- `seedTestData()` - Seed common test data
+
+
+## Test File Structure
 
 ```
 frontend/
@@ -54,325 +118,38 @@ backend/
 └── vitest.config.ts
 ```
 
-## Writing Tests
-
-### Frontend Tests
-
-#### Testing Utilities (Pure Functions)
-
-```typescript
-// frontend/src/utils/GLSLCompiler.test.ts
-import { describe, it, expect } from 'vitest';
-import { GLSLCompiler } from './GLSLCompiler';
-
-describe('GLSLCompiler', () => {
-  it('should compile valid GLSL code', () => {
-    const compiler = new GLSLCompiler();
-    const result = compiler.compile('void main() { gl_FragColor = vec4(1.0); }');
-
-    expect(result.success).toBe(true);
-    expect(result.errors).toHaveLength(0);
-  });
-
-  it('should detect syntax errors', () => {
-    const compiler = new GLSLCompiler();
-    const result = compiler.compile('invalid glsl code');
-
-    expect(result.success).toBe(false);
-    expect(result.errors.length).toBeGreaterThan(0);
-  });
-});
-```
-
-#### Testing React Hooks
-
-```typescript
-// frontend/src/hooks/useAuth.test.tsx
-import { describe, it, expect, vi } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
-import { useAuth } from './useAuth';
-
-describe('useAuth', () => {
-  it('should initialize with null user', () => {
-    const { result } = renderHook(() => useAuth());
-
-    expect(result.current.user).toBeNull();
-    expect(result.current.loading).toBe(true);
-  });
-
-  it('should sign in user successfully', async () => {
-    const { result } = renderHook(() => useAuth());
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    // Test sign in logic here
-  });
-});
-```
-
-#### Testing React Components
-
-```typescript
-// frontend/src/components/Button.test.tsx
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { Button } from './Button';
-
-describe('Button', () => {
-  it('should render with text', () => {
-    render(<Button>Click me</Button>);
-
-    expect(screen.getByText('Click me')).toBeInTheDocument();
-  });
-
-  it('should call onClick when clicked', () => {
-    const handleClick = vi.fn();
-    render(<Button onClick={handleClick}>Click me</Button>);
-
-    fireEvent.click(screen.getByText('Click me'));
-
-    expect(handleClick).toHaveBeenCalledTimes(1);
-  });
-});
-```
-
-### Backend Tests
-
-#### Testing Utilities
-
-```typescript
-// backend/src/utils/jwt.test.ts
-import { describe, it, expect } from 'vitest';
-import { generateToken, verifyToken } from './jwt';
-
-describe('JWT Utilities', () => {
-  it('should generate a valid token', () => {
-    const token = generateToken('user123', 'test@example.com');
-
-    expect(token).toBeTruthy();
-    expect(typeof token).toBe('string');
-  });
-
-  it('should verify a valid token', () => {
-    const token = generateToken('user123', 'test@example.com');
-    const payload = verifyToken(token);
-
-    expect(payload).toBeTruthy();
-    expect(payload?.userId).toBe('user123');
-    expect(payload?.email).toBe('test@example.com');
-  });
-
-  it('should reject invalid tokens', () => {
-    const payload = verifyToken('invalid.token.here');
-
-    expect(payload).toBeNull();
-  });
-});
-```
-
-#### Testing API Routes (Integration Tests)
-
-```typescript
-// backend/src/routes/auth.test.ts
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import request from 'supertest';
-import app from '../index';
-import { clearDatabase, createTestUser } from '../test/testDb';
-
-describe('POST /api/auth/signup', () => {
-  beforeEach(async () => {
-    await clearDatabase();
-  });
-
-  afterEach(async () => {
-    await clearDatabase();
-  });
-
-  it('should create a new user', async () => {
-    const response = await request(app)
-      .post('/api/auth/signup')
-      .send({
-        username: 'newuser',
-        email: 'new@example.com',
-        password: 'password123',
-      });
-
-    expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty('token');
-    expect(response.body).toHaveProperty('user');
-    expect(response.body.user.email).toBe('new@example.com');
-  });
-
-  it('should reject duplicate emails', async () => {
-    await createTestUser({ email: 'existing@example.com' });
-
-    const response = await request(app)
-      .post('/api/auth/signup')
-      .send({
-        username: 'newuser',
-        email: 'existing@example.com',
-        password: 'password123',
-      });
-
-    expect(response.status).toBe(400);
-    expect(response.body.error).toBeTruthy();
-  });
-});
-
-describe('POST /api/auth/signin', () => {
-  it('should authenticate valid credentials', async () => {
-    // Create test user first
-    await createTestUser({
-      email: 'test@example.com',
-      passwordHash: '$2b$10$...' // Use actual bcrypt hash
-    });
-
-    const response = await request(app)
-      .post('/api/auth/signin')
-      .send({
-        email: 'test@example.com',
-        password: 'password123',
-      });
-
-    expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty('token');
-  });
-});
-```
-
-## Test Database Setup
-
-For backend tests, you should use a separate test database:
-
-1. Create `.env.test` file in `backend/`:
-   ```bash
-   cp backend/.env.test.example backend/.env.test
-   ```
-
-2. The test database will be automatically created at `backend/prisma/test.db`
-
-3. Use the helper functions from `backend/src/test/testDb.ts`:
-   - `clearDatabase()` - Remove all data
-   - `createTestUser()` - Create a test user
-   - `createTestShader()` - Create a test shader
-   - `seedTestData()` - Seed common test data
-
-## Best Practices
-
-### General
-
-- **Test naming**: Use descriptive names that explain what is being tested
-- **Arrange-Act-Assert**: Structure tests with setup, execution, and verification
-- **One assertion per test**: Focus each test on a single behavior
-- **Avoid interdependence**: Each test should be independent
-
-### Frontend
-
-- **Mock WebGL**: WebGL is automatically mocked in the test setup
-- **Mock API calls**: Use `vi.mock()` to mock axios requests
-- **Test user interactions**: Use `fireEvent` or `userEvent` for interactions
-- **Test accessibility**: Use `screen.getByRole()` and `getByLabelText()`
-
-### Backend
-
-- **Database isolation**: Clear the database before/after each test
-- **Test authentication**: Test both authenticated and unauthenticated requests
-- **Test error cases**: Test validation errors, missing data, etc.
-- **Use supertest**: It automatically handles server lifecycle
-
-## Coverage Goals
-
-- **Utilities**: 80%+ coverage (pure functions are easy to test)
-- **API Routes**: 70%+ coverage (test happy paths + error cases)
-- **React Hooks**: 60%+ coverage (focus on business logic)
-- **React Components**: 40%+ coverage (focus on key interactions)
-
 ## CI/CD Integration
 
-For continuous integration, use:
+For continuous integration environments, ensure PostgreSQL is running before executing tests.
+
+### GitHub Actions Example
+
+```yaml
+services:
+  postgres:
+    image: postgres:16
+    env:
+      POSTGRES_USER: shader_user
+      POSTGRES_PASSWORD: shader_password
+      POSTGRES_DB: shader_playground_test
+    ports:
+      - 5432:5432
+```
+
+### Running Tests in CI
 
 ```bash
-npm run test:run        # Run all tests once
-npm run test:coverage   # Generate coverage reports
+# Run all tests once (non-interactive)
+npm run test:run
+
+# Run tests with coverage reports
+npm run test:coverage
 ```
+
+### Coverage Reports
 
 Coverage reports are generated in:
 - `frontend/coverage/`
 - `backend/coverage/`
 
-## Common Patterns
-
-### Mocking Functions
-
-```typescript
-import { vi } from 'vitest';
-
-const mockFn = vi.fn();
-mockFn.mockReturnValue('mocked value');
-mockFn.mockResolvedValue('async value');
-```
-
-### Mocking Modules
-
-```typescript
-vi.mock('../api/shaders', () => ({
-  fetchShaders: vi.fn(() => Promise.resolve([])),
-}));
-```
-
-### Testing Async Code
-
-```typescript
-it('should fetch data', async () => {
-  const data = await fetchData();
-  expect(data).toBeTruthy();
-});
-```
-
-### Waiting for Updates
-
-```typescript
-import { waitFor } from '@testing-library/react';
-
-await waitFor(() => {
-  expect(screen.getByText('Loaded')).toBeInTheDocument();
-});
-```
-
-## Debugging Tests
-
-### Run a single test file
-
-```bash
-npx vitest path/to/file.test.ts
-```
-
-### Run tests matching a pattern
-
-```bash
-npx vitest -t "should compile valid GLSL"
-```
-
-### Debug in VS Code
-
-Add this to `.vscode/launch.json`:
-
-```json
-{
-  "type": "node",
-  "request": "launch",
-  "name": "Debug Vitest Tests",
-  "runtimeExecutable": "npm",
-  "runtimeArgs": ["run", "test"],
-  "console": "integratedTerminal"
-}
-```
-
-## Resources
-
-- [Vitest Documentation](https://vitest.dev/)
-- [React Testing Library](https://testing-library.com/react)
-- [Supertest Documentation](https://github.com/visionmedia/supertest)
-- [Testing Best Practices](https://testingjavascript.com/)
+The project uses Vitest with v8 coverage provider for accurate code coverage metrics.
