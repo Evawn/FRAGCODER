@@ -1,7 +1,6 @@
 /** Main shader editor component with code editor, tab management, and compilation controls. */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import CodeMirrorEditor from './CodeMirrorEditor';
-import { EditorHeader } from './EditorHeader';
 import { TabBar } from './TabBar';
 import type { Tab } from '../../types';
 import { UniformsPanel } from './UniformsPanel';
@@ -44,6 +43,9 @@ interface ShaderEditorProps {
   onSignIn: () => void;
   onSignOut: () => void;
 }
+
+// Note: Props are kept for backward compatibility even though some are no longer used in this component
+// They are now used in PageHeader instead
 
 function ShaderEditor({
   tabs,
@@ -125,24 +127,6 @@ function ShaderEditor({
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header */}
-      <EditorHeader
-        localShaderTitle={localShaderTitle}
-        creatorUsername={creatorUsername}
-        isSavedShader={isSavedShader}
-        isOwner={isOwner}
-        onSave={() => onSave()}
-        onSaveAs={onSaveAs}
-        onRename={onRename}
-        onClone={onClone}
-        onDelete={onDelete}
-        isSignedIn={isSignedIn}
-        username={username}
-        userPicture={userPicture}
-        onSignIn={onSignIn}
-        onSignOut={onSignOut}
-      />
-
       {/* Tabs Bar */}
       <TabBar
         tabs={tabs}
