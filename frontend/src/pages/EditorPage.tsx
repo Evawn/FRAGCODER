@@ -16,7 +16,8 @@ import { RenameDialog } from '../components/editor/RenameDialog';
 import { DeleteShaderDialog } from '../components/editor/DeleteShaderDialog';
 import { CloneDialog } from '../components/editor/CloneDialog';
 import { calculatePanelMinSize } from '../utils/editorPageHelpers';
-import { Logo } from '../components/Logo';
+import { PageHeader } from '../components/editor/PageHeader';
+import { TitleDropdown } from '../components/editor/TitleDropdown';
 import { LoadingScreen } from '../components/LoadingScreen';
 
 function EditorPage() {
@@ -28,14 +29,13 @@ function EditorPage() {
   const [isPlaying, setIsPlaying] = useState(true);
   const [leftPanelMinSize, setLeftPanelMinSize] = useState(30);
 
+  // Responsive state - track mobile breakpoint
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
   // Resize state tracking for optimization
   const [isResizing, setIsResizing] = useState(false);
   const playStateBeforeResizeRef = useRef<boolean>(false);
   const resizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Ref to measure player panel header height
-  const playerHeaderRef = useRef<HTMLDivElement>(null);
-  const [headerHeight, setHeaderHeight] = useState(32);
 
   // Ref to store Logo rotation function
   const logoRotateRef = useRef<((targetOffset: number) => void) | null>(null);
@@ -142,19 +142,18 @@ function EditorPage() {
     }
   }, [isPlaying, editorState.compilationSuccess, rendererPlay, rendererPause]);
 
-  // Measure player header height for background layer
+
+  // Listen for responsive breakpoint changes
   useEffect(() => {
-    const measureHeight = () => {
-      if (playerHeaderRef.current) {
-        const height = playerHeaderRef.current.offsetHeight;
-        setHeaderHeight(height);
-      }
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+    const handleMediaQueryChange = (e: MediaQueryListEvent) => {
+      setIsMobile(e.matches);
     };
 
-    // Measure on mount and when window resizes
-    measureHeight();
-    window.addEventListener('resize', measureHeight);
-    return () => window.removeEventListener('resize', measureHeight);
+    mediaQuery.addEventListener('change', handleMediaQueryChange);
+    return () => {
+      mediaQuery.removeEventListener('change', handleMediaQueryChange);
+    };
   }, []);
 
   // Cleanup resize timeout on unmount
@@ -166,108 +165,133 @@ function EditorPage() {
     };
   }, []);
 
+  // Create single ShaderPlayer component (used in both layouts)
+  const shaderPlayerComponent = (
+    <ShaderPlayer
+      canvasRef={canvasRef}
+      isPlaying={isPlaying}
+      onPlayPause={() => setIsPlaying(!isPlaying)}
+      onReset={() => {
+        rendererReset();
+        setIsPlaying(false);
+      }}
+      compilationSuccess={rendererCompilationSuccess}
+      error={rendererError}
+      uTime={uTime}
+      fps={fps}
+      resolution={resolution}
+      onResolutionLockChange={handleResolutionLockChange}
+    />
+  );
+
+  // Create ShaderEditor component (used in both layouts)
+  const shaderEditorComponent = (
+    <ShaderEditor
+      // Display data
+      tabs={editorState.tabs}
+      activeTabId={editorState.activeTabId}
+
+      // Compilation state
+      compilationSuccess={editorState.compilationSuccess}
+      compilationTime={editorState.compilationTime}
+      isCompiling={editorState.isCompiling}
+      lastCompilationTime={editorState.lastCompilationTime}
+
+      // User/ownership
+      isSavedShader={!!editorState.shaderUrl}
+      isOwner={editorState.isOwner}
+
+      // Tab callbacks
+      onTabChange={editorState.onTabChange}
+      onAddTab={editorState.onAddTab}
+      onDeleteTab={editorState.onDeleteTab}
+      onCodeChange={editorState.onCodeChange}
+
+      // Shader operation callbacks
+      onCompile={editorState.onCompile}
+      onSave={editorState.onSave}
+    />
+  );
+
   return (
-    <div className="h-screen bg-background text-foreground flex flex-col relative">
+    <div className="h-screen bg-background text-foreground flex flex-col">
       {/* Professional Loading Screen */}
       <LoadingScreen isLoading={editorState.loading} />
 
-      {/* Full-width header background layer - sits above resize handle but below header content */}
-      <div
-        className="absolute top-0 left-0 right-0 bg-background-header border-b-2 border-accent-shadow"
-        style={{ zIndex: 10, height: `${headerHeight}px` }}
+      {/* Unified Page Header */}
+      <PageHeader
+        onLogoRotate={(setTargetAngle) => { logoRotateRef.current = setTargetAngle; }}
+        onHomeClick={() => navigate('/')}
+        onLogoMouseEnter={handleLogoMouseEnter}
+        onLogoMouseLeave={handleLogoMouseLeave}
+        localShaderTitle={editorState.localShaderTitle}
+        creatorUsername={editorState.shader?.creatorUsername}
+        isSavedShader={!!editorState.shaderUrl}
+        isOwner={editorState.isOwner}
+        onSave={editorState.onSave}
+        onSaveAs={editorState.onSaveAs}
+        onRename={editorState.dialogManager.openRename}
+        onClone={editorState.onClone}
+        onDelete={editorState.onDelete}
+        isSignedIn={!!user}
+        username={user?.username}
+        userPicture={user?.picture || undefined}
+        onSignIn={editorState.dialogManager.openSignIn}
+        onSignOut={signOut}
       />
 
-      <ResizablePanelGroup direction="horizontal" className="flex-1" onLayout={handlePanelResize}>
-        {/* Shader Viewer - Left Panel */}
-        <ResizablePanel defaultSize={40} minSize={leftPanelMinSize}>
-          <div className="h-full flex flex-col gap-0 p-0">
-            {/* Header */}
-            <div ref={playerHeaderRef} className="w-full flex items-center justify-between px-2 py-0.5 relative" style={{ zIndex: 20 }}>
-              <button
-                onClick={() => navigate('/')}
-                onMouseEnter={handleLogoMouseEnter}
-                onMouseLeave={handleLogoMouseLeave}
-                className="home-button text-title font-regular bg-transparent text-foreground hover:text-accent px-1 flex items-center gap-1"
-                style={{ outline: 'none', border: 'none' }}
-              >
-                <Logo
-                  width={30}
-                  height={30}
-                  className=""
-                  topLayerOpacity={0.85}
-                  duration={300}
-                  easingIntensity={2}
-                  onRotate={(setTargetAngle) => { logoRotateRef.current = setTargetAngle; }}
-                />
-                <span>FRAGCODER</span>
-              </button>
-            </div>
-            <div className="flex-1 w-full p-2">
-              <ShaderPlayer
-                canvasRef={canvasRef}
-                isPlaying={isPlaying}
-                onPlayPause={() => setIsPlaying(!isPlaying)}
-                onReset={() => {
-                  rendererReset();
-                  setIsPlaying(false);
-                }}
-                compilationSuccess={rendererCompilationSuccess}
-                error={rendererError}
-                uTime={uTime}
-                fps={fps}
-                resolution={resolution}
-                onResolutionLockChange={handleResolutionLockChange}
-              />
-            </div>
+      {/* Mobile Title Dropdown Bar (below header) */}
+      {isMobile && (
+        <div className="w-full flex items-center justify-center px-2 py-0 bg-transparent relative" style={{ zIndex: 19 }}>
+          <TitleDropdown
+            title={editorState.localShaderTitle}
+            creatorUsername={editorState.shader?.creatorUsername}
+            isSavedShader={!!editorState.shaderUrl}
+            isOwner={editorState.isOwner}
+            onSave={editorState.onSave}
+            onSaveAs={editorState.onSaveAs}
+            onRename={editorState.dialogManager.openRename}
+            onClone={editorState.onClone}
+            onDelete={editorState.onDelete}
+          />
+        </div>
+      )}
+
+      {/* Conditional Layout Rendering */}
+      {isMobile ? (
+        /* Mobile Layout - Vertical Stack */
+        <div className="flex flex-col flex-1 overflow-hidden">
+          {/* Shader Player - Fixed aspect ratio */}
+          <div className="w-full p-2 flex-shrink-0">
+            {shaderPlayerComponent}
           </div>
 
-        </ResizablePanel>
-
-        {/* Resize Handle */}
-        <ResizableHandle className="w-0.5 bg-lines" />
-
-        {/* Shader Editor - Right Panel */}
-        <ResizablePanel defaultSize={60} minSize={30}>
-          <div className="h-full flex flex-col bg-background">
-            <ShaderEditor
-              // Display data
-              tabs={editorState.tabs}
-              activeTabId={editorState.activeTabId}
-              localShaderTitle={editorState.localShaderTitle}
-              creatorUsername={editorState.shader?.creatorUsername}
-
-              // Compilation state
-              compilationSuccess={editorState.compilationSuccess}
-              compilationTime={editorState.compilationTime}
-              isCompiling={editorState.isCompiling}
-              lastCompilationTime={editorState.lastCompilationTime}
-
-              // User/ownership
-              isSavedShader={!!editorState.shaderUrl}
-              isOwner={editorState.isOwner}
-              isSignedIn={!!user}
-              username={user?.username}
-              userPicture={user?.picture || undefined}
-
-              // Tab callbacks
-              onTabChange={editorState.onTabChange}
-              onAddTab={editorState.onAddTab}
-              onDeleteTab={editorState.onDeleteTab}
-              onCodeChange={editorState.onCodeChange}
-
-              // Shader operation callbacks
-              onCompile={editorState.onCompile}
-              onSave={editorState.onSave}
-              onSaveAs={editorState.onSaveAs}
-              onRename={editorState.dialogManager.openRename}
-              onClone={editorState.onClone}
-              onDelete={editorState.onDelete}
-              onSignIn={editorState.dialogManager.openSignIn}
-              onSignOut={signOut}
-            />
+          {/* Shader Editor - Fills remaining space */}
+          <div className="flex-1 flex flex-col bg-background min-h-0 overflow-auto">
+            {shaderEditorComponent}
           </div>
-        </ResizablePanel>
-      </ResizablePanelGroup>
+        </div>
+      ) : (
+        /* Desktop Layout - Horizontal Resizable Panels */
+        <ResizablePanelGroup direction="horizontal" className="flex-1" onLayout={handlePanelResize}>
+          {/* Shader Viewer - Left Panel */}
+          <ResizablePanel defaultSize={40} minSize={leftPanelMinSize}>
+            <div className="h-full w-full p-2">
+              {shaderPlayerComponent}
+            </div>
+          </ResizablePanel>
+
+          {/* Resize Handle */}
+          <ResizableHandle className="w-0.5 bg-lines" />
+
+          {/* Shader Editor - Right Panel */}
+          <ResizablePanel defaultSize={60} minSize={30}>
+            <div className="h-full flex flex-col bg-background">
+              {shaderEditorComponent}
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      )}
 
       {/* Dialogs (moved from ShaderEditor) */}
       <SignInDialog

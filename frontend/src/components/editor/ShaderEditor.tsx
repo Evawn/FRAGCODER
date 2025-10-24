@@ -1,7 +1,6 @@
 /** Main shader editor component with code editor, tab management, and compilation controls. */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import CodeMirrorEditor from './CodeMirrorEditor';
-import { EditorHeader } from './EditorHeader';
 import { TabBar } from './TabBar';
 import type { Tab } from '../../types';
 import { UniformsPanel } from './UniformsPanel';
@@ -12,8 +11,6 @@ interface ShaderEditorProps {
   // Display data
   tabs: Tab[];
   activeTabId: string;
-  localShaderTitle: string;
-  creatorUsername?: string;
 
   // Compilation state
   compilationSuccess?: boolean;
@@ -24,9 +21,6 @@ interface ShaderEditorProps {
   // User/ownership
   isSavedShader: boolean;
   isOwner: boolean;
-  isSignedIn: boolean;
-  username?: string;
-  userPicture?: string;
 
   // Tab callbacks
   onTabChange: (tabId: string) => void;
@@ -37,40 +31,23 @@ interface ShaderEditorProps {
   // Shader operation callbacks
   onCompile: () => void;
   onSave: (titleOverride?: string) => void;
-  onSaveAs: () => void;
-  onRename: () => void;
-  onClone: () => void;
-  onDelete: () => void;
-  onSignIn: () => void;
-  onSignOut: () => void;
 }
 
 function ShaderEditor({
   tabs,
   activeTabId,
-  localShaderTitle,
-  creatorUsername,
   compilationSuccess,
   compilationTime,
   isCompiling,
   lastCompilationTime,
   isSavedShader,
   isOwner,
-  isSignedIn,
-  username,
-  userPicture,
   onTabChange,
   onAddTab,
   onDeleteTab,
   onCodeChange,
   onCompile,
   onSave,
-  onSaveAs,
-  onRename,
-  onClone,
-  onDelete,
-  onSignIn,
-  onSignOut,
 }: ShaderEditorProps) {
   const [showErrorDecorations, setShowErrorDecorations] = useState(true);
   const isSwitchingTabsRef = useRef(false);
@@ -125,24 +102,6 @@ function ShaderEditor({
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header */}
-      <EditorHeader
-        localShaderTitle={localShaderTitle}
-        creatorUsername={creatorUsername}
-        isSavedShader={isSavedShader}
-        isOwner={isOwner}
-        onSave={() => onSave()}
-        onSaveAs={onSaveAs}
-        onRename={onRename}
-        onClone={onClone}
-        onDelete={onDelete}
-        isSignedIn={isSignedIn}
-        username={username}
-        userPicture={userPicture}
-        onSignIn={onSignIn}
-        onSignOut={onSignOut}
-      />
-
       {/* Tabs Bar */}
       <TabBar
         tabs={tabs}

@@ -1,11 +1,11 @@
-# Docker Compose configuration for Shader Playground
+# Docker Compose configuration for FRAGCODER
 # Orchestrates frontend, backend, and PostgreSQL database services
 
 services:
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
-    container_name: shader-playground-db
+    container_name: fragcoder-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: shader_user
@@ -32,7 +32,7 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    container_name: shader-playground-backend
+    container_name: fragcoder-backend
     restart: unless-stopped
     environment:
       # Database connection
@@ -78,7 +78,7 @@ services:
         VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
         # Pass backend API URL to frontend build (defaults to localhost for local Docker)
         VITE_API_URL: ${VITE_API_URL:-http://localhost:3001}
-    container_name: shader-playground-frontend
+    container_name: fragcoder-frontend
     restart: unless-stopped
     ports:
       - "5173:5173"
@@ -97,12 +97,12 @@ services:
 # Persistent volumes
 volumes:
   postgres_data:
-    name: shader-playground-postgres-data
+    name: fragcoder-postgres-data
   backend_logs:
-    name: shader-playground-backend-logs
+    name: fragcoder-backend-logs
 
 # Network configuration
 networks:
   shader-network:
-    name: shader-playground-network
+    name: fragcoder-network
     driver: bridge
