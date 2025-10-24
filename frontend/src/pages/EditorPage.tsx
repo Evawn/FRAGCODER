@@ -190,8 +190,6 @@ function EditorPage() {
       // Display data
       tabs={editorState.tabs}
       activeTabId={editorState.activeTabId}
-      localShaderTitle={editorState.localShaderTitle}
-      creatorUsername={editorState.shader?.creatorUsername}
 
       // Compilation state
       compilationSuccess={editorState.compilationSuccess}
@@ -202,9 +200,6 @@ function EditorPage() {
       // User/ownership
       isSavedShader={!!editorState.shaderUrl}
       isOwner={editorState.isOwner}
-      isSignedIn={!!user}
-      username={user?.username}
-      userPicture={user?.picture || undefined}
 
       // Tab callbacks
       onTabChange={editorState.onTabChange}
@@ -215,12 +210,6 @@ function EditorPage() {
       // Shader operation callbacks
       onCompile={editorState.onCompile}
       onSave={editorState.onSave}
-      onSaveAs={editorState.onSaveAs}
-      onRename={editorState.dialogManager.openRename}
-      onClone={editorState.onClone}
-      onDelete={editorState.onDelete}
-      onSignIn={editorState.dialogManager.openSignIn}
-      onSignOut={signOut}
     />
   );
 

@@ -11,8 +11,6 @@ interface ShaderEditorProps {
   // Display data
   tabs: Tab[];
   activeTabId: string;
-  localShaderTitle: string;
-  creatorUsername?: string;
 
   // Compilation state
   compilationSuccess?: boolean;
@@ -23,9 +21,6 @@ interface ShaderEditorProps {
   // User/ownership
   isSavedShader: boolean;
   isOwner: boolean;
-  isSignedIn: boolean;
-  username?: string;
-  userPicture?: string;
 
   // Tab callbacks
   onTabChange: (tabId: string) => void;
@@ -36,43 +31,23 @@ interface ShaderEditorProps {
   // Shader operation callbacks
   onCompile: () => void;
   onSave: (titleOverride?: string) => void;
-  onSaveAs: () => void;
-  onRename: () => void;
-  onClone: () => void;
-  onDelete: () => void;
-  onSignIn: () => void;
-  onSignOut: () => void;
 }
-
-// Note: Props are kept for backward compatibility even though some are no longer used in this component
-// They are now used in PageHeader instead
 
 function ShaderEditor({
   tabs,
   activeTabId,
-  localShaderTitle,
-  creatorUsername,
   compilationSuccess,
   compilationTime,
   isCompiling,
   lastCompilationTime,
   isSavedShader,
   isOwner,
-  isSignedIn,
-  username,
-  userPicture,
   onTabChange,
   onAddTab,
   onDeleteTab,
   onCodeChange,
   onCompile,
   onSave,
-  onSaveAs,
-  onRename,
-  onClone,
-  onDelete,
-  onSignIn,
-  onSignOut,
 }: ShaderEditorProps) {
   const [showErrorDecorations, setShowErrorDecorations] = useState(true);
   const isSwitchingTabsRef = useRef(false);
