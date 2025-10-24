@@ -6,16 +6,13 @@
 [![Prisma](https://img.shields.io/badge/Prisma-6.0-2D3748.svg)](https://www.prisma.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
-### FRAGCODER lets you Code, Render, and Share GLSL fragment shaders directly from your browser! Inspired by Shadertoy.
+#### FRAGCODER lets you Code, Render, and Share GLSL fragment shaders directly from your browser. Inspired by Shadertoy.
 
-### **[LIVE DEMO → fragcoder.vercel.app](https://fragcoder.vercel.app)**
+#### **[LIVE DEMO → fragcoder.vercel.app](https://fragcoder.vercel.app)**
 
-![Shader Gallery](images/Editor%20Slide.png)
-
-## Why FRAGCODER?
 Built as a passion-portfolio project, [FRAGCODER](https://fragcoder.vercel.app) provides the same in-browser shader coding experience as [Shadertoy](https://shadertoy.com) - with a modernized, responsive UI with many add quality-of-life features, including improved compilation times, autocompletion tooltips, resizeable UI panels, and much more!
 
-![Shader Gallery](images/Gallery%20Slide.png)
+![Shader Gallery](images/Editor%20Slide.png)
 
 ## Core Features:
 - **Advanced Code Editor** with syntax highlighting, autocomplete, & in-line error display
@@ -26,6 +23,8 @@ Built as a passion-portfolio project, [FRAGCODER](https://fragcoder.vercel.app) 
 - **Public Gallery** with shader browsing and discovery
 - **Integrated Unit Testing** with Vitest, React Testing Library
 - **Production-Ready Infrastructure** using Docker and CI/CD
+
+![Shader Gallery](images/Gallery%20Slide.png)
 
 ## Technical Details:
 - **Frontend**: React 19, Vite, TailwindCSS, CodeMirror 6, WebGL, React Router, Axios
