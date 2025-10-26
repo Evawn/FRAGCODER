@@ -9,6 +9,7 @@
 #### FRAGCODER lets you Code, Render, and Share GLSL fragment shaders directly from your browser. Inspired by Shadertoy.
 
 #### **[LIVE DEMO → fragcoder.vercel.app](https://fragcoder.vercel.app)**
+#### **[Official Trailer: Youtube](https://www.youtube.com/watch?v=crJRdM2m-bQ)**
 
 Built as a passion-portfolio project, [FRAGCODER](https://fragcoder.vercel.app) provides the same in-browser shader coding experience as [Shadertoy](https://shadertoy.com) - with a modernized, responsive UI with many added quality-of-life features, including improved compilation times, autocompletion tooltips, resizeable UI panels, and many more!
 
@@ -54,50 +55,9 @@ Built as a passion-portfolio project, [FRAGCODER](https://fragcoder.vercel.app) 
 
 If you want to run FRAGCODER yourself, the easiest way is with Docker. This method requires no manual dependency installation or database setup.
 
-**Prerequisites:**
-- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/)
-- [Google OAuth Client ID](https://console.cloud.google.com/)
+**See [README-DOCKER.md](README-DOCKER.md) for detailed Docker documentation.**
 
-**Step 1**
-```bash
-# Clone the repository
-git clone https://github.com/Evawn/FRAGCODER.git
-cd fragcoder
-```
-
-**Step 2**
-```bash
-
-# Configure environment variables
-cp .env.docker.example .env
-# Edit .env and add your GOOGLE_CLIENT_ID and JWT_SECRET
-```
-
-Your `JWT_SECRET` can be anything you want.
-
-Obtain your `GOOGLE_CLIENT_ID`:
-1. Open the [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new Cloud Console Project if you need to
-3. Navigate to 'APIs & Services' > 'Credentials' > 'OAuth 2.0 Client IDs' > Your Project
-4. Add `http://localhost:5173` to authorized JavaScript origins
-5.  Add `http://localhost:5173` to authorized redirect URIs
-6. Copy the 'ClientID' from this page, paste into the env as 'GOOGLE_CLIENT_ID'
-
-**Step 3**
-```bash
-# Start the application
-docker compose up --build
-
-# Access at http://localhost:5173
-```
-
-**Cleanup**
-```bash
-docker compose down
-```
-
-## Documentation
-- **See [README-DOCKER.md](README-DOCKER.md) for detailed Docker documentation.**
+## Testing
 - **See [TESTING.md](TESTING.md) for testing instructions.**
 
 ## Roadmap
