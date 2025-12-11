@@ -22,6 +22,9 @@ interface ShaderEditorProps {
   isSavedShader: boolean;
   isOwner: boolean;
 
+  // Editor state
+  readOnly?: boolean;
+
   // Tab callbacks
   onTabChange: (tabId: string) => void;
   onAddTab: (tabName: string) => void;
@@ -42,6 +45,7 @@ function ShaderEditor({
   lastCompilationTime,
   isSavedShader,
   isOwner,
+  readOnly = false,
   onTabChange,
   onAddTab,
   onDeleteTab,
@@ -152,11 +156,17 @@ function ShaderEditor({
           value={activeTab?.code || ''}
           onChange={handleCodeChangeInternal}
           placeholder="// Write your GLSL fragment shader here..."
+          readOnly={readOnly}
           errors={activeTab?.errors || []}
           compilationSuccess={compilationSuccess}
           onCompile={handleCompileOrSave}
           onDocumentChange={handleDocumentChange}
         />
+
+        {/* AI loading overlay - grays out editor while AI is processing */}
+        {readOnly && (
+          <div className="absolute inset-0 bg-black/20 pointer-events-none z-50 rounded" />
+        )}
       </div>
 
       {/* Footer */}

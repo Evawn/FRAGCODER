@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useCallback, type FormEvent } from 'react';
-import { X, Trash2, Sparkles, Eye, EyeOff } from 'lucide-react';
+import { useState, useCallback, useRef, type FormEvent } from 'react';
+import { X, Trash2, Sparkles, Eye, EyeOff, Square } from 'lucide-react';
 import {
   PromptInput,
   PromptInputTextarea,
@@ -34,6 +34,7 @@ interface AIPanelProps {
   setCodeAndCompile: (newCode: string, tabId: string) => void;
   tabs: TabData[];
   compilationErrors?: CompilationError[];
+  onLoadingChange?: (isLoading: boolean) => void;
 }
 
 export function AIPanel({
@@ -43,6 +44,7 @@ export function AIPanel({
   setCodeAndCompile,
   tabs,
   compilationErrors = [],
+  onLoadingChange,
 }: AIPanelProps) {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -51,6 +53,20 @@ export function AIPanel({
 
   const chatState = useChatState();
   const { captureThumbnail } = useThumbnailCapture();
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Helper to update loading state and notify parent
+  const updateLoadingState = useCallback((loading: boolean) => {
+    setIsLoading(loading);
+    onLoadingChange?.(loading);
+  }, [onLoadingChange]);
+
+  // Cancel ongoing AI request
+  const handleCancel = useCallback(() => {
+    abortControllerRef.current?.abort();
+    updateLoadingState(false);
+    chatState.resetTask();
+  }, [updateLoadingState, chatState]);
 
   /**
    * Extract up to 5 recent prompt/explanation pairs from chat history
@@ -117,6 +133,9 @@ export function AIPanel({
   ) => {
     chatState.startTask();
 
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
+
     // Get chat history before the current message for context
     const history = extractChatHistory();
     // Get relevant compilation errors
@@ -128,7 +147,8 @@ export function AIPanel({
         selectedModel,
         codeContext,
         history,
-        errors.length > 0 ? errors : undefined
+        errors.length > 0 ? errors : undefined,
+        abortControllerRef.current.signal
       );
 
       // Only update editor and capture thumbnail if code was returned
@@ -156,6 +176,10 @@ export function AIPanel({
       // Complete the task
       chatState.completeTask();
     } catch (error) {
+      // Don't show error message if request was cancelled
+      if (error instanceof Error && error.name === 'CanceledError') {
+        return;
+      }
       chatState.errorTask();
       chatState.addAssistantMessage(
         userMessageId,
@@ -186,11 +210,11 @@ export function AIPanel({
     const userMsgId = chatState.addUserMessage(promptText, codeContext, parentId, userThumbnail ?? undefined);
 
     setInputValue('');
-    setIsLoading(true);
+    updateLoadingState(true);
 
     await callAPI(promptText, userMsgId, codeContext);
 
-    setIsLoading(false);
+    updateLoadingState(false);
   };
 
   /**
@@ -204,10 +228,10 @@ export function AIPanel({
     const retryInfo = chatState.prepareRetry(userMessageId);
     if (!retryInfo) return;
 
-    setIsLoading(true);
+    updateLoadingState(true);
     await callAPI(retryInfo.content, userMessageId, retryInfo.codeContext);
-    setIsLoading(false);
-  }, [isLoading, chatState, callAPI]);
+    updateLoadingState(false);
+  }, [isLoading, chatState, callAPI, updateLoadingState]);
 
   /**
    * Handle editing a user message and regenerating
@@ -237,10 +261,10 @@ export function AIPanel({
     // Switch to the new branch IMMEDIATELY so thinking appears under the new message
     chatState.setActiveBranch(parentKey, newBranchIndex);
 
-    setIsLoading(true);
+    updateLoadingState(true);
     await callAPI(newContent, newUserMsgId, codeContext);
-    setIsLoading(false);
-  }, [isLoading, chatState, callAPI]);
+    updateLoadingState(false);
+  }, [isLoading, chatState, callAPI, updateLoadingState]);
 
   const panelContent = (
     <div className="flex flex-col h-full relative overflow-hidden">
@@ -351,7 +375,18 @@ export function AIPanel({
                 </PromptInputModelSelectContent>
               </PromptInputModelSelect>
             </div>
-            <PromptInputSubmit disabled={!inputValue.trim() || isLoading} />
+            {isLoading ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleCancel}
+                className="h-6 w-6 rounded-sm text-accent hover:text-accent-highlighted hover:bg-accent/10"
+              >
+                <Square className="h-3 w-3 fill-current" />
+              </Button>
+            ) : (
+              <PromptInputSubmit disabled={!inputValue.trim()} />
+            )}
           </PromptInputToolbar>
         </PromptInput>
       </div>

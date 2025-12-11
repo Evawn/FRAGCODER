@@ -30,6 +30,7 @@ function EditorPage() {
   const [isPlaying, setIsPlaying] = useState(true);
   const [leftPanelMinSize, setLeftPanelMinSize] = useState(30);
   const [isAIPanelOpen, setIsAIPanelOpen] = useState(false);
+  const [isAILoading, setIsAILoading] = useState(false);
 
   // Responsive state - track mobile breakpoint
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -203,6 +204,9 @@ function EditorPage() {
       isSavedShader={!!editorState.shaderUrl}
       isOwner={editorState.isOwner}
 
+      // Editor state - lock during AI processing
+      readOnly={isAILoading}
+
       // Tab callbacks
       onTabChange={editorState.onTabChange}
       onAddTab={editorState.onAddTab}
@@ -288,6 +292,7 @@ function EditorPage() {
             setCodeAndCompile={editorState.setCodeAndCompile}
             tabs={editorState.tabs}
             compilationErrors={editorState.compilationErrors}
+            onLoadingChange={setIsAILoading}
           />
 
           {/* Shader Editor - Fixed height when AI panel is open */}
@@ -324,6 +329,7 @@ function EditorPage() {
             setCodeAndCompile={editorState.setCodeAndCompile}
             tabs={editorState.tabs}
             compilationErrors={editorState.compilationErrors}
+            onLoadingChange={setIsAILoading}
           />
         </div>
       )}

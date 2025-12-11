@@ -13,6 +13,7 @@ import type { AIPromptRequest, AIPromptResponse, ChatHistoryEntry, CompilationEr
  * @param code - Optional current editor code for context
  * @param history - Optional chat history for conversational context (up to 5 entries)
  * @param errors - Optional compilation errors for debugging context
+ * @param signal - Optional abort signal for request cancellation
  * @returns AI response with message and usage metrics
  */
 export async function sendPrompt(
@@ -20,9 +21,10 @@ export async function sendPrompt(
   model?: string,
   code?: string,
   history?: ChatHistoryEntry[],
-  errors?: CompilationError[]
+  errors?: CompilationError[],
+  signal?: AbortSignal
 ): Promise<AIPromptResponse> {
   const request: AIPromptRequest = { prompt, model, code, history, errors };
-  const response = await apiClient.post<AIPromptResponse>('/api/ai/prompt', request);
+  const response = await apiClient.post<AIPromptResponse>('/api/ai/prompt', request, { signal });
   return response.data;
 }

@@ -226,17 +226,20 @@ export function PageHeader({
                 variant="ghost"
                 size="sm"
                 onClick={onToggleAIPanel}
+                disabled={!isSignedIn}
                 className={`h-7 px-2 py-1 text-sm font-light focus:outline-none rounded-md flex items-center gap-1 border ${
                   isAIPanelOpen
                     ? 'bg-accent/80 border-accent/80 text-foreground hover:bg-accent'
                     : 'bg-transparent border-accent-shadow text-accent hover:text-accent hover:bg-accent-shadow/80 hover:border-accent-shadow'
-                }`}
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                <span className="hidden sm:inline">AI</span>
+                <span className="hidden sm:inline select-none">AI</span>
                 <Sparkles size={14} strokeWidth={2} />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">Toggle AI</TooltipContent>
+            <TooltipContent side="bottom">
+              {isSignedIn ? 'Toggle AI' : 'Sign in to use AI'}
+            </TooltipContent>
           </Tooltip>
 
           {/* Account Button */}
