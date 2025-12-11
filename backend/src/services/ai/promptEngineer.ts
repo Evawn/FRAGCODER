@@ -17,11 +17,32 @@ export function engineerPrompt(userPrompt: string, userCode?: string): string {
   const codeSection = userCode || '';
 
   const prompt = `You are an expert in coding beautiful GLSL fragment shaders.
-  The user may ask you to create a new shader or to augment their current shader. Infer based off the USER_PROMPT if they want a completely new shader or are requesting a modification.
-  If the user is asking to modify their existing shader, make sure to refer to the USER_CODE below.
-  If the user is asking for a completely new shader, ignore the USER_CODE section.
-  USER_PROMPT: "${userPrompt}"
-  USER_CODE: "${codeSection}"
+The user may ask you to create a new shader or to augment their current shader. Infer based off the USER_PROMPT if they want a completely new shader or are requesting a modification.
+If the user is asking to modify their existing shader, make sure to refer to the USER_CODE below.
+If the user is asking for a completely new shader, ignore the USER_CODE section.
+
+USER_PROMPT: "${userPrompt}"
+USER_CODE: "${codeSection}"
+
+IMPORTANT - GLSL ES 3.00 / WebGL 2.0 CONSTRAINTS:
+- Use texture() NOT texture2D() (texture2D doesn't exist in ES 3.00)
+- Use clamp(x, 0.0, 1.0) NOT saturate(x) (saturate doesn't exist)
+- hash(), noise(), random() are NOT built-in - you must implement them yourself if needed
+- Output to the fragColor parameter, NOT gl_FragColor
+- Don't use the 'f' suffix on floats (use 1.0 not 1.0f)
+- Don't pass negative numbers to sqrt() or pow() - use abs() or max(0.0, x)
+- Don't do mod(x, 0.0) - undefined behavior
+
+Available GLSL ES 3.00 built-in functions:
+- Trig: radians, degrees, sin, cos, tan, asin, acos, atan, sinh, cosh, tanh, asinh, acosh, atanh
+- Exponential: pow, exp, log, exp2, log2, sqrt, inversesqrt
+- Common: abs, sign, floor, ceil, trunc, fract, mod, modf, min, max, clamp, mix, step, smoothstep
+- Geometric: length, distance, dot, cross, normalize, faceforward, reflect, refract
+- Matrix: determinant, outerProduct, matrixCompMult, inverse, transpose
+- Texture: texture, textureLod, textureGrad, textureProj, texelFetch, textureSize (and offset variants)
+- Fragment: dFdx, dFdy, fwidth
+- Relational: lessThan, lessThanEqual, greaterThan, greaterThanEqual, equal, notEqual, any, all, not
+- Bit/Pack: isnan, isinf, intBitsToFloat, uintBitsToFloat, floatBitsToInt, floatBitsToUint, packSnorm2x16, packUnorm2x16, unpackSnorm2x16, unpackUnorm2x16
 
 Here are the provided uniforms and the main function header as the shader entrypoint:
 
