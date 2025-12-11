@@ -48,11 +48,6 @@ ${errorLines.join('\n')}
 function formatExamples(): string {
   // Placeholder - can be expanded with curated examples
   return `EXAMPLE_PATTERNS:
-- For raymarching: use signed distance functions (SDFs), ray origin at camera, march along ray direction
-- For noise effects: implement hash functions, use fbm for organic patterns
-- For color: use HSV/HSL conversion, gradient mapping, palette functions
-- For animation: use sin/cos with iTime, create smooth loops with mod(iTime, period)
-
 `;
 }
 
@@ -64,13 +59,13 @@ function getResponseFormat(intent: Intent): string {
   if (intent === 'explain') {
     return `Respond with ONLY a valid JSON object in this exact format (no markdown, no code blocks, just raw JSON):
 {
-  "explanation": "Your detailed explanation of what the code does and how it works"
+  "explanation": "Your helpful answer/explanation to the user's question (max 4 sentences)"
 }`;
   }
 
   return `Respond with ONLY a valid JSON object in this exact format (no markdown, no code blocks, just raw JSON):
 {
-  "code": "void mainImage(out vec4 fragColor, in vec2 fragCoord) { ... your complete function code ... }",
+  "code": "your complete code",
   "explanation": "Brief 1-2 sentence explanation of what the shader does and how it works"
 }`;
 }
@@ -87,7 +82,7 @@ function getIntentInstruction(intent: Intent): string {
     case 'debug':
       return 'Fix the compilation errors in the user\'s shader. Analyze the errors and correct the issues while maintaining the original intent.';
     case 'explain':
-      return 'The user wants to understand the code. Provide a clear, detailed explanation of what the code does and how it works. Do NOT return any code - only provide a natural language explanation.';
+      return 'The user wants to understand the code. Provide a brief, concise explanation (max 4 sentences). Do NOT return any code - only provide a natural language explanation.';
     default:
       return 'Modify the user\'s existing shader code based on their request.';
   }
