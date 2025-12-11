@@ -194,7 +194,7 @@ export interface AIPromptRequest {
  * Response for POST /api/ai/prompt
  */
 export interface AIPromptResponse {
-  code: string;
+  code?: string;  // Optional - not returned for 'explain' intent
   explanation: string;
   usage?: AIUsageMetrics;
 }

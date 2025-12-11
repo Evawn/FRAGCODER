@@ -8,13 +8,14 @@ import type { AIPromptResponse, ChatHistoryEntry, CompilationError } from '@frag
 import { ValidationError } from '../utils/errors';
 import { sanitizePrompt } from './ai/sanitizer';
 import { engineerPrompt } from './ai/promptEngineer';
+import { classifyIntent } from './ai/intentClassifier';
 import { callLLM } from './ai/llmClient';
 import { parseResponse } from './ai/responseParser';
 import { logAIRequest } from './ai/metricsLogger';
 
 /**
  * Process a user prompt through the AI pipeline
- * Pipeline: sanitize → engineer → call LLM → parse → log
+ * Pipeline: sanitize → classify intent → engineer → call LLM → parse → log
  *
  * @param prompt - Raw user prompt
  * @param userId - Authenticated user's ID
@@ -42,7 +43,8 @@ export async function processPrompt(
   try {
     // Pipeline execution
     const sanitized = sanitizePrompt(prompt);
-    const engineered = engineerPrompt(sanitized, code, history, errors);
+    const intent = await classifyIntent(sanitized);
+    const engineered = engineerPrompt(sanitized, code, history, errors, intent);
     const llmResult = await callLLM(engineered, model);
     const parsed = parseResponse(llmResult.content);
 

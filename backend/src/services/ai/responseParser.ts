@@ -6,7 +6,7 @@
  */
 
 export interface ParsedAIResponse {
-  code: string;
+  code?: string;  // Optional - not returned for 'explain' intent
   explanation: string;
 }
 
@@ -42,28 +42,34 @@ export function parseResponse(llmResponse: string): ParsedAIResponse {
     }
   }
 
-  // Validate required fields
+  // Validate required fields (only explanation is required)
   if (
     typeof parsed !== 'object' ||
     parsed === null ||
-    !('code' in parsed) ||
     !('explanation' in parsed)
   ) {
     throw new Error(
-      'AI response missing required fields (code, explanation). Please try again.'
+      'AI response missing required field (explanation). Please try again.'
     );
   }
 
-  const response = parsed as { code: unknown; explanation: unknown };
+  const response = parsed as { code?: unknown; explanation: unknown };
 
-  if (typeof response.code !== 'string' || typeof response.explanation !== 'string') {
+  if (typeof response.explanation !== 'string') {
     throw new Error(
-      'AI response fields must be strings. Please try again.'
+      'AI response explanation must be a string. Please try again.'
+    );
+  }
+
+  // Code is optional, but if present must be a string
+  if (response.code !== undefined && typeof response.code !== 'string') {
+    throw new Error(
+      'AI response code must be a string. Please try again.'
     );
   }
 
   return {
-    code: response.code,
+    code: response.code as string | undefined,
     explanation: response.explanation,
   };
 }

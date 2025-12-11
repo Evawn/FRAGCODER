@@ -131,14 +131,18 @@ export function AIPanel({
         errors.length > 0 ? errors : undefined
       );
 
-      // Transition to compiling
-      chatState.setCompiling();
+      // Only update editor and capture thumbnail if code was returned
+      let thumbnail: string | undefined;
+      if (response.code) {
+        // Transition to compiling
+        chatState.setCompiling();
 
-      // Update the editor with generated code
-      setCodeAndCompile(response.code, '1');
+        // Update the editor with generated code
+        setCodeAndCompile(response.code, '1');
 
-      // Capture thumbnail of the generated shader
-      const thumbnail = await captureThumbnail(response.code);
+        // Capture thumbnail of the generated shader
+        thumbnail = await captureThumbnail(response.code) ?? undefined;
+      }
 
       // Add assistant response with code artifact and thumbnail
       chatState.addAssistantMessage(
@@ -146,7 +150,7 @@ export function AIPanel({
         response.explanation,
         response.code,
         false,
-        thumbnail ?? undefined
+        thumbnail
       );
 
       // Complete the task
