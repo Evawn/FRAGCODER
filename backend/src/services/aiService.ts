@@ -4,7 +4,7 @@
  * Coordinates sanitization, prompt engineering, LLM calls, and response parsing
  */
 
-import type { AIPromptResponse, ChatHistoryEntry } from '@fragcoder/shared';
+import type { AIPromptResponse, ChatHistoryEntry, CompilationError } from '@fragcoder/shared';
 import { ValidationError } from '../utils/errors';
 import { sanitizePrompt } from './ai/sanitizer';
 import { engineerPrompt } from './ai/promptEngineer';
@@ -21,6 +21,7 @@ import { logAIRequest } from './ai/metricsLogger';
  * @param model - Optional model ID to use
  * @param code - Optional current editor code for context
  * @param history - Optional chat history for conversational context
+ * @param errors - Optional compilation errors for debugging context
  * @returns AI response with message and optional usage metrics
  */
 export async function processPrompt(
@@ -28,7 +29,8 @@ export async function processPrompt(
   userId: string,
   model?: string,
   code?: string,
-  history?: ChatHistoryEntry[]
+  history?: ChatHistoryEntry[],
+  errors?: CompilationError[]
 ): Promise<AIPromptResponse> {
   const startTime = Date.now();
 
@@ -40,7 +42,7 @@ export async function processPrompt(
   try {
     // Pipeline execution
     const sanitized = sanitizePrompt(prompt);
-    const engineered = engineerPrompt(sanitized, code, history);
+    const engineered = engineerPrompt(sanitized, code, history, errors);
     const llmResult = await callLLM(engineered, model);
     const parsed = parseResponse(llmResult.content);
 

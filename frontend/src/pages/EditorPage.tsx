@@ -287,6 +287,7 @@ function EditorPage() {
             onClose={() => setIsAIPanelOpen(false)}
             setCodeAndCompile={editorState.setCodeAndCompile}
             tabs={editorState.tabs}
+            compilationErrors={editorState.compilationErrors}
           />
 
           {/* Shader Editor - Fixed height when AI panel is open */}
@@ -322,6 +323,7 @@ function EditorPage() {
             onClose={() => setIsAIPanelOpen(false)}
             setCodeAndCompile={editorState.setCodeAndCompile}
             tabs={editorState.tabs}
+            compilationErrors={editorState.compilationErrors}
           />
         </div>
       )}

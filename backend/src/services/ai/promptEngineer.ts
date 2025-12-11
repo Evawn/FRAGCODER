@@ -6,7 +6,7 @@
  * Future: System prompts, context injection, shader-specific instructions
  */
 
-import type { ChatHistoryEntry } from '@fragcoder/shared';
+import type { ChatHistoryEntry, CompilationError } from '@fragcoder/shared';
 
 /**
  * Format chat history as a concise log
@@ -25,28 +25,50 @@ ${formatted}
 }
 
 /**
+ * Format compilation errors as a concise diagnostic section
+ */
+function formatCompilationErrors(errors?: CompilationError[]): string {
+  if (!errors || errors.length === 0) return '';
+
+  const errorLines = errors.map(err => {
+    const prefix = err.type === 'warning' ? 'WARN' : 'ERR';
+    const lineInfo = err.line > 0 ? `L${err.line}` : 'L?';
+    return `  ${prefix} ${lineInfo}: ${err.message}`;
+  });
+
+  return `COMPILATION_ERRORS:
+${errorLines.join('\n')}
+
+`;
+}
+
+/**
  * Engineer/transform user prompt for optimal LLM response
  * @param userPrompt - Sanitized user input
  * @param userCode - Optional current editor code for context
  * @param history - Optional chat history for conversational context
+ * @param errors - Optional compilation errors for debugging context
  * @returns Engineered prompt ready for LLM
  */
 export function engineerPrompt(
   userPrompt: string,
   userCode?: string,
-  history?: ChatHistoryEntry[]
+  history?: ChatHistoryEntry[],
+  errors?: CompilationError[]
 ): string {
   // Include user code if provided, otherwise empty string
   const codeSection = userCode || '';
   // Format chat history if provided
   const historySection = formatChatHistory(history);
+  // Format compilation errors if provided
+  const errorsSection = formatCompilationErrors(errors);
 
   const prompt = `You are an expert in coding beautiful GLSL fragment shaders.
 The user may ask you to create a new shader or to augment their current shader. Infer based off the USER_PROMPT if they want a completely new shader or are requesting a modification.
 If the user is asking to modify their existing shader, make sure to refer to the USER_CODE below.
 If the user is asking for a completely new shader, ignore the USER_CODE section.
-${historySection ? `\nUse the conversation history below to understand prior context and maintain continuity.\n` : ''}
-${historySection}USER_PROMPT: "${userPrompt}"
+${historySection ? `\nUse the conversation history below to understand prior context and maintain continuity.\n` : ''}${errorsSection ? `The user's current shader has compilation errors. If relevant to their request, help fix these issues.\n` : ''}
+${historySection}${errorsSection}USER_PROMPT: "${userPrompt}"
 USER_CODE: "${codeSection}"
 
 IMPORTANT - GLSL ES 3.00 / WebGL 2.0 CONSTRAINTS:

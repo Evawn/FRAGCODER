@@ -20,7 +20,7 @@ import { getErrorMessage } from '../../api/client';
 import { Chat } from './Chat';
 import { useChatState } from './hooks/useChatState';
 import { useThumbnailCapture } from './hooks/useThumbnailCapture';
-import type { TabData, ChatHistoryEntry } from '@fragcoder/shared';
+import type { TabData, ChatHistoryEntry, CompilationError } from '@fragcoder/shared';
 
 const AVAILABLE_MODELS = [
   { id: 'google/gemini-2.0-flash-001', name: 'Gemini 2.0 Flash' },
@@ -33,6 +33,7 @@ interface AIPanelProps {
   onClose: () => void;
   setCodeAndCompile: (newCode: string, tabId: string) => void;
   tabs: TabData[];
+  compilationErrors?: CompilationError[];
 }
 
 export function AIPanel({
@@ -41,6 +42,7 @@ export function AIPanel({
   onClose,
   setCodeAndCompile,
   tabs,
+  compilationErrors = [],
 }: AIPanelProps) {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -88,6 +90,17 @@ export function AIPanel({
   }, [tabs, includeCode]);
 
   /**
+   * Get compilation errors relevant to the Image tab
+   * Filters errors that either have no passName or passName === 'Image'
+   */
+  const getImageTabErrors = useCallback((): CompilationError[] => {
+    if (!includeCode) return [];
+    return compilationErrors.filter(
+      err => !err.passName || err.passName === 'Image'
+    );
+  }, [compilationErrors, includeCode]);
+
+  /**
    * Handle applying code from an artifact to the editor
    */
   const handleApplyCode = useCallback((code: string) => {
@@ -106,9 +119,17 @@ export function AIPanel({
 
     // Get chat history before the current message for context
     const history = extractChatHistory();
+    // Get relevant compilation errors
+    const errors = getImageTabErrors();
 
     try {
-      const response = await sendPrompt(promptText, selectedModel, codeContext, history);
+      const response = await sendPrompt(
+        promptText,
+        selectedModel,
+        codeContext,
+        history,
+        errors.length > 0 ? errors : undefined
+      );
 
       // Transition to compiling
       chatState.setCompiling();
@@ -139,7 +160,7 @@ export function AIPanel({
         true
       );
     }
-  }, [selectedModel, setCodeAndCompile, chatState, captureThumbnail, extractChatHistory]);
+  }, [selectedModel, setCodeAndCompile, chatState, captureThumbnail, extractChatHistory, getImageTabErrors]);
 
   /**
    * Handle new prompt submission
