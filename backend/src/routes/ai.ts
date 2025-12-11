@@ -25,8 +25,8 @@ router.post(
   aiRateLimiter,
   asyncHandler(authenticateToken),
   asyncHandler(async (req, res) => {
-    const { prompt, model, code } = req.body as AIPromptRequest;
-    const result = await aiService.processPrompt(prompt, req.user!.id, model, code);
+    const { prompt, model, code, history } = req.body as AIPromptRequest;
+    const result = await aiService.processPrompt(prompt, req.user!.id, model, code, history);
     res.json(result);
   })
 );

@@ -6,22 +6,47 @@
  * Future: System prompts, context injection, shader-specific instructions
  */
 
+import type { ChatHistoryEntry } from '@fragcoder/shared';
+
+/**
+ * Format chat history as a concise log
+ */
+function formatChatHistory(history?: ChatHistoryEntry[]): string {
+  if (!history || history.length === 0) return '';
+
+  const formatted = history
+    .map(entry => `USER: ${entry.userPrompt}\nRESPONSE: ${entry.aiExplanation}`)
+    .join('\n\n');
+
+  return `CONVERSATION_HISTORY:
+${formatted}
+
+`;
+}
+
 /**
  * Engineer/transform user prompt for optimal LLM response
  * @param userPrompt - Sanitized user input
  * @param userCode - Optional current editor code for context
+ * @param history - Optional chat history for conversational context
  * @returns Engineered prompt ready for LLM
  */
-export function engineerPrompt(userPrompt: string, userCode?: string): string {
+export function engineerPrompt(
+  userPrompt: string,
+  userCode?: string,
+  history?: ChatHistoryEntry[]
+): string {
   // Include user code if provided, otherwise empty string
   const codeSection = userCode || '';
+  // Format chat history if provided
+  const historySection = formatChatHistory(history);
 
   const prompt = `You are an expert in coding beautiful GLSL fragment shaders.
 The user may ask you to create a new shader or to augment their current shader. Infer based off the USER_PROMPT if they want a completely new shader or are requesting a modification.
 If the user is asking to modify their existing shader, make sure to refer to the USER_CODE below.
 If the user is asking for a completely new shader, ignore the USER_CODE section.
-
-USER_PROMPT: "${userPrompt}"
+${historySection ? `\nUse the conversation history below to understand prior context and maintain continuity.\n` : ''}
+${historySection}USER_PROMPT: "${userPrompt}"
 USER_CODE: "${codeSection}"
 
 IMPORTANT - GLSL ES 3.00 / WebGL 2.0 CONSTRAINTS:

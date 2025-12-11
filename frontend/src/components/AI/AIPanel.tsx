@@ -20,7 +20,7 @@ import { getErrorMessage } from '../../api/client';
 import { Chat } from './Chat';
 import { useChatState } from './hooks/useChatState';
 import { useThumbnailCapture } from './hooks/useThumbnailCapture';
-import type { TabData } from '@fragcoder/shared';
+import type { TabData, ChatHistoryEntry } from '@fragcoder/shared';
 
 const AVAILABLE_MODELS = [
   { id: 'google/gemini-2.0-flash-001', name: 'Gemini 2.0 Flash' },
@@ -51,6 +51,34 @@ export function AIPanel({
   const { captureThumbnail } = useThumbnailCapture();
 
   /**
+   * Extract up to 5 recent prompt/explanation pairs from chat history
+   * Only includes successful (non-error) assistant responses
+   */
+  const extractChatHistory = useCallback((): ChatHistoryEntry[] => {
+    const history: ChatHistoryEntry[] = [];
+    const messages = chatState.displayMessages;
+
+    // Iterate through message pairs (user + assistant)
+    for (let i = 0; i < messages.length - 1 && history.length < 5; i += 2) {
+      const userMsg = messages[i];
+      const assistantMsg = messages[i + 1];
+
+      if (
+        userMsg?.from === 'user' &&
+        assistantMsg?.from === 'assistant' &&
+        !assistantMsg.isError
+      ) {
+        history.push({
+          userPrompt: userMsg.content,
+          aiExplanation: assistantMsg.content,
+        });
+      }
+    }
+
+    return history;
+  }, [chatState.displayMessages]);
+
+  /**
    * Get the current code from the Image tab
    */
   const getCurrentCode = useCallback((): string | undefined => {
@@ -76,8 +104,11 @@ export function AIPanel({
   ) => {
     chatState.startTask();
 
+    // Get chat history before the current message for context
+    const history = extractChatHistory();
+
     try {
-      const response = await sendPrompt(promptText, selectedModel, codeContext);
+      const response = await sendPrompt(promptText, selectedModel, codeContext, history);
 
       // Transition to compiling
       chatState.setCompiling();
@@ -108,7 +139,7 @@ export function AIPanel({
         true
       );
     }
-  }, [selectedModel, setCodeAndCompile, chatState, captureThumbnail]);
+  }, [selectedModel, setCodeAndCompile, chatState, captureThumbnail, extractChatHistory]);
 
   /**
    * Handle new prompt submission

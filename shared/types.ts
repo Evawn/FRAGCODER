@@ -172,12 +172,21 @@ export interface ApiError {
 // ============================================================================
 
 /**
+ * A single entry in the chat history for AI context
+ */
+export interface ChatHistoryEntry {
+  userPrompt: string;
+  aiExplanation: string;
+}
+
+/**
  * Request body for POST /api/ai/prompt
  */
 export interface AIPromptRequest {
   prompt: string;
   model?: string;
   code?: string;  // Optional current editor code for context
+  history?: ChatHistoryEntry[];  // Up to 5 recent prompt/response pairs
 }
 
 /**
