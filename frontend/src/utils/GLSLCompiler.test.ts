@@ -261,18 +261,18 @@ ERROR: 0:20: 'userVar' : undeclared identifier`;
   });
 
   describe('formatErrorMessage', () => {
-    it('should format undeclared identifier errors', () => {
+    it('should format undeclared identifier errors with identifier name', () => {
       const message = "'myVariable' : undeclared identifier";
       const formatted = formatErrorMessage(message);
 
-      expect(formatted).toBe('Undeclared identifier: myVariable');
+      expect(formatted).toBe("Undeclared identifier 'myVariable'");
     });
 
     it('should format type mismatch errors', () => {
       const message = "cannot convert from vec2 to float";
       const formatted = formatErrorMessage(message);
 
-      expect(formatted).toBe('Type mismatch: cannot convert vec2 to float');
+      expect(formatted).toBe('Type mismatch: vec2 to float');
     });
 
     it('should format incompatible types errors', () => {
@@ -282,53 +282,88 @@ ERROR: 0:20: 'userVar' : undeclared identifier`;
       expect(formatted).toBe('Incompatible types in assignment');
     });
 
-    it('should format no matching function errors', () => {
+    it('should format no matching function errors (standalone)', () => {
       const message = "no matching overloaded function found";
       const formatted = formatErrorMessage(message);
 
-      expect(formatted).toBe('No matching function signature found');
+      expect(formatted).toBe('No matching function signature');
     });
 
-    it('should format function-specific overload errors', () => {
+    it('should format function-specific overload errors with function name', () => {
       const message = "'texture' : no matching overloaded function";
       const formatted = formatErrorMessage(message);
 
-      expect(formatted).toBe('Function texture: no matching signature found');
+      expect(formatted).toBe("No matching signature for 'texture'");
     });
 
-    it('should format l-value required errors', () => {
+    it('should format function overload errors with additional context', () => {
+      const message = "'texture' : no matching overloaded function found (using implicit conversion)";
+      const formatted = formatErrorMessage(message);
+
+      expect(formatted).toBe("No matching signature for 'texture': using implicit conversion");
+    });
+
+    it('should format l-value required errors (standalone)', () => {
       const message = "l-value required";
       const formatted = formatErrorMessage(message);
 
-      expect(formatted).toBe('Invalid assignment target (requires modifiable variable)');
+      expect(formatted).toBe('Cannot assign (l-value required)');
     });
 
-    it('should format cannot assign to errors', () => {
+    it('should format l-value required errors with identifier', () => {
+      const message = "'gl_FragCoord' : l-value required";
+      const formatted = formatErrorMessage(message);
+
+      expect(formatted).toBe("Cannot assign to 'gl_FragCoord' (not modifiable)");
+    });
+
+    it('should format cannot assign to errors with identifier', () => {
       const message = "'gl_FragCoord' : cannot assign to";
       const formatted = formatErrorMessage(message);
 
-      expect(formatted).toBe('Cannot assign to gl_FragCoord (read-only or constant)');
+      expect(formatted).toBe("Cannot assign to 'gl_FragCoord'");
     });
 
-    it('should format vector field selection errors', () => {
+    it('should format vector field selection errors (standalone)', () => {
       const message = "vector field selection out of range";
       const formatted = formatErrorMessage(message);
 
-      expect(formatted).toBe('Invalid vector component (use .xyzw or .rgba)');
+      expect(formatted).toBe('Invalid swizzle component');
     });
 
-    it('should format index out of range errors', () => {
+    it('should format vector field selection errors with component', () => {
+      const message = "vector field selection out of range 'w'";
+      const formatted = formatErrorMessage(message);
+
+      expect(formatted).toBe("Invalid swizzle component 'w'");
+    });
+
+    it('should format index out of range errors (standalone)', () => {
       const message = "index out of range";
       const formatted = formatErrorMessage(message);
 
       expect(formatted).toBe('Array index out of bounds');
     });
 
+    it('should format index out of range errors with index number', () => {
+      const message = "index 5 out of range";
+      const formatted = formatErrorMessage(message);
+
+      expect(formatted).toBe('Index 5 out of bounds');
+    });
+
     it('should format syntax errors with unexpected token', () => {
       const message = "syntax error, unexpected IDENTIFIER";
       const formatted = formatErrorMessage(message);
 
-      expect(formatted).toBe('Syntax error: unexpected IDENTIFIER');
+      expect(formatted).toBe("Unexpected 'IDENTIFIER'");
+    });
+
+    it('should format syntax errors with unexpected and expected tokens', () => {
+      const message = "syntax error, unexpected IDENTIFIER, expecting ';'";
+      const formatted = formatErrorMessage(message);
+
+      expect(formatted).toBe("Unexpected 'IDENTIFIER', expected ';'");
     });
 
     it('should format generic syntax errors', () => {
@@ -338,40 +373,53 @@ ERROR: 0:20: 'userVar' : undeclared identifier`;
       expect(formatted).toBe('Syntax error');
     });
 
-    it('should format missing semicolon errors', () => {
-      const message = "expected ';' at end of statement";
+    it('should format syntax errors with token prefix', () => {
+      const message = '"for" : syntax error';
       const formatted = formatErrorMessage(message);
 
-      expect(formatted).toBe('Missing semicolon or statement terminator');
+      expect(formatted).toBe("Syntax error at 'for'");
     });
 
-    it('should format redefinition errors', () => {
+    it('should format expected token before errors', () => {
+      const message = "expected ';' before 'void'";
+      const formatted = formatErrorMessage(message);
+
+      expect(formatted).toBe("Expected ';' before 'void'");
+    });
+
+    it('should format expected punctuation errors', () => {
+      const message = "expected ';'";
+      const formatted = formatErrorMessage(message);
+
+      expect(formatted).toBe("Expected ';'");
+    });
+
+    it('should format redefinition errors with identifier', () => {
       const message = "'myFunction' : redefinition";
       const formatted = formatErrorMessage(message);
 
-      expect(formatted).toBe('Redefinition of myFunction');
+      expect(formatted).toBe("'myFunction' already defined");
     });
 
     it('should format type qualifier errors', () => {
       const message = "illegal use of type qualifier";
       const formatted = formatErrorMessage(message);
 
-      expect(formatted).toBe('Illegal type qualifier usage');
+      expect(formatted).toBe('Illegal type qualifier');
     });
 
-    it('should remove redundant quotes', () => {
-      const message = "'variable' : some error";
+    it('should format too few/many arguments errors', () => {
+      const message = "'myFunc' : too few arguments";
       const formatted = formatErrorMessage(message);
 
-      expect(formatted).not.toContain("'");
+      expect(formatted).toBe("'myFunc': too few arguments");
     });
 
-    it('should normalize whitespace and colons', () => {
+    it('should normalize whitespace', () => {
       const message = "error  :   message   with    spaces";
       const formatted = formatErrorMessage(message);
 
       expect(formatted).not.toMatch(/\s{2,}/); // No double spaces
-      expect(formatted).not.toMatch(/\s*:\s{2,}/); // Normalized colons
     });
 
     it('should capitalize first letter of generic messages', () => {
@@ -395,11 +443,13 @@ ERROR: 0:20: 'userVar' : undeclared identifier`;
       expect(formatted).not.toContain('WARNING:');
     });
 
-    it('should handle already formatted messages gracefully', () => {
-      const message = "Undeclared identifier: myVar";
+    it('should normalize quotes in fallback messages', () => {
+      const message = "unknown error with `backticks` and \"double quotes\"";
       const formatted = formatErrorMessage(message);
 
-      expect(formatted).toBe('Undeclared identifier: myVar');
+      expect(formatted).not.toContain('`');
+      expect(formatted).not.toContain('"');
+      expect(formatted).toContain("'");
     });
   });
 

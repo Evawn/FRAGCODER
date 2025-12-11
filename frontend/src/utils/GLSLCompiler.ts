@@ -303,87 +303,146 @@ export function parseMultipassShaderError(
 }
 
 /**
- * Formats error messages to be more user-friendly, concise, and professional
- * Converts verbose WebGL compiler errors into readable diagnostic messages
+ * Formats error messages to be more user-friendly, concise, and professional.
+ * Converts verbose WebGL compiler errors into readable diagnostic messages.
+ * Preserves key context (identifiers, types, function names) for LLM debugging.
  */
 export function formatErrorMessage(message: string): string {
-  // Normalize the message
-  let normalized = message.trim();
-
-  // Remove redundant quotes around identifiers (e.g., 'foo' -> foo)
-  normalized = normalized.replace(/['"`]([^'"`]+)['"`]/g, '$1');
-
-  // Remove excessive colons and whitespace
-  normalized = normalized.replace(/\s*:\s*/g, ': ').replace(/\s+/g, ' ');
+  // Normalize whitespace but KEEP quotes for pattern matching
+  let normalized = message.trim().replace(/\s+/g, ' ');
 
   // Error pattern mappings - transforms common WebGL errors into user-friendly messages
-  // Each pattern matches a specific error type and provides a clearer explanation
+  // IMPORTANT: Specific patterns must come BEFORE generic ones to capture context
   const patterns: Array<{ regex: RegExp; format: (match: RegExpMatchArray) => string }> = [
-    // Undeclared identifier (variable or function not defined)
+    // === FUNCTION ERRORS (specific before generic) ===
+    // 'funcName': no matching overloaded function found (using implicit conversion)
     {
-      regex: /(.+?):\s*undeclared identifier/i,
-      format: (m) => `Undeclared identifier: ${m[1]}`
+      regex: /['"]?([^'":\s]+)['"]?\s*:\s*no matching overloaded function.*?(?:\((.+?)\))?$/i,
+      format: (m) => `No matching signature for '${m[1]}'${m[2] ? `: ${m[2]}` : ''}`
     },
-    // Type mismatches
+    // no matching overloaded function found (standalone)
     {
-      regex: /cannot convert from\s+(.+?)\s+to\s+(.+)/i,
-      format: (m) => `Type mismatch: cannot convert ${m[1]} to ${m[2]}`
+      regex: /no matching overloaded function found.*?(?:\((.+?)\))?$/i,
+      format: (m) => `No matching function signature${m[1] ? `: ${m[1]}` : ''}`
     },
+    // 'funcName': too few/many arguments to function
     {
-      regex: /incompatible types in (.+)/i,
+      regex: /['"]?([^'":\s]+)['"]?\s*:\s*too\s+(few|many)\s+arguments/i,
+      format: (m) => `'${m[1]}': too ${m[2]} arguments`
+    },
+    // wrong number of arguments: expected N got M
+    {
+      regex: /['"]?([^'":\s]+)['"]?\s*:.*?(\d+)\s+argument.*?(\d+)/i,
+      format: (m) => `'${m[1]}': expected ${m[2]} args, got ${m[3]}`
+    },
+
+    // === IDENTIFIER ERRORS ===
+    // 'name': undeclared identifier
+    {
+      regex: /['"]?([^'":\s]+)['"]?\s*:\s*undeclared identifier/i,
+      format: (m) => `Undeclared identifier '${m[1]}'`
+    },
+    // use of undeclared identifier 'name'
+    {
+      regex: /undeclared identifier\s*['"]?([^'":\s]+)['"]?/i,
+      format: (m) => `Undeclared identifier '${m[1]}'`
+    },
+
+    // === TYPE ERRORS ===
+    // cannot convert from TYPE to TYPE
+    {
+      regex: /cannot convert from\s+['"]?(.+?)['"]?\s+to\s+['"]?(.+?)['"]?\s*$/i,
+      format: (m) => `Type mismatch: ${m[1].trim()} to ${m[2].trim()}`
+    },
+    // incompatible types in OPERATION
+    {
+      regex: /incompatible types in\s+(.+)/i,
       format: (m) => `Incompatible types in ${m[1]}`
     },
-    // Function errors
+
+    // === ASSIGNMENT ERRORS ===
+    // 'name': l-value required
     {
-      regex: /no matching overloaded function found/i,
-      format: () => `No matching function signature found`
+      regex: /['"]?([^'":\s]+)['"]?\s*:\s*l-value required/i,
+      format: (m) => `Cannot assign to '${m[1]}' (not modifiable)`
     },
-    {
-      regex: /(.+?):\s*no matching overloaded function/i,
-      format: (m) => `Function ${m[1]}: no matching signature found`
-    },
-    // Assignment errors
+    // l-value required (standalone)
     {
       regex: /l-value required/i,
-      format: () => `Invalid assignment target (requires modifiable variable)`
+      format: () => `Cannot assign (l-value required)`
     },
+    // 'name': cannot assign to ...
     {
-      regex: /(.+?):\s*cannot assign to/i,
-      format: (m) => `Cannot assign to ${m[1]} (read-only or constant)`
+      regex: /['"]?([^'":\s]+)['"]?\s*:\s*cannot assign/i,
+      format: (m) => `Cannot assign to '${m[1]}'`
     },
-    // Vector/array errors
+    // cannot modify a uniform/const 'name'
     {
-      regex: /vector field selection out of range/i,
-      format: () => `Invalid vector component (use .xyzw or .rgba)`
+      regex: /cannot modify a\s+(\w+)\s+['"]?([^'":\s]+)['"]?/i,
+      format: (m) => `Cannot modify ${m[1]} '${m[2]}'`
     },
+
+    // === VECTOR/ARRAY ERRORS ===
+    // vector field selection out of range 'component'
     {
-      regex: /index out of range/i,
-      format: () => `Array index out of bounds`
+      regex: /vector field selection out of range\s*['"]?(\w*)['"]?/i,
+      format: (m) => m[1] ? `Invalid swizzle component '${m[1]}'` : `Invalid swizzle component`
     },
-    // Syntax errors
+    // 'name': index [N] out of range
     {
-      regex: /syntax error,?\s*unexpected\s+(.+)/i,
-      format: (m) => `Syntax error: unexpected ${m[1]}`
+      regex: /['"]?([^'":\s]+)['"]?\s*:\s*index\s*\[?(\d+)\]?\s*out of range/i,
+      format: (m) => `Index ${m[2]} out of bounds for '${m[1]}'`
     },
+    // index out of range (standalone)
+    {
+      regex: /index\s*\[?(\d*)\]?\s*out of range/i,
+      format: (m) => m[1] ? `Index ${m[1]} out of bounds` : `Array index out of bounds`
+    },
+
+    // === SYNTAX ERRORS ===
+    // 'TOKEN' : syntax error (token before "syntax error")
+    {
+      regex: /['"]?([^'":\s]+)['"]?\s*:\s*syntax error/i,
+      format: (m) => `Syntax error at '${m[1]}'`
+    },
+    // syntax error, unexpected TOKEN, expecting TOKEN
+    {
+      regex: /syntax error,?\s*unexpected\s+['"]?([^'",]+)['"]?(?:,?\s*expecting\s+(.+))?$/i,
+      format: (m) => m[2] ? `Unexpected '${m[1].trim()}', expected ${m[2].trim()}` : `Unexpected '${m[1].trim()}'`
+    },
+    // expected TOKEN before TOKEN
+    {
+      regex: /expected\s+(.+?)\s+before\s+['"]?([^'"]+)['"]?/i,
+      format: (m) => `Expected ${m[1]} before '${m[2]}'`
+    },
+    // expected ';' or other punctuation (standalone)
+    {
+      regex: /expected\s+['"]?([;{}()\[\]])['"]?/i,
+      format: (m) => `Expected '${m[1]}'`
+    },
+    // syntax error (generic fallback)
     {
       regex: /syntax error/i,
       format: () => `Syntax error`
     },
-    // Missing semicolons
+
+    // === REDEFINITION ERRORS ===
+    // 'name': redefinition
     {
-      regex: /expected.*?[';']/i,
-      format: () => `Missing semicolon or statement terminator`
+      regex: /['"]?([^'":\s]+)['"]?\s*:\s*redefinition/i,
+      format: (m) => `'${m[1]}' already defined`
     },
-    // Redefinition errors
+    // redefinition of 'name'
     {
-      regex: /(.+?):\s*redefinition/i,
-      format: (m) => `Redefinition of ${m[1]}`
+      regex: /redefinition of\s+['"]?([^'":\s]+)['"]?/i,
+      format: (m) => `'${m[1]}' already defined`
     },
-    // Type qualifier errors
+
+    // === QUALIFIER ERRORS ===
     {
       regex: /illegal use of type qualifier/i,
-      format: () => `Illegal type qualifier usage`
-    }
+      format: () => `Illegal type qualifier`
+    },
   ];
 
   // Try to match and format using patterns
@@ -394,11 +453,12 @@ export function formatErrorMessage(message: string): string {
     }
   }
 
-  // Clean up common verbose patterns if no specific match
+  // Fallback: clean up and return the message
   normalized = normalized
     .replace(/^ERROR:\s*/i, '')
     .replace(/^WARNING:\s*/i, '')
-    .replace(/^0:\d+:\s*/, '');
+    .replace(/^0:\d+:\s*/, '')
+    .replace(/['"`]/g, "'");  // Normalize quotes in fallback
 
   // Capitalize first letter for consistency
   if (normalized.length > 0) {
