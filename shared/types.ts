@@ -180,6 +180,11 @@ export interface ChatHistoryEntry {
 }
 
 /**
+ * Intent types for AI prompt classification
+ */
+export type AIIntent = 'new_shader' | 'modify' | 'debug' | 'explain';
+
+/**
  * Request body for POST /api/ai/prompt
  */
 export interface AIPromptRequest {
@@ -188,6 +193,7 @@ export interface AIPromptRequest {
   code?: string;  // Optional current editor code for context
   history?: ChatHistoryEntry[];  // Up to 5 recent prompt/response pairs
   errors?: CompilationError[];  // Optional compilation errors for debugging context
+  intent?: AIIntent;  // Optional intent override (skips auto-classification)
 }
 
 /**

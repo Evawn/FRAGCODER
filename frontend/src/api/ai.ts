@@ -4,7 +4,7 @@
  */
 
 import { apiClient } from './client';
-import type { AIPromptRequest, AIPromptResponse, ChatHistoryEntry, CompilationError } from '@fragcoder/shared';
+import type { AIPromptRequest, AIPromptResponse, AIIntent, ChatHistoryEntry, CompilationError } from '@fragcoder/shared';
 
 /**
  * Send a prompt to the AI assistant
@@ -14,6 +14,7 @@ import type { AIPromptRequest, AIPromptResponse, ChatHistoryEntry, CompilationEr
  * @param history - Optional chat history for conversational context (up to 5 entries)
  * @param errors - Optional compilation errors for debugging context
  * @param signal - Optional abort signal for request cancellation
+ * @param intent - Optional intent override (skips auto-classification, used for retries)
  * @returns AI response with message and usage metrics
  */
 export async function sendPrompt(
@@ -22,9 +23,10 @@ export async function sendPrompt(
   code?: string,
   history?: ChatHistoryEntry[],
   errors?: CompilationError[],
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  intent?: AIIntent
 ): Promise<AIPromptResponse> {
-  const request: AIPromptRequest = { prompt, model, code, history, errors };
+  const request: AIPromptRequest = { prompt, model, code, history, errors, intent };
   const response = await apiClient.post<AIPromptResponse>('/api/ai/prompt', request, { signal });
   return response.data;
 }

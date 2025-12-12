@@ -4,7 +4,7 @@
  * Coordinates sanitization, prompt engineering, LLM calls, and response parsing
  */
 
-import type { AIPromptResponse, ChatHistoryEntry, CompilationError } from '@fragcoder/shared';
+import type { AIPromptResponse, AIIntent, ChatHistoryEntry, CompilationError } from '@fragcoder/shared';
 import { ValidationError } from '../utils/errors';
 import { sanitizePrompt } from './ai/sanitizer';
 import { engineerPrompt } from './ai/promptEngineer';
@@ -23,6 +23,7 @@ import { logAIRequest } from './ai/metricsLogger';
  * @param code - Optional current editor code for context
  * @param history - Optional chat history for conversational context
  * @param errors - Optional compilation errors for debugging context
+ * @param overrideIntent - Optional intent override (skips auto-classification)
  * @returns AI response with message and optional usage metrics
  */
 export async function processPrompt(
@@ -31,7 +32,8 @@ export async function processPrompt(
   model?: string,
   code?: string,
   history?: ChatHistoryEntry[],
-  errors?: CompilationError[]
+  errors?: CompilationError[],
+  overrideIntent?: AIIntent
 ): Promise<AIPromptResponse> {
   const startTime = Date.now();
 
@@ -43,7 +45,7 @@ export async function processPrompt(
   try {
     // Pipeline execution
     const sanitized = sanitizePrompt(prompt);
-    const intent = await classifyIntent(sanitized);
+    const intent = overrideIntent ?? await classifyIntent(sanitized);
     const engineered = engineerPrompt(sanitized, code, history, errors, intent);
     const llmResult = await callLLM(engineered, model);
     const parsed = parseResponse(llmResult.content);

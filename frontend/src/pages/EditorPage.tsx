@@ -292,6 +292,8 @@ function EditorPage() {
             setCodeAndCompile={editorState.setCodeAndCompile}
             tabs={editorState.tabs}
             compilationErrors={editorState.compilationErrors}
+            compilationSuccess={editorState.compilationSuccess}
+            lastCompilationTime={editorState.lastCompilationTime}
             onLoadingChange={setIsAILoading}
           />
 
@@ -329,6 +331,8 @@ function EditorPage() {
             setCodeAndCompile={editorState.setCodeAndCompile}
             tabs={editorState.tabs}
             compilationErrors={editorState.compilationErrors}
+            compilationSuccess={editorState.compilationSuccess}
+            lastCompilationTime={editorState.lastCompilationTime}
             onLoadingChange={setIsAILoading}
           />
         </div>

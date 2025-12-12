@@ -19,10 +19,16 @@ const INITIAL_TASK_STATE: TaskState = {
 
 /**
  * Create the default task steps for the AI pipeline
+ * @param attempt - Optional current attempt number for retry indication
+ * @param maxAttempts - Optional max attempts for retry indication
  */
-function createPipelineSteps(): TaskStep[] {
+function createPipelineSteps(attempt?: number, maxAttempts?: number): TaskStep[] {
+  // Show attempt indicator if we're in a retry scenario (maxAttempts > 1)
+  const showAttempt = attempt !== undefined && maxAttempts !== undefined && maxAttempts > 1;
+  const attemptSuffix = showAttempt ? ` (Attempt ${attempt}/${maxAttempts})` : '';
+
   return [
-    { id: 'generate', label: 'Generating shader...', status: 'pending' },
+    { id: 'generate', label: `Generating shader${attemptSuffix}...`, status: 'pending' },
     { id: 'compile', label: 'Compiling GLSL...', status: 'pending' },
   ];
 }
@@ -251,21 +257,44 @@ export function useChatState() {
 
   /**
    * Start the task pipeline (thinking state)
+   * @param attempt - Optional current attempt number (for retry tracking)
+   * @param maxAttempts - Optional max attempts (for retry tracking)
    */
-  const startTask = useCallback(() => {
-    const steps = createPipelineSteps();
+  const startTask = useCallback((attempt?: number, maxAttempts?: number) => {
+    const steps = createPipelineSteps(attempt, maxAttempts);
     steps[0].status = 'in_progress';
     setTaskState({
       status: 'thinking',
       steps,
+      currentAttempt: attempt,
+      maxAttempts,
     });
   }, []);
 
   /**
-   * Transition to compiling state
+   * Start a retry attempt (updates task state for next attempt)
+   * @param attempt - The new attempt number
+   */
+  const startRetryAttempt = useCallback((attempt: number) => {
+    setTaskState(prev => {
+      const maxAttempts = prev.maxAttempts || 3;
+      const steps = createPipelineSteps(attempt, maxAttempts);
+      steps[0].status = 'in_progress';
+      return {
+        status: 'thinking',
+        steps,
+        currentAttempt: attempt,
+        maxAttempts,
+      };
+    });
+  }, []);
+
+  /**
+   * Transition to compiling state (preserves attempt tracking)
    */
   const setCompiling = useCallback(() => {
     setTaskState(prev => ({
+      ...prev,
       status: 'compiling',
       steps: prev.steps.map(step =>
         step.id === 'generate'
@@ -356,6 +385,7 @@ export function useChatState() {
 
     // Task operations
     startTask,
+    startRetryAttempt,
     setCompiling,
     completeTask,
     errorTask,

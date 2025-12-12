@@ -50,11 +50,13 @@ export type TaskStatus = 'idle' | 'thinking' | 'compiling' | 'complete' | 'error
 
 /**
  * State of the current AI task/thinking process
- * Designed for future streaming & retry loops
+ * Supports retry loops with attempt tracking
  */
 export interface TaskState {
   status: TaskStatus;
   steps: TaskStep[];
+  currentAttempt?: number;  // Current attempt number (1, 2, or 3)
+  maxAttempts?: number;     // Maximum attempts allowed (typically 3)
 }
 
 /**

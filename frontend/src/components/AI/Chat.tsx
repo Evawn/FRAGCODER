@@ -243,6 +243,7 @@ function AssistantMessage({
 
 /**
  * TaskIndicator component showing AI processing status
+ * Displays retry badge when on attempt > 1
  */
 function TaskIndicator({ taskState }: { taskState: TaskState }) {
   if (taskState.status === 'idle') return null;
@@ -250,11 +251,21 @@ function TaskIndicator({ taskState }: { taskState: TaskState }) {
   const currentStep = taskState.steps.find(s => s.status === 'in_progress');
   const currentStepLabel = currentStep?.label ?? 'Processing...';
 
+  // Show retry badge when on attempt > 1
+  const isRetrying = taskState.currentAttempt !== undefined && taskState.currentAttempt > 1;
+  const retryNumber = isRetrying ? taskState.currentAttempt! - 1 : 0;
+  const maxRetries = taskState.maxAttempts !== undefined ? taskState.maxAttempts - 1 : 2;
+
   return (
     <div className="flex flex-col gap-1 text-xs">
       <div className="flex items-center gap-2 text-foreground">
         <Loader2 className="h-3 w-3 animate-spin" />
         <span>{currentStepLabel}</span>
+        {isRetrying && (
+          <span className="text-amber-500 text-[10px] font-medium">
+            Retry {retryNumber}/{maxRetries}
+          </span>
+        )}
       </div>
       <div className="flex flex-col gap-0.5 pl-5">
         {taskState.steps.map(step => (

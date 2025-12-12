@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, type FormEvent } from 'react';
+import { useState, useCallback, useRef, useEffect, type FormEvent } from 'react';
 import { X, Trash2, Sparkles, Eye, EyeOff, Square } from 'lucide-react';
 import {
   PromptInput,
@@ -20,7 +20,7 @@ import { getErrorMessage } from '../../api/client';
 import { Chat } from './Chat';
 import { useChatState } from './hooks/useChatState';
 import { useThumbnailCapture } from './hooks/useThumbnailCapture';
-import type { TabData, ChatHistoryEntry, CompilationError } from '@fragcoder/shared';
+import type { TabData, ChatHistoryEntry, CompilationError, AIIntent } from '@fragcoder/shared';
 
 const AVAILABLE_MODELS = [
   { id: 'google/gemini-2.0-flash-001', name: 'Gemini 2.0 Flash' },
@@ -34,6 +34,8 @@ interface AIPanelProps {
   setCodeAndCompile: (newCode: string, tabId: string) => void;
   tabs: TabData[];
   compilationErrors?: CompilationError[];
+  compilationSuccess?: boolean;
+  lastCompilationTime?: number;
   onLoadingChange?: (isLoading: boolean) => void;
 }
 
@@ -44,6 +46,8 @@ export function AIPanel({
   setCodeAndCompile,
   tabs,
   compilationErrors = [],
+  compilationSuccess,
+  lastCompilationTime = 0,
   onLoadingChange,
 }: AIPanelProps) {
   const [inputValue, setInputValue] = useState('');
@@ -54,6 +58,35 @@ export function AIPanel({
   const chatState = useChatState();
   const { captureThumbnail } = useThumbnailCapture();
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Refs for tracking compilation completion in retry loop
+  const compilationResolveRef = useRef<((success: boolean) => void) | null>(null);
+  const lastKnownCompilationTimeRef = useRef<number>(0);
+
+  // Detect when compilation completes (lastCompilationTime changes)
+  useEffect(() => {
+    if (lastCompilationTime > lastKnownCompilationTimeRef.current) {
+      lastKnownCompilationTimeRef.current = lastCompilationTime;
+      // Resolve pending compilation promise if any
+      if (compilationResolveRef.current) {
+        compilationResolveRef.current(compilationSuccess ?? false);
+        compilationResolveRef.current = null;
+      }
+    }
+  }, [lastCompilationTime, compilationSuccess]);
+
+  /**
+   * Compile code and wait for result
+   * Returns true if compilation succeeded, false otherwise
+   */
+  const compileAndWaitForResult = useCallback((code: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      // Set up promise resolution on next compilation complete
+      compilationResolveRef.current = resolve;
+      // Trigger compilation
+      setCodeAndCompile(code, '1');
+    });
+  }, [setCodeAndCompile]);
 
   // Helper to update loading state and notify parent
   const updateLoadingState = useCallback((loading: boolean) => {
@@ -123,72 +156,124 @@ export function AIPanel({
     setCodeAndCompile(code, '1');
   }, [setCodeAndCompile]);
 
+  // Maximum retry attempts for compilation failures
+  const MAX_ATTEMPTS = 3;
+
   /**
-   * Core API call logic - used by submit, reroll, and edit
+   * Core API call logic with retry loop - used by submit, reroll, and edit
+   * Implements compile-before-display with automatic retries on failure
    */
-  const callAPI = useCallback(async (
+  const callAPIWithRetry = useCallback(async (
     promptText: string,
     userMessageId: string,
-    codeContext?: string
+    codeContext?: string,
+    initialErrors?: CompilationError[]
   ) => {
-    chatState.startTask();
-
     // Create new abort controller for this request
     abortControllerRef.current = new AbortController();
 
+    // Track state across retry attempts
+    let lastResponse: { code?: string; explanation: string } | null = null;
+    let lastCompilationErrors: CompilationError[] = initialErrors || [];
+    let attempt = 0;
+
     // Get chat history before the current message for context
     const history = extractChatHistory();
-    // Get relevant compilation errors
-    const errors = getImageTabErrors();
 
-    try {
-      const response = await sendPrompt(
-        promptText,
-        selectedModel,
-        codeContext,
-        history,
-        errors.length > 0 ? errors : undefined,
-        abortControllerRef.current.signal
-      );
+    // Start task with attempt tracking
+    chatState.startTask(1, MAX_ATTEMPTS);
 
-      // Only update editor and capture thumbnail if code was returned
-      let thumbnail: string | undefined;
-      if (response.code) {
+    while (attempt < MAX_ATTEMPTS) {
+      attempt++;
+
+      // Check for cancellation at start of each attempt
+      if (abortControllerRef.current?.signal.aborted) {
+        chatState.resetTask();
+        return;
+      }
+
+      // Update UI for retry attempts (after first)
+      if (attempt > 1) {
+        chatState.startRetryAttempt(attempt);
+      }
+
+      try {
+        // Determine intent: force 'debug' on retries to include compilation errors
+        const intent: AIIntent | undefined = attempt > 1 ? 'debug' : undefined;
+        const errorsToSend = attempt > 1 ? lastCompilationErrors : initialErrors;
+
+        // Make API call
+        const response = await sendPrompt(
+          promptText,
+          selectedModel,
+          codeContext,
+          history,
+          errorsToSend && errorsToSend.length > 0 ? errorsToSend : undefined,
+          abortControllerRef.current.signal,
+          intent
+        );
+
+        lastResponse = response;
+
+        // If no code returned (e.g., 'explain' intent), display immediately
+        if (!response.code) {
+          chatState.addAssistantMessage(userMessageId, response.explanation, undefined, false, undefined);
+          chatState.completeTask();
+          return;
+        }
+
         // Transition to compiling
         chatState.setCompiling();
 
-        // Update the editor with generated code
-        setCodeAndCompile(response.code, '1');
+        // Compile and wait for result - code visually appears in editor (read-only)
+        const compilationSucceeded = await compileAndWaitForResult(response.code);
 
-        // Capture thumbnail of the generated shader
-        thumbnail = await captureThumbnail(response.code) ?? undefined;
+        if (compilationSucceeded) {
+          // SUCCESS! Capture thumbnail and display response
+          const thumbnail = await captureThumbnail(response.code) ?? undefined;
+          chatState.addAssistantMessage(userMessageId, response.explanation, response.code, false, thumbnail);
+          chatState.completeTask();
+          return;
+        }
+
+        // Compilation failed - store errors for next retry
+        lastCompilationErrors = [...compilationErrors];
+
+        // If this was the last attempt, break out to display anyway
+        if (attempt >= MAX_ATTEMPTS) {
+          break;
+        }
+
+        // Continue to next retry attempt (loop continues)
+
+      } catch (error) {
+        // Network/API error - don't retry, show error immediately
+        if (error instanceof Error && error.name === 'CanceledError') {
+          chatState.resetTask();
+          return;
+        }
+        chatState.errorTask();
+        chatState.addAssistantMessage(userMessageId, getErrorMessage(error), undefined, true);
+        return;
       }
+    }
 
-      // Add assistant response with code artifact and thumbnail
+    // All attempts exhausted - display last response anyway (with failed code)
+    if (lastResponse?.code) {
+      const thumbnail = await captureThumbnail(lastResponse.code) ?? undefined;
       chatState.addAssistantMessage(
         userMessageId,
-        response.explanation,
-        response.code,
+        lastResponse.explanation,
+        lastResponse.code,
         false,
         thumbnail
       );
-
-      // Complete the task
-      chatState.completeTask();
-    } catch (error) {
-      // Don't show error message if request was cancelled
-      if (error instanceof Error && error.name === 'CanceledError') {
-        return;
-      }
-      chatState.errorTask();
-      chatState.addAssistantMessage(
-        userMessageId,
-        getErrorMessage(error),
-        undefined,
-        true
-      );
+    } else if (lastResponse) {
+      chatState.addAssistantMessage(userMessageId, lastResponse.explanation, undefined, false);
     }
-  }, [selectedModel, setCodeAndCompile, chatState, captureThumbnail, extractChatHistory, getImageTabErrors]);
+    chatState.completeTask();
+
+  }, [selectedModel, chatState, captureThumbnail, extractChatHistory, compileAndWaitForResult, compilationErrors]);
 
   /**
    * Handle new prompt submission
@@ -209,10 +294,13 @@ export function AIPanel({
     // Add user message with thumbnail
     const userMsgId = chatState.addUserMessage(promptText, codeContext, parentId, userThumbnail ?? undefined);
 
+    // Get current errors if including code (for initial context)
+    const currentErrors = getImageTabErrors();
+
     setInputValue('');
     updateLoadingState(true);
 
-    await callAPI(promptText, userMsgId, codeContext);
+    await callAPIWithRetry(promptText, userMsgId, codeContext, currentErrors.length > 0 ? currentErrors : undefined);
 
     updateLoadingState(false);
   };
@@ -229,9 +317,9 @@ export function AIPanel({
     if (!retryInfo) return;
 
     updateLoadingState(true);
-    await callAPI(retryInfo.content, userMessageId, retryInfo.codeContext);
+    await callAPIWithRetry(retryInfo.content, userMessageId, retryInfo.codeContext);
     updateLoadingState(false);
-  }, [isLoading, chatState, callAPI, updateLoadingState]);
+  }, [isLoading, chatState, callAPIWithRetry, updateLoadingState]);
 
   /**
    * Handle editing a user message and regenerating
@@ -262,9 +350,9 @@ export function AIPanel({
     chatState.setActiveBranch(parentKey, newBranchIndex);
 
     updateLoadingState(true);
-    await callAPI(newContent, newUserMsgId, codeContext);
+    await callAPIWithRetry(newContent, newUserMsgId, codeContext);
     updateLoadingState(false);
-  }, [isLoading, chatState, callAPI, updateLoadingState]);
+  }, [isLoading, chatState, callAPIWithRetry, updateLoadingState]);
 
   const panelContent = (
     <div className="flex flex-col h-full relative overflow-hidden">
