@@ -3,10 +3,10 @@
  * Handles communication with OpenRouter API
  */
 
-const ALLOWED_MODELS = [
-  'google/gemini-2.0-flash-001',
-  'anthropic/claude-sonnet-4-5',
-];
+import { AVAILABLE_AI_MODELS, DEFAULT_MODEL_ID } from '@fragcoder/shared/aiModels';
+
+// Extract allowed model IDs from shared configuration
+const ALLOWED_MODELS = AVAILABLE_AI_MODELS.map(model => model.id);
 
 interface OpenRouterResponse {
   choices: { message: { content: string } }[];
@@ -37,7 +37,7 @@ export interface LLMResponse {
  */
 export async function callLLM(prompt: string, requestedModel?: string): Promise<LLMResponse> {
   const apiKey = process.env.OPENROUTER_API_KEY;
-  const defaultModel = process.env.OPENROUTER_MODEL || 'google/gemini-2.0-flash-001';
+  const defaultModel = process.env.OPENROUTER_MODEL || DEFAULT_MODEL_ID;
 
   // Validate and select model - use requested if allowed, otherwise fall back to default
   const model = requestedModel && ALLOWED_MODELS.includes(requestedModel)

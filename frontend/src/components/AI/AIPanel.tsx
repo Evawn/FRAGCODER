@@ -21,11 +21,7 @@ import { Chat } from './Chat';
 import { useChatState } from './hooks/useChatState';
 import { useThumbnailCapture } from './hooks/useThumbnailCapture';
 import type { TabData, ChatHistoryEntry, CompilationError, AIIntent } from '@fragcoder/shared';
-
-const AVAILABLE_MODELS = [
-  { id: 'google/gemini-2.0-flash-001', name: 'Gemini 2.0 Flash' },
-  { id: 'anthropic/claude-sonnet-4-5', name: 'Claude Sonnet 4.5' },
-];
+import { AVAILABLE_AI_MODELS, DEFAULT_MODEL_ID } from '@fragcoder/shared';
 
 interface AIPanelProps {
   isOpen: boolean;
@@ -52,7 +48,7 @@ export function AIPanel({
 }: AIPanelProps) {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedModel, setSelectedModel] = useState(AVAILABLE_MODELS[0].id);
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL_ID);
   const [includeCode, setIncludeCode] = useState(true);
 
   const chatState = useChatState();
@@ -461,7 +457,7 @@ export function AIPanel({
                   <PromptInputModelSelectValue />
                 </PromptInputModelSelectTrigger>
                 <PromptInputModelSelectContent>
-                  {AVAILABLE_MODELS.map((model) => (
+                  {AVAILABLE_AI_MODELS.map((model) => (
                     <PromptInputModelSelectItem key={model.id} value={model.id}>
                       {model.name}
                     </PromptInputModelSelectItem>

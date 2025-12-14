@@ -172,6 +172,12 @@ export interface ApiError {
 // ============================================================================
 
 /**
+ * AI Model definition - re-exported from aiModels for convenience
+ */
+export type { AIModel } from './aiModels';
+export { AVAILABLE_AI_MODELS, DEFAULT_MODEL_ID } from './aiModels';
+
+/**
  * A single entry in the chat history for AI context
  */
 export interface ChatHistoryEntry {
