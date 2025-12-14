@@ -51,8 +51,8 @@ export class WebGLRenderer {
   // Mouse tracking
   private mouseX: number = 0;
   private mouseY: number = 0;
-  private mouseClickX: number = 0;
-  private mouseClickY: number = 0;
+  private mouseClickX: number = -1;
+  private mouseClickY: number = -1;
   private isMouseDown: boolean = false;
 
   // Vertex buffer (shared across all shaders - full-screen quad geometry)
@@ -144,6 +144,9 @@ export class WebGLRenderer {
     const handleMouseUp = (e: MouseEvent) => {
       if (e.button === 0) { // Left mouse button
         this.isMouseDown = false;
+        // Negate the click position to indicate mouse was released (Shadertoy convention)
+        this.mouseClickX = -Math.abs(this.mouseClickX);
+        this.mouseClickY = -Math.abs(this.mouseClickY);
       }
     };
 
@@ -155,6 +158,9 @@ export class WebGLRenderer {
     // Also handle mouse leaving the canvas
     canvas.addEventListener('mouseleave', () => {
       this.isMouseDown = false;
+      // Negate the click position to indicate mouse left canvas
+      this.mouseClickX = -Math.abs(this.mouseClickX);
+      this.mouseClickY = -Math.abs(this.mouseClickY);
     });
   }
 
