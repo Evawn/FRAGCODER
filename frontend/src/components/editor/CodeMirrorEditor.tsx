@@ -2,7 +2,7 @@
  * CodeMirror-based GLSL editor with syntax highlighting, error decorations, and custom keybindings
  * Features minimap, code folding, autocomplete, and Shift+Enter to compile
  */
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import CodeMirror, { type ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { EditorView, keymap } from '@codemirror/view';
@@ -14,6 +14,7 @@ import type { Transaction, Extension } from '@codemirror/state';
 import { showMinimap } from '@replit/codemirror-minimap';
 import { glsl } from '../../utils/GLSLLanguage';
 import type { CompilationError } from '../../types';
+import { createErrorDecorationExtension, setErrorsEffect } from './ErrorDecorations';
 import {
   BACKGROUND_EDITOR,
   BACKGROUND_GUTTER,
@@ -45,7 +46,7 @@ const CodeMirrorEditorComponent: React.FC<CodeMirrorEditorProps> = ({
   onChange,
   placeholder = "// Write your GLSL fragment shader here...",
   readOnly = false,
-  errors: _errors = [],
+  errors = [],
   compilationSuccess,
   onCompile,
   onDocumentChange
@@ -159,6 +160,7 @@ const CodeMirrorEditorComponent: React.FC<CodeMirrorEditorProps> = ({
         markerDOM: createFoldMarker
       }),
       indentUnit.of("    "), // 4 spaces
+      ...createErrorDecorationExtension(),
       showMinimap.compute(['doc'], () => {
         return {
           create: () => {
@@ -344,6 +346,31 @@ const CodeMirrorEditorComponent: React.FC<CodeMirrorEditorProps> = ({
   }, [onDocumentChange]); // onCompile removed - it's used in keymap but doesn't need to trigger recreation
 
   const editorRef = React.useRef<ReactCodeMirrorRef>(null);
+  const [isEditorReady, setIsEditorReady] = useState(false);
+
+  // Track when editor is ready
+  useEffect(() => {
+    const checkEditorReady = () => {
+      if (editorRef.current?.view) {
+        setIsEditorReady(true);
+      }
+    };
+
+    // Check immediately and after a short delay
+    checkEditorReady();
+    const timer = setTimeout(checkEditorReady, 100);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Update error decorations when errors change
+  useEffect(() => {
+    if (isEditorReady && editorRef.current?.view) {
+      editorRef.current.view.dispatch({
+        effects: setErrorsEffect.of(errors)
+      });
+    }
+  }, [errors, isEditorReady]);
 
   const getBorderColor = () => {
     if (compilationSuccess === undefined) return 'border-gray-600';
