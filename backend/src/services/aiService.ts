@@ -45,7 +45,7 @@ export async function processPrompt(
   try {
     // Pipeline execution
     const sanitized = sanitizePrompt(prompt);
-    const intent = overrideIntent ?? await classifyIntent(sanitized);
+    const intent = overrideIntent ?? await classifyIntent(sanitized, history);
     const engineered = engineerPrompt(sanitized, code, history, errors, intent);
     const llmResult = await callLLM(engineered, model);
     const parsed = parseResponse(llmResult.content);

@@ -110,4 +110,107 @@ describeIntegration('Intent Classifier - Integration Tests', () => {
       }
     });
   }
+
+  // History-aware classification tests
+  describe('History-Aware Classification', () => {
+    it('should classify follow-up modification correctly', async () => {
+      const history = [
+        {
+          userPrompt: 'create a blue sphere',
+          aiExplanation: 'Created a raymarched blue sphere with rotation.',
+        },
+      ];
+      const actual = await classifyIntent('make it red', history);
+      const passed = actual === 'modify';
+
+      console.log(
+        `[History] "make it red" (after sphere creation) -> Got: ${actual} ${passed ? '✓' : '✗'}`
+      );
+
+      results.push({
+        prompt: 'make it red (with sphere history)',
+        expected: 'modify',
+        actual,
+        passed,
+      });
+
+      expect(actual).toBe('modify');
+    });
+
+    it('should distinguish new shader request despite history', async () => {
+      const history = [
+        {
+          userPrompt: 'make it spin faster',
+          aiExplanation: 'Increased rotation speed of the sphere.',
+        },
+      ];
+      const actual = await classifyIntent('create a plasma effect', history);
+      const passed = actual === 'new_shader';
+
+      console.log(
+        `[History] "create a plasma effect" (after modification) -> Got: ${actual} ${passed ? '✓' : '✗'}`
+      );
+
+      results.push({
+        prompt: 'create a plasma effect (with modification history)',
+        expected: 'new_shader',
+        actual,
+        passed,
+      });
+
+      expect(actual).toBe('new_shader');
+    });
+
+    it('should handle debug context from history', async () => {
+      const history = [
+        {
+          userPrompt: 'add a lighting effect',
+          aiExplanation: 'Added basic Phong lighting to the shader.',
+        },
+      ];
+      const actual = await classifyIntent('it has errors now', history);
+      const passed = actual === 'debug';
+
+      console.log(
+        `[History] "it has errors now" (after adding lighting) -> Got: ${actual} ${passed ? '✓' : '✗'}`
+      );
+
+      results.push({
+        prompt: 'it has errors now (with lighting history)',
+        expected: 'debug',
+        actual,
+        passed,
+      });
+
+      expect(actual).toBe('debug');
+    });
+
+    it('should use context for ambiguous pronouns', async () => {
+      const history = [
+        {
+          userPrompt: 'create a gradient background',
+          aiExplanation: 'Created smooth vertical gradient from blue to purple.',
+        },
+        {
+          userPrompt: 'make it horizontal',
+          aiExplanation: 'Changed gradient direction to horizontal.',
+        },
+      ];
+      const actual = await classifyIntent('now add some noise', history);
+      const passed = actual === 'modify';
+
+      console.log(
+        `[History] "now add some noise" (after gradient work) -> Got: ${actual} ${passed ? '✓' : '✗'}`
+      );
+
+      results.push({
+        prompt: 'now add some noise (with gradient history)',
+        expected: 'modify',
+        actual,
+        passed,
+      });
+
+      expect(actual).toBe('modify');
+    });
+  });
 });
