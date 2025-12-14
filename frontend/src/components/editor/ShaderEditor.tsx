@@ -53,7 +53,6 @@ function ShaderEditor({
   onCompile,
   onSave,
 }: ShaderEditorProps) {
-  const [showErrorDecorations, setShowErrorDecorations] = useState(true);
   const isSwitchingTabsRef = useRef(false);
   const [tabSwitchTime, setTabSwitchTime] = useState(Date.now());
 
@@ -175,8 +174,6 @@ function ShaderEditor({
         compilationTime={compilationTime}
         isCompiling={isCompiling}
         lastCompilationTime={lastCompilationTime}
-        showErrorDecorations={showErrorDecorations}
-        onToggleErrorDecorations={setShowErrorDecorations}
         onCompile={handleCompileOrSave}
         charCount={activeTab?.code.length || 0}
       />

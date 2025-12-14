@@ -8,8 +8,6 @@ interface EditorFooterProps {
   compilationTime: number;
   isCompiling: boolean;
   lastCompilationTime: number;
-  showErrorDecorations: boolean;
-  onToggleErrorDecorations: (show: boolean) => void;
   onCompile: () => void;
   charCount: number;
 }
