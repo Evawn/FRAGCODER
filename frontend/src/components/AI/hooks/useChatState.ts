@@ -5,9 +5,10 @@ import type {
   ChatMessageNode,
   CodeArtifact,
   TaskState,
-  TaskStep,
+  ThinkingStep,
   BranchInfo,
 } from '../../../types/chat';
+import type { AIIntent } from '@fragcoder/shared';
 
 /**
  * Initial task state when idle
@@ -18,20 +19,14 @@ const INITIAL_TASK_STATE: TaskState = {
 };
 
 /**
- * Create the default task steps for the AI pipeline
- * @param attempt - Optional current attempt number for retry indication
- * @param maxAttempts - Optional max attempts for retry indication
+ * Intent label mapping for generating step
  */
-function createPipelineSteps(attempt?: number, maxAttempts?: number): TaskStep[] {
-  // Show attempt indicator if we're in a retry scenario (maxAttempts > 1)
-  const showAttempt = attempt !== undefined && maxAttempts !== undefined && maxAttempts > 1;
-  const attemptSuffix = showAttempt ? ` (Attempt ${attempt}/${maxAttempts})` : '';
-
-  return [
-    { id: 'generate', label: `Generating shader${attemptSuffix}...`, status: 'pending' },
-    { id: 'compile', label: 'Compiling GLSL...', status: 'pending' },
-  ];
-}
+const INTENT_LABELS: Record<AIIntent, string> = {
+  'new_shader': 'Creating new shader',
+  'modify': 'Modifying your shader',
+  'debug': 'Debugging your code',
+  'explain': 'Explaining your code',
+};
 
 /**
  * Custom hook for managing conversation state with branching support
@@ -255,64 +250,130 @@ export function useChatState() {
     };
   }, [messages, deleteDescendants]);
 
+  // ============================================
+  // Task State Management - Incremental Steps
+  // ============================================
+
   /**
-   * Start the task pipeline (thinking state)
-   * @param attempt - Optional current attempt number (for retry tracking)
-   * @param maxAttempts - Optional max attempts (for retry tracking)
+   * Start the task - initializes state with a generating step
+   * Shows "Generating response..." while waiting for API
+   * @param maxAttempts - Maximum retry attempts allowed
    */
-  const startTask = useCallback((attempt?: number, maxAttempts?: number) => {
-    const steps = createPipelineSteps(attempt, maxAttempts);
-    steps[0].status = 'in_progress';
+  const startTask = useCallback((maxAttempts: number = 3) => {
+    const generatingStep: ThinkingStep = {
+      id: crypto.randomUUID(),
+      type: 'generating',
+      label: 'Generating response',
+      result: 'pending',
+    };
+
     setTaskState({
       status: 'thinking',
-      steps,
-      currentAttempt: attempt,
+      steps: [generatingStep],
+      currentAttempt: 1,
       maxAttempts,
     });
   }, []);
 
   /**
-   * Start a retry attempt (updates task state for next attempt)
-   * @param attempt - The new attempt number
+   * Update the generating step label after API returns with classified intent
+   * @param intent - The classified intent from the API
    */
-  const startRetryAttempt = useCallback((attempt: number) => {
-    setTaskState(prev => {
-      const maxAttempts = prev.maxAttempts || 3;
-      const steps = createPipelineSteps(attempt, maxAttempts);
-      steps[0].status = 'in_progress';
-      return {
-        status: 'thinking',
-        steps,
-        currentAttempt: attempt,
-        maxAttempts,
-      };
-    });
-  }, []);
-
-  /**
-   * Transition to compiling state (preserves attempt tracking)
-   */
-  const setCompiling = useCallback(() => {
+  const updateGeneratingLabel = useCallback((intent: AIIntent) => {
     setTaskState(prev => ({
       ...prev,
-      status: 'compiling',
-      steps: prev.steps.map(step =>
-        step.id === 'generate'
-          ? { ...step, status: 'complete' as const }
-          : step.id === 'compile'
-          ? { ...step, status: 'in_progress' as const }
-          : step
+      steps: prev.steps.map(s =>
+        s.type === 'generating' && s.result === 'pending'
+          ? { ...s, label: INTENT_LABELS[intent] }
+          : s
       ),
     }));
   }, []);
 
   /**
+   * Add the compiling step after code is received
+   * Marks generating step as success and adds compiling step
+   */
+  const addCompilingStep = useCallback(() => {
+    setTaskState(prev => {
+      // Mark generating/retrying step as success
+      const updatedSteps = prev.steps.map(s =>
+        (s.type === 'generating' || s.type === 'retrying') && s.result === 'pending'
+          ? { ...s, result: 'success' as const }
+          : s
+      );
+
+      const compilingStep: ThinkingStep = {
+        id: crypto.randomUUID(),
+        type: 'compiling',
+        label: 'Compiling GLSL',
+        result: 'pending',
+      };
+
+      return {
+        ...prev,
+        status: 'compiling',
+        steps: [...updatedSteps, compilingStep],
+      };
+    });
+  }, []);
+
+  /**
+   * Mark the latest compiling step with its result
+   * @param success - Whether compilation succeeded
+   */
+  const markCompilationResult = useCallback((success: boolean) => {
+    setTaskState(prev => {
+      // Find the last compiling step and mark it
+      const updatedSteps = [...prev.steps];
+      for (let i = updatedSteps.length - 1; i >= 0; i--) {
+        if (updatedSteps[i].type === 'compiling' && updatedSteps[i].result === 'pending') {
+          updatedSteps[i] = {
+            ...updatedSteps[i],
+            result: success ? 'success' : 'failed',
+          };
+          break;
+        }
+      }
+
+      return {
+        ...prev,
+        steps: updatedSteps,
+      };
+    });
+  }, []);
+
+  /**
+   * Add a retry step after compilation failure
+   * @param attempt - Current attempt number (2 or 3)
+   * @param maxAttempts - Maximum attempts allowed
+   */
+  const addRetryStep = useCallback((attempt: number, maxAttempts: number) => {
+    const retryStep: ThinkingStep = {
+      id: crypto.randomUUID(),
+      type: 'retrying',
+      label: 'Debugging',
+      result: 'pending',
+      retryInfo: { attempt: attempt - 1, maxAttempts: maxAttempts - 1 },
+    };
+
+    setTaskState(prev => ({
+      ...prev,
+      status: 'thinking',
+      currentAttempt: attempt,
+      maxAttempts,
+      steps: [...prev.steps, retryStep],
+    }));
+  }, []);
+
+  /**
    * Complete the task successfully
+   * Clears UI after a short delay
    */
   const completeTask = useCallback(() => {
     setTaskState(prev => ({
+      ...prev,
       status: 'complete',
-      steps: prev.steps.map(step => ({ ...step, status: 'complete' as const })),
     }));
 
     // Reset to idle after a short delay
@@ -323,20 +384,22 @@ export function useChatState() {
 
   /**
    * Set task to error state
+   * Marks any pending step as failed
    */
   const errorTask = useCallback(() => {
     setTaskState(prev => ({
+      ...prev,
       status: 'error',
       steps: prev.steps.map(step =>
-        step.status === 'in_progress'
-          ? { ...step, status: 'error' as const }
+        step.result === 'pending'
+          ? { ...step, result: 'failed' as const }
           : step
       ),
     }));
   }, []);
 
   /**
-   * Reset task to idle
+   * Reset task to idle (used on cancel)
    */
   const resetTask = useCallback(() => {
     setTaskState(INITIAL_TASK_STATE);
@@ -383,10 +446,12 @@ export function useChatState() {
     setActiveBranch,
     prepareRetry,
 
-    // Task operations
+    // Task operations (incremental step API)
     startTask,
-    startRetryAttempt,
-    setCompiling,
+    updateGeneratingLabel,
+    addCompilingStep,
+    markCompilationResult,
+    addRetryStep,
     completeTask,
     errorTask,
     resetTask,

@@ -66,6 +66,7 @@ export async function processPrompt(
       code: parsed.code,
       explanation: parsed.explanation,
       usage: llmResult.usage,
+      intent,
     };
   } catch (error) {
     const latencyMs = Date.now() - startTime;

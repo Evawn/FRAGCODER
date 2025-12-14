@@ -173,15 +173,15 @@ export function AIPanel({
     abortControllerRef.current = new AbortController();
 
     // Track state across retry attempts
-    let lastResponse: { code?: string; explanation: string } | null = null;
+    let lastResponse: { code?: string; explanation: string; intent: AIIntent } | null = null;
     let lastCompilationErrors: CompilationError[] = initialErrors || [];
     let attempt = 0;
 
     // Get chat history before the current message for context
     const history = extractChatHistory();
 
-    // Start task with attempt tracking
-    chatState.startTask(1, MAX_ATTEMPTS);
+    // Start task (adds intent step)
+    chatState.startTask(MAX_ATTEMPTS);
 
     while (attempt < MAX_ATTEMPTS) {
       attempt++;
@@ -192,9 +192,9 @@ export function AIPanel({
         return;
       }
 
-      // Update UI for retry attempts (after first)
+      // Add retry step for attempts after first (accumulates, doesn't replace)
       if (attempt > 1) {
-        chatState.startRetryAttempt(attempt);
+        chatState.addRetryStep(attempt, MAX_ATTEMPTS);
       }
 
       try {
@@ -215,6 +215,9 @@ export function AIPanel({
 
         lastResponse = response;
 
+        // Update the generating step label with classified intent
+        chatState.updateGeneratingLabel(response.intent);
+
         // If no code returned (e.g., 'explain' intent), display immediately
         if (!response.code) {
           chatState.addAssistantMessage(userMessageId, response.explanation, undefined, false, undefined);
@@ -222,11 +225,14 @@ export function AIPanel({
           return;
         }
 
-        // Transition to compiling
-        chatState.setCompiling();
+        // Add compiling step (marks generating as success)
+        chatState.addCompilingStep();
 
         // Compile and wait for result - code visually appears in editor (read-only)
         const compilationSucceeded = await compileAndWaitForResult(response.code);
+
+        // Mark compilation result (success or failed)
+        chatState.markCompilationResult(compilationSucceeded);
 
         if (compilationSucceeded) {
           // SUCCESS! Capture thumbnail and display response

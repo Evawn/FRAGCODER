@@ -30,17 +30,25 @@ export interface ChatMessageNode {
 }
 
 /**
- * Status of an individual task step in the AI pipeline
+ * Type of step in the AI processing pipeline
  */
-export type TaskStepStatus = 'pending' | 'in_progress' | 'complete' | 'error';
+export type ThinkingStepType = 'generating' | 'compiling' | 'retrying';
+
+/**
+ * Result status of a thinking step
+ */
+export type ThinkingStepResult = 'pending' | 'success' | 'failed';
 
 /**
  * Represents a single step in the AI processing pipeline
+ * Steps are added incrementally and accumulated across retries
  */
-export interface TaskStep {
+export interface ThinkingStep {
   id: string;
+  type: ThinkingStepType;
   label: string;
-  status: TaskStepStatus;
+  result: ThinkingStepResult;
+  retryInfo?: { attempt: number; maxAttempts: number };  // Only for retry steps
 }
 
 /**
@@ -50,11 +58,11 @@ export type TaskStatus = 'idle' | 'thinking' | 'compiling' | 'complete' | 'error
 
 /**
  * State of the current AI task/thinking process
- * Supports retry loops with attempt tracking
+ * Steps are accumulated incrementally as they happen
  */
 export interface TaskState {
   status: TaskStatus;
-  steps: TaskStep[];
+  steps: ThinkingStep[];
   currentAttempt?: number;  // Current attempt number (1, 2, or 3)
   maxAttempts?: number;     // Maximum attempts allowed (typically 3)
 }

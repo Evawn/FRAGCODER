@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { RefreshCw, Pencil, Check, Loader2, ChevronLeft, ChevronRight, Code2, CircleUser, CornerDownRight } from 'lucide-react';
+import { RefreshCw, Pencil, Check, Loader2, ChevronLeft, ChevronRight, Code2, CircleUser, CornerDownRight, X } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
@@ -243,50 +243,42 @@ function AssistantMessage({
 
 /**
  * TaskIndicator component showing AI processing status
- * Displays retry badge when on attempt > 1
+ * Displays an incrementally growing list of steps with success/failure indicators
  */
 function TaskIndicator({ taskState }: { taskState: TaskState }) {
-  if (taskState.status === 'idle') return null;
-
-  const currentStep = taskState.steps.find(s => s.status === 'in_progress');
-  const currentStepLabel = currentStep?.label ?? 'Processing...';
-
-  // Show retry badge when on attempt > 1
-  const isRetrying = taskState.currentAttempt !== undefined && taskState.currentAttempt > 1;
-  const retryNumber = isRetrying ? taskState.currentAttempt! - 1 : 0;
-  const maxRetries = taskState.maxAttempts !== undefined ? taskState.maxAttempts - 1 : 2;
+  if (taskState.status === 'idle' || taskState.steps.length === 0) return null;
 
   return (
-    <div className="flex flex-col gap-1 text-xs">
-      <div className="flex items-center gap-2 text-foreground">
-        <Loader2 className="h-3 w-3 animate-spin" />
-        <span>{currentStepLabel}</span>
-        {isRetrying && (
-          <span className="text-amber-500 text-[10px] font-medium">
-            Retry {retryNumber}/{maxRetries}
-          </span>
-        )}
-      </div>
-      <div className="flex flex-col gap-0.5 pl-5">
-        {taskState.steps.map(step => (
-          <div
-            key={step.id}
-            className={cn(
-              'flex items-center gap-2',
-              step.status === 'complete' && 'text-green-500',
-              step.status === 'in_progress' && 'text-foreground',
-              step.status === 'pending' && 'text-muted-foreground',
-              step.status === 'error' && 'text-red-500'
+    <div className="flex flex-col gap-1.5 text-xs text-muted-foreground">
+      {taskState.steps.map(step => {
+        // Build display label
+        let displayLabel = step.label;
+
+        // Add retry info if present
+        if (step.retryInfo) {
+          displayLabel += ` (Retry ${step.retryInfo.attempt}/${step.retryInfo.maxAttempts})`;
+        }
+
+        // Add result indicator for compilation steps
+        if (step.type === 'compiling' && step.result !== 'pending') {
+          displayLabel += step.result === 'success' ? ' - success' : ' - failed';
+        }
+
+        const isPending = step.result === 'pending';
+
+        return (
+          <div key={step.id} className="flex items-center gap-2">
+            {isPending ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : step.result === 'success' ? (
+              <Check className="h-3 w-3" />
+            ) : (
+              <X className="h-3 w-3" />
             )}
-          >
-            {step.status === 'complete' && <Check className="h-3 w-3" />}
-            {step.status === 'in_progress' && <Loader2 className="h-3 w-3 animate-spin" />}
-            {step.status === 'pending' && <div className="h-3 w-3" />}
-            {step.status === 'error' && <div className="h-3 w-3 rounded-full bg-red-500" />}
-            <span>{step.label}</span>
+            <span>{displayLabel}</span>
           </div>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }

@@ -203,6 +203,7 @@ export interface AIPromptResponse {
   code?: string;  // Optional - not returned for 'explain' intent
   explanation: string;
   usage?: AIUsageMetrics;
+  intent: AIIntent;  // The classified intent (or override if provided)
 }
 
 /**
