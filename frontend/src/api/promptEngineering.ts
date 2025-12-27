@@ -4,7 +4,7 @@
  */
 
 import { apiClient, API_BASE_URL } from './client';
-import type { GoldenDataset, ResponseSuite, ResponseScore } from '../../../prompt-engineering/types';
+import type { GoldenDataset, GoldenPrompt, ResponseSuite, ResponseScore } from '../../../prompt-engineering/types';
 
 /**
  * Suite summary for list display
@@ -271,4 +271,34 @@ export function subscribeToRun(
     });
 
   return () => abortController.abort();
+}
+
+/**
+ * Save the entire golden dataset
+ */
+export async function saveGoldenDataset(prompts: GoldenPrompt[]): Promise<void> {
+  await apiClient.put('/api/prompt-engineering/golden-dataset', { prompts });
+}
+
+/**
+ * Add a new entry to the golden dataset
+ */
+export async function addGoldenEntry(entry: GoldenPrompt): Promise<GoldenPrompt> {
+  const response = await apiClient.post<GoldenPrompt>('/api/prompt-engineering/golden-dataset/entry', entry);
+  return response.data;
+}
+
+/**
+ * Update an existing entry in the golden dataset
+ */
+export async function updateGoldenEntry(id: string, entry: GoldenPrompt): Promise<GoldenPrompt> {
+  const response = await apiClient.put<GoldenPrompt>(`/api/prompt-engineering/golden-dataset/entry/${id}`, entry);
+  return response.data;
+}
+
+/**
+ * Delete an entry from the golden dataset
+ */
+export async function deleteGoldenEntry(id: string): Promise<void> {
+  await apiClient.delete(`/api/prompt-engineering/golden-dataset/entry/${id}`);
 }

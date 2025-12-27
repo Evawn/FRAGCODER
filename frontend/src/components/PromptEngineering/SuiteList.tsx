@@ -8,7 +8,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { getSuiteSummaries, runSuiteWithProgress, getRunningStatus, subscribeToRun, cancelRun, type SuiteSummary } from '@/data/promptEngineeringSuites';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, XCircle, Clock, Star, Plus, Loader2 } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Star, Plus, Loader2, Database } from 'lucide-react';
 import { NewSuiteDialog } from './NewSuiteDialog';
 import { SuiteRunProgress } from './SuiteRunProgress';
 import type { ResponseSuite } from '../../../../prompt-engineering/types';
@@ -246,14 +246,24 @@ export function SuiteList() {
               Review and score AI responses from test suite runs.
             </p>
           </div>
-          <Button
-            onClick={handleDialogOpen}
-            disabled={isRunning}
-            className="flex items-center gap-2"
-          >
-            <Plus size={16} />
-            Run new test suite...
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/debug/prompt-engineering/golden-dataset')}
+              className="flex items-center gap-2"
+            >
+              <Database size={16} />
+              Golden Dataset
+            </Button>
+            <Button
+              onClick={handleDialogOpen}
+              disabled={isRunning}
+              className="flex items-center gap-2"
+            >
+              <Plus size={16} />
+              Run new test suite...
+            </Button>
+          </div>
         </div>
       </div>
 

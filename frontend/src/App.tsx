@@ -15,6 +15,7 @@ function App() {
         <Route path="/shader/:slug" element={<EditorPage />} />
         {/* Debug routes - remove when no longer needed */}
         <Route path="/debug/prompt-engineering" element={<PromptEngineeringPage />} />
+        <Route path="/debug/prompt-engineering/golden-dataset" element={<PromptEngineeringPage />} />
         <Route path="/debug/prompt-engineering/:suiteId" element={<PromptEngineeringPage />} />
         <Route path="/debug/prompt-engineering/:suiteId/:promptId" element={<PromptEngineeringPage />} />
       </Routes>

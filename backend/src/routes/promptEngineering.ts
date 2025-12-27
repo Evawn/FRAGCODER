@@ -82,6 +82,116 @@ router.get('/golden-dataset', asyncHandler(async (_req, res) => {
 }));
 
 /**
+ * PUT /api/prompt-engineering/golden-dataset
+ * Save the entire golden dataset
+ */
+router.put('/golden-dataset', asyncHandler(async (req, res) => {
+  const { prompts } = req.body;
+
+  if (!prompts || !Array.isArray(prompts)) {
+    return res.status(400).json({ error: 'prompts array is required' });
+  }
+
+  const dataset: GoldenDataset = { prompts };
+  fs.writeFileSync(GOLDEN_DATASET_PATH, JSON.stringify(dataset, null, 2));
+
+  return res.json({ success: true });
+}));
+
+/**
+ * POST /api/prompt-engineering/golden-dataset/entry
+ * Add a new entry to the golden dataset
+ */
+router.post('/golden-dataset/entry', asyncHandler(async (req, res) => {
+  const entry = req.body;
+
+  if (!entry.id || !entry.input?.prompt) {
+    return res.status(400).json({ error: 'id and input.prompt are required' });
+  }
+
+  // Load existing dataset
+  let dataset: GoldenDataset = { prompts: [] };
+  if (fs.existsSync(GOLDEN_DATASET_PATH)) {
+    dataset = JSON.parse(fs.readFileSync(GOLDEN_DATASET_PATH, 'utf-8'));
+  }
+
+  // Check for duplicate ID
+  if (dataset.prompts.some(p => p.id === entry.id)) {
+    return res.status(400).json({ error: 'Entry with this ID already exists' });
+  }
+
+  // Add the new entry
+  dataset.prompts.push(entry);
+  fs.writeFileSync(GOLDEN_DATASET_PATH, JSON.stringify(dataset, null, 2));
+
+  return res.json(entry);
+}));
+
+/**
+ * PUT /api/prompt-engineering/golden-dataset/entry/:id
+ * Update an existing entry in the golden dataset
+ */
+router.put('/golden-dataset/entry/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const entry = req.body;
+
+  if (!entry.input?.prompt) {
+    return res.status(400).json({ error: 'input.prompt is required' });
+  }
+
+  // Load existing dataset
+  if (!fs.existsSync(GOLDEN_DATASET_PATH)) {
+    return res.status(404).json({ error: 'Golden dataset not found' });
+  }
+
+  const dataset: GoldenDataset = JSON.parse(fs.readFileSync(GOLDEN_DATASET_PATH, 'utf-8'));
+
+  // Find the entry to update
+  const index = dataset.prompts.findIndex(p => p.id === id);
+  if (index === -1) {
+    return res.status(404).json({ error: 'Entry not found' });
+  }
+
+  // If ID is changing, check for duplicate
+  if (entry.id !== id && dataset.prompts.some(p => p.id === entry.id)) {
+    return res.status(400).json({ error: 'Entry with the new ID already exists' });
+  }
+
+  // Update the entry
+  dataset.prompts[index] = entry;
+  fs.writeFileSync(GOLDEN_DATASET_PATH, JSON.stringify(dataset, null, 2));
+
+  return res.json(entry);
+}));
+
+/**
+ * DELETE /api/prompt-engineering/golden-dataset/entry/:id
+ * Delete an entry from the golden dataset
+ */
+router.delete('/golden-dataset/entry/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  // Load existing dataset
+  if (!fs.existsSync(GOLDEN_DATASET_PATH)) {
+    return res.status(404).json({ error: 'Golden dataset not found' });
+  }
+
+  const dataset: GoldenDataset = JSON.parse(fs.readFileSync(GOLDEN_DATASET_PATH, 'utf-8'));
+
+  // Find the entry to delete
+  const index = dataset.prompts.findIndex(p => p.id === id);
+  if (index === -1) {
+    return res.status(404).json({ error: 'Entry not found' });
+  }
+
+  // Remove the entry
+  dataset.prompts.splice(index, 1);
+  fs.writeFileSync(GOLDEN_DATASET_PATH, JSON.stringify(dataset, null, 2));
+
+  return res.json({ success: true });
+}));
+
+/**
  * GET /api/prompt-engineering/suites
  * List all response suites with summary info
  */
