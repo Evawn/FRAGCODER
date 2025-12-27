@@ -1,0 +1,175 @@
+{
+  "prompts": [
+    {
+      "id": "raytracing_3d_primitives",
+      "input": {
+        "prompt": "Create a 3D raytracing shader with various object primitives."
+      },
+      "notes": "Vague prompt with a lot of decisions to make. Tests ability to handle open-ended requirements and make reasonable creative choices.",
+      "tags": ["new_3d", "raytracing", "primitives", "lighting", "vague"],
+      "expectedBehavior": "Should produce a proper 3D ray-casting shader. Include multiple helper functions, each defining a primitive 3D geometry (spheres, boxes, planes, cylinders, etc.). Correct camera angle showing a scene with all primitives included. Proper lighting including diffuse shading, ambient occlusion, and point/directional light source. Bonus: camera or object animations, each primitive in a different color, a ground plane to center the scene, a pleasant skybox."
+    },
+    {
+      "id": "mandelbulb_fractal_mouse",
+      "input": {
+        "prompt": "Make a rotating mandelbulb fractal and mouse controls for zooming in and out."
+      },
+      "notes": "Doesn't specify ray-marching distance estimation. Color decisions left open. Needs to make proper use of iMouse uniform.",
+      "tags": ["new_3d", "fractal", "raymarching", "mouse_controls", "animation"],
+      "expectedBehavior": "Should implement a proper ray-marching algorithm with distance estimation for the Mandelbulb fractal. Should run smoothly without performance issues. Good color choices that highlight the fractal detail. Proper camera framing that shows the structure well. Correct use of iMouse for zoom controls (e.g., mouse Y for zoom level)."
+    },
+    {
+      "id": "volumetric_clouds_flythrough",
+      "input": {
+        "prompt": "Make a shader that depicts 3D volumetric clouds, with a camera fly-through during daytime and a sun."
+      },
+      "notes": "Multiple complex elements required: volumetric cloud rendering, sun, sky, and camera animation. Tests compositing multiple effects.",
+      "tags": ["new_3d", "volumetric", "clouds", "camera_animation", "sky", "sun"],
+      "expectedBehavior": "Should include a proper skybox with daytime colors. Good volumetric cloud algorithm using raymarching and noise. Acceptable camera speed and smooth motion through the clouds. Sun with bloom effect, possibly lens flare. Clouds should have proper density falloff and lighting from the sun."
+    },
+    {
+      "id": "2d_clouds_blue_sky",
+      "input": {
+        "prompt": "Make a 2D cloud effect with a nice blue sky."
+      },
+      "notes": "Simple 2D request with minimal constraints. Tests basic aesthetic judgment.",
+      "tags": ["new_2d", "clouds", "sky", "simple"],
+      "expectedBehavior": "Should produce a visually appealing 2D cloud effect. Nice blue sky gradient. Clouds should look soft and natural. May use noise-based techniques or procedural shapes. Overall result should look good and be pleasant to view."
+    },
+    {
+      "id": "glass_spheres_raytracing",
+      "input": {
+        "prompt": "Create a 3D renderer that ray traces multiple glass spheres with diffraction and reflection. The spheres are bouncing around a white box."
+      },
+      "notes": "Complex raytracing with multiple optical effects. Requires proper physics for bouncing animation.",
+      "tags": ["new_3d", "raytracing", "refraction", "reflection", "animation", "glass"],
+      "expectedBehavior": "Should implement a proper raytracing algorithm. Rays should correctly intersect all spheres in scene. Other spheres should be visible through refraction/diffraction effects. Acceptable bouncing animation for the spheres (realistic physics optional). Fixed camera angle showing the entire scene. Proper white box background and lighting to showcase the glass effects."
+    },
+    {
+      "id": "noise_terrain_flyover",
+      "input": {
+        "prompt": "Noise-based terrain with camera flyover. Rocky desert with canyons during daytime."
+      },
+      "notes": "Procedural terrain generation with specific environment style. Camera animation required.",
+      "tags": ["new_3d", "terrain", "noise", "camera_animation", "desert", "environment"],
+      "expectedBehavior": "Should have proper camera framing and smooth flyover movement. Proper noise-generated terrain with rocky desert appearance and canyon features. Appropriate daytime lighting. Desert-appropriate color palette (browns, tans, oranges) for convincing environment. Bonus: distance fog, ambient occlusion, atmospheric haze."
+    },
+    {
+      "id": "grassy_hills_ocean",
+      "input": {
+        "prompt": "Make a shader with grassy hills overlooking an ocean in the distance."
+      },
+      "notes": "Specific, complex composed scene with multiple elements. Not specified if 2D or 3D - should be 3D for proper depth.",
+      "tags": ["new_3d", "terrain", "water", "vegetation", "complex_scene", "grass"],
+      "expectedBehavior": "Should produce a 3D scene with actual rolling hills. Animated grass effect on the hills (wind movement). Proper composition with blue ocean visible in the background. Appropriate lighting, skybox, and sun. Static camera with good framing of the scene. Bonus: wind animation affecting grass, waves on ocean, atmospheric perspective."
+    },
+    {
+      "id": "jupiter_swirling_clouds",
+      "input": {
+        "prompt": "Create a 2D effect of swirling Jupiter clouds, showing currents and stormy colors as the atmosphere evolves."
+      },
+      "notes": "Fluid dynamics aesthetic in 2D. Should evoke the gas giant's distinctive banded appearance.",
+      "tags": ["new_2d", "fluid", "noise", "space", "animation", "jupiter"],
+      "expectedBehavior": "Should be a true 2D effect (not 3D planet rendering). Visually appealing swirling patterns reminiscent of Jupiter's atmosphere. Should show evolving currents and turbulent flow. Stormy color palette (oranges, reds, browns, creams). Animation should feel organic and fluid-like."
+    },
+    {
+      "id": "ocean_surface_mouse_camera",
+      "input": {
+        "prompt": "Make a shader showing a detail ocean surface with waves, with mouse camera controls."
+      },
+      "notes": "Water simulation with interactive camera. Tests both water rendering and input handling.",
+      "tags": ["new_3d", "water", "mouse_controls", "ocean", "waves"],
+      "expectedBehavior": "Should implement a proper ocean shader algorithm with realistic wave patterns. Correct mouse-based camera controls (rotation, possibly zoom). Proper skybox and sun with reflection on water. Waves should have appropriate scale and animation speed. Water should have proper coloring and transparency effects."
+    },
+    {
+      "id": "exoplanet_orbiting_moons",
+      "input": {
+        "prompt": "New shader showing moons orbiting an exotic exoplanet, stars in the background. The planet is lush with life and the moons are vibrant colors and heavily cratered."
+      },
+      "notes": "Space scene with multiple animated celestial bodies. Specific visual requirements for planet and moons.",
+      "tags": ["new_3d", "space", "animation", "celestial", "planet", "moons"],
+      "expectedBehavior": "Should show correct appearance of planet (lush/green suggests vegetation) and moons (vibrant colors, visible craters). Good orbital animations with proper timing. Well-composed framing showing the system. Stars in background. Proper lighting from a star source. Moons should cast shadows or have proper phase lighting."
+    },
+    {
+      "id": "space_warp_drive_mouse",
+      "input": {
+        "prompt": "Create a new shader that depicts outer space with stars and parallax. Holding mouse enables a \"warp drive\" mode."
+      },
+      "notes": "Two distinct visual modes controlled by mouse input. Tests state-based rendering and input handling.",
+      "tags": ["new_2d", "space", "mouse_controls", "particles", "stars", "interactive"],
+      "expectedBehavior": "Should have correct mouse controls for toggling between normal and warp mode. Normal mode: star field with parallax depth effect. Warp mode: star streaks/elongation effect suggesting faster-than-light travel. Smooth transition between modes. Both modes should look visually appealing."
+    },
+    {
+      "id": "rain_puddle_ripples",
+      "input": {
+        "prompt": "Make a rain droplet on a puddle effect with ripples. Convincing and realistic."
+      },
+      "notes": "Realistic water simulation focus. Emphasis on convincing physics.",
+      "tags": ["new_2d", "water", "ripples", "realistic", "rain", "simulation"],
+      "expectedBehavior": "Should look realistic and convincing. Proper ripple propagation physics. Multiple droplets creating overlapping ripple patterns. Appropriate timing for droplet impacts. Water surface should have proper reflective/refractive qualities. May be 2D top-down view or 3D angled view."
+    },
+    {
+      "id": "black_hole_accretion_disk",
+      "input": {
+        "prompt": "Make a black hole with an accretion disk, bending the light and spacetime around it."
+      },
+      "notes": "Advanced gravitational lensing effect. Scientifically-inspired visual.",
+      "tags": ["new_3d", "space", "gravitational_lensing", "black_hole", "physics"],
+      "expectedBehavior": "Should show a black hole with proper event horizon. Accretion disk with appropriate coloring (hot inner region, cooler outer). Gravitational lensing effect bending background stars/light around the black hole. Photon sphere effects if possible. Doppler beaming on the accretion disk (one side brighter due to relativistic effects) is a bonus."
+    },
+    {
+      "id": "dna_helix_microscopic",
+      "input": {
+        "prompt": "Create a shader showing a microscopic view of a DNA helix. Tilt-shift effect to indicate miniature size. It looks 3D medical rendering of cellular structures."
+      },
+      "notes": "Scientific visualization with specific depth-of-field effect. Medical/educational aesthetic.",
+      "tags": ["new_3d", "organic", "tilt_shift", "medical", "dna", "scientific"],
+      "expectedBehavior": "Should render a recognizable DNA double helix structure. Tilt-shift blur effect creating miniature/microscopic appearance. Medical visualization aesthetic (clean, possibly blue-tinted lighting). 3D rendered look with proper shading. Structure should be anatomically reasonable (base pairs, sugar-phosphate backbone visible)."
+    },
+    {
+      "id": "geometric_tessellation_2d",
+      "input": {
+        "prompt": "Create a 2D evolving geometric tessellation shader."
+      },
+      "notes": "Procedural pattern generation with animation. Mathematical/geometric aesthetic.",
+      "tags": ["new_2d", "geometric", "tessellation", "animation", "patterns"],
+      "expectedBehavior": "Should produce a true 2D tessellation pattern. Patterns should evolve/animate over time. Geometric shapes that tile properly without gaps. Visually interesting color choices. May include morphing between different tessellation types or animated transformations."
+    },
+    {
+      "id": "terrain_erosion_simulation",
+      "input": {
+        "prompt": "Make a terrain erosion simulation with hydraulic erosion on a patch of terrain."
+      },
+      "notes": "Simulation-focused shader. May require multi-pass or clever single-pass techniques.",
+      "tags": ["new_3d", "simulation", "erosion", "terrain", "hydraulic", "procedural"],
+      "expectedBehavior": "Should show terrain being modified by erosion over time. Hydraulic erosion effects: water carving channels, sediment transport and deposition. Starting terrain should gradually develop river-like patterns and valleys. May show water flow visualization. Terrain coloring should reflect erosion (exposed rock, sediment deposits)."
+    },
+    {
+      "id": "candle_flame_realistic",
+      "input": {
+        "prompt": "Make a shader depicting a realistic flame on a candle."
+      },
+      "notes": "Fire simulation with specific context (candle). Emphasis on realism.",
+      "tags": ["new_3d", "fire", "realistic", "candle", "simulation"],
+      "expectedBehavior": "Should produce a realistic-looking candle flame. Proper flame shape (teardrop, flickering tip). Appropriate color gradient (blue base, yellow/orange body, red edges). Natural flickering animation. Candle and wick should be visible. Proper lighting from the flame illuminating surroundings. Possible heat distortion effect above flame."
+    },
+    {
+      "id": "valley_god_rays",
+      "input": {
+        "prompt": "Make a shader depicting a magnificent valley with god rays."
+      },
+      "notes": "Landscape with volumetric lighting. Emphasis on dramatic, impressive visuals.",
+      "tags": ["new_3d", "terrain", "volumetric_lighting", "god_rays", "landscape"],
+      "expectedBehavior": "Should render a valley landscape. Prominent god rays (crepuscular rays) streaming through atmosphere. Dramatic, magnificent composition. Proper terrain with depth. Atmospheric haze/fog to make god rays visible. Appropriate lighting suggesting sun breaking through clouds or mountains. Overall impressive and visually striking."
+    },
+    {
+      "id": "voronoi_colorful",
+      "input": {
+        "prompt": "Shader: voronoi patterns, colorful palette."
+      },
+      "notes": "Minimal prompt with specific technique and style requirement. Tests interpretation of terse requests.",
+      "tags": ["new_2d", "voronoi", "colorful", "patterns", "procedural"],
+      "expectedBehavior": "Should implement proper Voronoi diagram/pattern generation. Colorful palette with vibrant, varied colors. Cells should be clearly defined. May include animation (moving seed points, color shifts). Clean implementation of the Voronoi algorithm. Visually appealing color choices that work well together."
+    }
+  ]
+}

@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom'
 import HomePage from './pages/HomePage'
 import Gallery from './pages/GalleryPage'
 import EditorPage from './pages/EditorPage'
+import PromptEngineeringPage from './pages/PromptEngineeringPage'
 
 function App() {
   return (
@@ -12,6 +13,10 @@ function App() {
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/new" element={<EditorPage />} />
         <Route path="/shader/:slug" element={<EditorPage />} />
+        {/* Debug routes - remove when no longer needed */}
+        <Route path="/debug/prompt-engineering" element={<PromptEngineeringPage />} />
+        <Route path="/debug/prompt-engineering/:suiteId" element={<PromptEngineeringPage />} />
+        <Route path="/debug/prompt-engineering/:suiteId/:promptId" element={<PromptEngineeringPage />} />
       </Routes>
     </div>
   )

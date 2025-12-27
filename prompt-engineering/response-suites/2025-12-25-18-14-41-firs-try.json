@@ -1,0 +1,174 @@
+{
+  "id": "2025-12-25-18-14-41-firs-try",
+  "description": "firs try",
+  "model": "google/gemini-2.5-flash",
+  "createdAt": "2025-12-25T18:14:41.032Z",
+  "responses": [
+    {
+      "promptId": "new_2d_plasma",
+      "prompt": {
+        "id": "new_2d_plasma",
+        "input": {
+          "prompt": "Create a colorful plasma effect with smooth animated waves"
+        },
+        "notes": "Tests basic 2D shader generation with animation",
+        "tags": [
+          "new_2d",
+          "animation",
+          "noise"
+        ],
+        "expectedBehavior": "Should produce a colorful, animated plasma effect using sine waves or noise functions. Should compile without errors and animate smoothly."
+      },
+      "response": {
+        "code": "float random(vec2 st) {\n    return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);\n}\n\nvec3 palette(float t) {\n    vec3 a = vec3(0.5, 0.5, 0.5);\n    vec3 b = vec3(0.5, 0.5, 0.5);\n    vec3 c = vec3(1.0, 1.0, 1.0);\n    vec3 d = vec3(0.263, 0.416, 0.557);\n    return a + b * cos(6.28318 * (c * t + d));\n}\n\nvoid mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = fragCoord / iResolution.xy;\n    vec2 p = uv - vec2(0.5);\n    p.x *= iResolution.x / iResolution.y;\n\n    float d = length(p * 2.5);\n    float angle = atan(p.y, p.x);\n\n    float wave1 = sin(angle * 10.0 + iTime * 2.0) * 0.1 + 0.1;\n    float wave2 = sin(d * 15.0 - iTime * 3.0) * 0.05 + 0.05;\n    float wave3 = sin(angle * 5.0 + d * 8.0 + iTime * 1.5) * 0.08 + 0.08;\n\n    float colorFactor = d + wave1 + wave2 + wave3;\n    colorFactor += random(uv * 10.0 + iTime * 0.1) * 0.05;\n    colorFactor = fract(colorFactor + iTime * 0.05);\n\n    vec3 col = palette(colorFactor);\n\n    fragColor = vec4(col, 1.0);\n}",
+        "explanation": "This shader creates a hypnotic, pulsating kaleidoscope effect by mapping a complex fractal-like pattern to a color palette that animates over time. The movement is achieved through sine waves applied to radial distance and angle, creating a dynamic visual flow.",
+        "usage": {
+          "promptTokens": 799,
+          "completionTokens": 574,
+          "totalTokens": 1373
+        },
+        "intent": "new_shader"
+      },
+      "latencyMs": 3690,
+      "compilationSuccess": true,
+      "compilationErrors": [],
+      "score": {
+        "visualQuality": 3,
+        "accuracy": 2,
+        "explanationQuality": 3,
+        "codeQuality": 3,
+        "scoredAt": "2025-12-25T18:15:14.901Z"
+      }
+    },
+    {
+      "promptId": "new_3d_sphere",
+      "prompt": {
+        "id": "new_3d_sphere",
+        "input": {
+          "prompt": "Create a raymarched sphere with soft shadows on a plane"
+        },
+        "notes": "Tests 3D raymarching capabilities",
+        "tags": [
+          "new_3d",
+          "raymarching",
+          "shadows"
+        ],
+        "expectedBehavior": "Should produce a raymarched scene with a sphere casting shadows on a ground plane. Should use proper SDF functions and shadow ray casting."
+      },
+      "response": {
+        "code": "float sdPlane(vec3 p) { return p.y; }\n\nfloat sdSphere(vec3 p, float r) { return length(p) - r; }\n\nvec2 opU(vec2 d1, vec2 d2) { return (d1.x < d2.x) ? d1 : d2; }\n\nvec2 map(vec3 p) {\n    vec2 res = vec2(sdPlane(p), 1.0);\n    res = opU(res, vec2(sdSphere(p - vec3(0.0, 0.5, 0.0), 0.5), 0.0));\n    return res;\n}\n\nvec3 getNormal(vec3 p) {\n    vec2 eps = vec2(0.001, 0.0);\n    return normalize(vec3(\n        map(p + eps.xyy).x - map(p - eps.xyy).x,\n        map(p + eps.yxy).x - map(p - eps.yxy).x,\n        map(p + eps.yyx).x - map(p - eps.yyx).x\n    ));\n}\n\nfloat softShadow(vec3 ro, vec3 rd, float k) {\n    float res = 1.0;\n    float t = 0.01;\n    for (int i = 0; i < 64; i++) {\n        float h = map(ro + rd * t).x;\n        res = min(res, k * h / t);\n        t += clamp(h, 0.01, 0.1);\n        if (h < 0.001 || t > 10.0) break;\n    }\n    return clamp(res, 0.0, 1.0);\n}\n\nvoid mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = (fragCoord - 0.5 * iResolution.xy) / iResolution.y;\n    vec3 ro = vec3(1.5 * cos(iTime * 0.1), 1.5, 1.5 * sin(iTime * 0.1));\n    vec3 target = vec3(0.0, 0.5, 0.0);\n    \n    vec3 forward = normalize(target - ro);\n    vec3 right = normalize(cross(vec3(0.0, 1.0, 0.0), forward));\n    vec3 up = normalize(cross(forward, right));\n\n    vec3 rd = normalize(forward + right * uv.x + up * uv.y);\n\n    float t = 0.0;\n    float maxDist = 20.0;\n    for (int i = 0; i < 100; i++) {\n        vec2 res = map(ro + rd * t);\n        if (res.x < 0.001 || t > maxDist) break;\n        t += res.x;\n    }\n\n    vec3 color = vec3(0.0);\n    if (t < maxDist) {\n        vec3 p = ro + rd * t;\n        vec3 normal = getNormal(p);\n        \n        vec3 lightPos = vec3(3.0 * cos(iTime * 0.5), 5.0, 3.0 * sin(iTime * 0.5));\n        vec3 lightDir = normalize(lightPos - p);\n        \n        float diff = clamp(dot(normal, lightDir), 0.0, 1.0);\n        \n        float materialID = map(p).y;\n        vec3 objColor;\n        if (materialID < 0.5) { // Sphere\n            objColor = vec3(0.1, 0.4, 0.7);\n        } else { // Plane\n            objColor = vec3(0.8, 0.8, 0.8);\n        }\n\n        float shadow = softShadow(p + normal * 0.01, lightDir, 16.0);\n\n        color = objColor * mix(0.1, 1.0, diff * shadow);\n    }\n\n    fragColor = vec4(color, 1.0);\n}",
+        "explanation": "This shader raymarches a sphere sitting on a plane, incorporating diffuse lighting and soft shadows. It uses signed distance functions for the geometry and iteratively steps along the ray, calculating soft shadows by sampling the scene along the light direction.",
+        "usage": {
+          "promptTokens": 802,
+          "completionTokens": 1091,
+          "totalTokens": 1893
+        },
+        "intent": "new_shader"
+      },
+      "latencyMs": 5304,
+      "compilationSuccess": true,
+      "compilationErrors": []
+    },
+    {
+      "promptId": "modify_add_glow",
+      "prompt": {
+        "id": "modify_add_glow",
+        "input": {
+          "prompt": "Add a glowing edge effect to the shape",
+          "code": "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = fragCoord / iResolution.xy;\n    uv = uv * 2.0 - 1.0;\n    uv.x *= iResolution.x / iResolution.y;\n    \n    float d = length(uv) - 0.5;\n    vec3 col = d < 0.0 ? vec3(0.2, 0.5, 0.8) : vec3(0.1);\n    \n    fragColor = vec4(col, 1.0);\n}"
+        },
+        "notes": "Tests modification of existing code",
+        "tags": [
+          "modify",
+          "effects",
+          "glow"
+        ],
+        "expectedBehavior": "Should add a glowing edge effect to the existing circle shape. The glow should be visible around the circle's edge and possibly animate or pulse."
+      },
+      "response": {
+        "code": "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = fragCoord / iResolution.xy;\n    uv = uv * 2.0 - 1.0;\n    uv.x *= iResolution.x / iResolution.y;\n    \n    float d = length(uv) - 0.5;\n    vec3 col = d < 0.0 ? vec3(0.2, 0.5, 0.8) : vec3(0.1);\n    \n    // Glowing edge effect\n    float glow = smoothstep(0.02, 0.0, d);\n    col += vec3(glow * 0.8, glow * 0.5, glow * 0.2);\n    \n    fragColor = vec4(col, 1.0);\n}",
+        "explanation": "This shader creates a circle with a glowing edge. The glow is achieved by adding a color based on the `smoothstep` function near the circle's boundary.",
+        "usage": {
+          "promptTokens": 936,
+          "completionTokens": 250,
+          "totalTokens": 1186
+        },
+        "intent": "modify"
+      },
+      "latencyMs": 1762,
+      "compilationSuccess": true,
+      "compilationErrors": []
+    },
+    {
+      "promptId": "debug_fix_error",
+      "prompt": {
+        "id": "debug_fix_error",
+        "input": {
+          "prompt": "Fix the compilation error",
+          "code": "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = fragCoord / iResolution.xy;\n    \n    // Missing semicolon and wrong function name\n    float brightness = smoothstep(0.4, 0.5, length(uv - 0.5))\n    vec3 col = vec3(brightness)\n    \n    fragColor = vec4(col, 1.0);\n}",
+          "errors": [
+            {
+              "line": 5,
+              "message": "syntax error: unexpected 'vec3'",
+              "type": "error"
+            }
+          ]
+        },
+        "notes": "Tests debugging capabilities with syntax errors",
+        "tags": [
+          "debug",
+          "syntax"
+        ],
+        "expectedBehavior": "Should fix the missing semicolons on lines 5 and 6. The explanation should identify the syntax errors clearly."
+      },
+      "response": {
+        "code": "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = fragCoord / iResolution.xy;\n    \n    float brightness = smoothstep(0.4, 0.5, length(uv - 0.5));\n    vec3 col = vec3(brightness);\n    \n    fragColor = vec4(col, 1.0);\n}",
+        "explanation": "This shader creates a circular gradient by calculating the distance from the center of the UV coordinates. The `smoothstep` function then uses this distance to create a smooth transition for brightness, resulting in a glow-like effect where the center is brighter and darkens towards the edges.",
+        "usage": {
+          "promptTokens": 932,
+          "completionTokens": 167,
+          "totalTokens": 1099
+        },
+        "intent": "debug"
+      },
+      "latencyMs": 1640,
+      "compilationSuccess": true,
+      "compilationErrors": []
+    },
+    {
+      "promptId": "explain_shader",
+      "prompt": {
+        "id": "explain_shader",
+        "input": {
+          "prompt": "Explain what this shader does and how it works",
+          "code": "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n    vec2 uv = fragCoord / iResolution.xy;\n    uv = uv * 2.0 - 1.0;\n    uv.x *= iResolution.x / iResolution.y;\n    \n    float t = iTime * 0.5;\n    vec2 p = uv;\n    \n    for(int i = 0; i < 8; i++) {\n        p = abs(p) / dot(p, p) - 0.7;\n        p *= mat2(cos(t), sin(t), -sin(t), cos(t));\n    }\n    \n    vec3 col = 0.5 + 0.5 * cos(length(p) * 3.0 + vec3(0, 2, 4));\n    fragColor = vec4(col, 1.0);\n}",
+          "intent": "explain"
+        },
+        "notes": "Tests explanation capabilities without code generation",
+        "tags": [
+          "explain",
+          "fractal"
+        ],
+        "expectedBehavior": "Should explain the fractal/IFS technique, the rotation matrix, the color palette generation, and overall effect. Should NOT generate new code."
+      },
+      "response": {
+        "explanation": "This shader creates a fractal pattern using iterative transformations. It scales and centers the UV coordinates, then repeatedly applies a complex number transformation and a rotation based on time. The final color is determined by the length of the transformed coordinates, generating a mesmerizing, evolving visual similar to a Mandelbrot set or Julia set.",
+        "usage": {
+          "promptTokens": 332,
+          "completionTokens": 67,
+          "totalTokens": 399
+        },
+        "intent": "explain"
+      },
+      "latencyMs": 817,
+      "compilationSuccess": true,
+      "compilationErrors": []
+    }
+  ],
+  "metadata": {
+    "totalPrompts": 5,
+    "successfulCompilations": 5,
+    "averageLatencyMs": 2643,
+    "scoredCount": 1
+  }
+}
