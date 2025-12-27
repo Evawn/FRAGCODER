@@ -8,6 +8,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { asyncHandler } from '../middleware/errorHandler';
 import { processPrompt } from '../services/aiService';
+import { logger } from '../utils/logger';
 import type { GoldenDataset, PromptResponse, ResponseSuite, ResponseScore } from '../../../prompt-engineering/types';
 
 const router = Router();
@@ -300,6 +301,7 @@ router.post('/suites/run', async (req, res) => {
 
   // Generate suite ID upfront so subscribers can reconnect
   const suiteId = generateSuiteId(description);
+  logger.info(`Starting suite run: ${description}`, { suiteId, model: model || 'default', totalPrompts: total });
 
   // Register active run
   const activeRun: ActiveRun = {
@@ -387,10 +389,12 @@ router.post('/suites/run', async (req, res) => {
     // Update active run progress and broadcast
     activeRun.current = i + 1;
     broadcastEvent(activeRun, 'progress', { current: i + 1, total });
+    logger.info(`[${i + 1}/${total}] Processed: ${goldenPrompt.id}`, { latencyMs: responses[responses.length - 1].latencyMs, success: responses[responses.length - 1].compilationSuccess });
   }
 
   // If cancelled, clean up and exit without saving
   if (activeRun.cancelled) {
+    logger.info(`Suite cancelled: ${suiteId}`, { completedPrompts: activeRun.current, totalPrompts: total });
     broadcastEvent(activeRun, 'cancelled', { message: 'Suite run was cancelled' });
     for (const subscriber of activeRun.subscribers) {
       subscriber.end();
@@ -417,6 +421,7 @@ router.post('/suites/run', async (req, res) => {
   // Save to file
   const suitePath = path.join(RESPONSE_SUITES_DIR, `${suiteId}.json`);
   fs.writeFileSync(suitePath, JSON.stringify(suite, null, 2));
+  logger.info(`Suite saved: ${suiteId}`, { path: suitePath, totalPrompts: responses.length, successfulCompilations });
 
   // Broadcast complete event and close all connections
   broadcastEvent(activeRun, 'complete', suite);
