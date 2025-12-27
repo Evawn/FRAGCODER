@@ -7,6 +7,60 @@ import { apiClient, API_BASE_URL } from './client';
 import type { GoldenDataset, GoldenPrompt, ResponseSuite, ResponseScore } from '../../../prompt-engineering/types';
 
 /**
+ * Callbacks for SSE progress events
+ */
+interface SSECallbacks {
+  onStart?: (info: { id: string; description: string; model: string }) => void;
+  onTotal?: (total: number) => void;
+  onProgress?: (current: number, total: number) => void;
+  onComplete?: (suite: ResponseSuite) => void;
+  onError?: (error: string) => void;
+  onCancelled?: () => void;
+}
+
+/**
+ * Parse SSE event lines and dispatch to callbacks
+ * Handles both "event: X" and "data: Y" lines
+ */
+function parseSSELines(lines: string[], callbacks: SSECallbacks): string {
+  let currentEvent = '';
+  for (const line of lines) {
+    if (line.startsWith('event: ')) {
+      currentEvent = line.slice(7);
+    } else if (line.startsWith('data: ') && currentEvent) {
+      try {
+        const data = JSON.parse(line.slice(6));
+
+        switch (currentEvent) {
+          case 'start':
+            callbacks.onStart?.(data);
+            break;
+          case 'total':
+            callbacks.onTotal?.(data.total);
+            break;
+          case 'progress':
+            callbacks.onProgress?.(data.current, data.total);
+            break;
+          case 'complete':
+            callbacks.onComplete?.(data as ResponseSuite);
+            break;
+          case 'error':
+            callbacks.onError?.(data.error);
+            break;
+          case 'cancelled':
+            callbacks.onCancelled?.();
+            break;
+        }
+      } catch {
+        // Ignore JSON parse errors
+      }
+      currentEvent = '';
+    }
+  }
+  return currentEvent;
+}
+
+/**
  * Suite summary for list display
  */
 export interface SuiteSummary {
@@ -103,40 +157,13 @@ export function runSuiteWithProgress(
         const lines = buffer.split('\n');
         buffer = lines.pop() || ''; // Keep incomplete line in buffer
 
-        let currentEvent = '';
-        for (const line of lines) {
-          if (line.startsWith('event: ')) {
-            currentEvent = line.slice(7);
-          } else if (line.startsWith('data: ') && currentEvent) {
-            try {
-              const data = JSON.parse(line.slice(6));
+        parseSSELines(lines, callbacks);
+      }
 
-              switch (currentEvent) {
-                case 'start':
-                  callbacks.onStart?.(data);
-                  break;
-                case 'total':
-                  callbacks.onTotal?.(data.total);
-                  break;
-                case 'progress':
-                  callbacks.onProgress?.(data.current, data.total);
-                  break;
-                case 'complete':
-                  callbacks.onComplete?.(data as ResponseSuite);
-                  break;
-                case 'error':
-                  callbacks.onError?.(data.error);
-                  break;
-                case 'cancelled':
-                  callbacks.onCancelled?.();
-                  break;
-              }
-            } catch {
-              // Ignore JSON parse errors
-            }
-            currentEvent = '';
-          }
-        }
+      // Process any remaining data in buffer after stream ends
+      if (buffer.trim()) {
+        const lines = buffer.split('\n');
+        parseSSELines(lines, callbacks);
       }
     })
     .catch((error) => {
@@ -228,40 +255,13 @@ export function subscribeToRun(
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
 
-        let currentEvent = '';
-        for (const line of lines) {
-          if (line.startsWith('event: ')) {
-            currentEvent = line.slice(7);
-          } else if (line.startsWith('data: ') && currentEvent) {
-            try {
-              const data = JSON.parse(line.slice(6));
+        parseSSELines(lines, callbacks);
+      }
 
-              switch (currentEvent) {
-                case 'start':
-                  callbacks.onStart?.(data);
-                  break;
-                case 'total':
-                  callbacks.onTotal?.(data.total);
-                  break;
-                case 'progress':
-                  callbacks.onProgress?.(data.current, data.total);
-                  break;
-                case 'complete':
-                  callbacks.onComplete?.(data as ResponseSuite);
-                  break;
-                case 'error':
-                  callbacks.onError?.(data.error);
-                  break;
-                case 'cancelled':
-                  callbacks.onCancelled?.();
-                  break;
-              }
-            } catch {
-              // Ignore JSON parse errors
-            }
-            currentEvent = '';
-          }
-        }
+      // Process any remaining data in buffer after stream ends
+      if (buffer.trim()) {
+        const lines = buffer.split('\n');
+        parseSSELines(lines, callbacks);
       }
     })
     .catch((error) => {
