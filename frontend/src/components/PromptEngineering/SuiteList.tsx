@@ -3,9 +3,9 @@
  * Entry point for the prompt engineering debug UI
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getSuiteSummaries, type SuiteSummary } from '@/data/promptEngineeringSuites';
+import { getSuiteSummaries, runSuiteWithProgress, getRunningStatus, subscribeToRun, cancelRun, type SuiteSummary } from '@/data/promptEngineeringSuites';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, XCircle, Clock, Star, Plus, Loader2 } from 'lucide-react';
@@ -83,13 +83,84 @@ export function SuiteList() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // Run state
   const [isRunning, setIsRunning] = useState(false);
   const [runningDescription, setRunningDescription] = useState('');
+  const [runProgress, setRunProgress] = useState({ current: 0, total: 0 });
+  const [runningId, setRunningId] = useState<string | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
-  // Fetch suites on mount
+  // Ref to store cancel function so navigation doesn't cancel the run
+  const cancelRunRef = useRef<(() => void) | null>(null);
+
+  // Fetch suites and check for active runs on mount
   useEffect(() => {
     loadSuites();
+    checkForActiveRuns();
+
+    // Cleanup: cancel subscription on unmount (but run continues in background)
+    return () => {
+      if (cancelRunRef.current) {
+        cancelRunRef.current();
+        cancelRunRef.current = null;
+      }
+    };
   }, []);
+
+  const checkForActiveRuns = async () => {
+    try {
+      const activeRuns = await getRunningStatus();
+      if (activeRuns.length > 0) {
+        // Reconnect to the first active run
+        const run = activeRuns[0];
+        setIsRunning(true);
+        setRunningDescription(run.description);
+        setRunProgress({ current: run.current, total: run.total });
+        setRunningId(run.id);
+
+        // Subscribe to updates
+        const cancel = subscribeToRun(run.id, {
+          onProgress: (current, total) => {
+            setRunProgress({ current, total });
+          },
+          onComplete: (suite) => {
+            setSuites(prev => [{
+              id: suite.id,
+              description: suite.description,
+              model: suite.model,
+              createdAt: suite.createdAt,
+              metadata: suite.metadata,
+              averageScore: undefined,
+            }, ...prev]);
+
+            resetRunState();
+            navigate(`/debug/prompt-engineering/${suite.id}`);
+          },
+          onError: (errorMsg) => {
+            setError(errorMsg);
+            resetRunState();
+          },
+          onCancelled: () => {
+            resetRunState();
+          },
+        });
+
+        cancelRunRef.current = cancel;
+      }
+    } catch {
+      // Silently ignore - status check is optional
+    }
+  };
+
+  const resetRunState = () => {
+    setIsRunning(false);
+    setRunningDescription('');
+    setRunProgress({ current: 0, total: 0 });
+    setRunningId(null);
+    setIsCancelling(false);
+    cancelRunRef.current = null;
+  };
 
   const loadSuites = async () => {
     try {
@@ -104,23 +175,59 @@ export function SuiteList() {
     }
   };
 
-  const handleSuiteCreated = (suite: ResponseSuite) => {
-    // Add new suite to the top of the list
-    setSuites(prev => [{
-      id: suite.id,
-      description: suite.description,
-      model: suite.model,
-      createdAt: suite.createdAt,
-      metadata: suite.metadata,
-      averageScore: undefined,
-    }, ...prev]);
+  const handleStartRun = (description: string, model: string) => {
+    // Start the run with progress tracking
+    setIsRunning(true);
+    setRunningDescription(description);
+    setRunProgress({ current: 0, total: 0 });
 
-    // Navigate to the new suite
-    navigate(`/debug/prompt-engineering/${suite.id}`);
+    const cancel = runSuiteWithProgress(description, model, {
+      onStart: (info) => {
+        setRunningId(info.id);
+      },
+      onTotal: (total) => {
+        setRunProgress(prev => ({ ...prev, total }));
+      },
+      onProgress: (current, total) => {
+        setRunProgress({ current, total });
+      },
+      onComplete: (suite) => {
+        // Add new suite to the top of the list
+        setSuites(prev => [{
+          id: suite.id,
+          description: suite.description,
+          model: suite.model,
+          createdAt: suite.createdAt,
+          metadata: suite.metadata,
+          averageScore: undefined,
+        }, ...prev]);
+
+        resetRunState();
+        navigate(`/debug/prompt-engineering/${suite.id}`);
+      },
+      onError: (errorMsg) => {
+        setError(errorMsg);
+        resetRunState();
+      },
+      onCancelled: () => {
+        resetRunState();
+      },
+    });
+
+    cancelRunRef.current = cancel;
   };
 
-  const handleRunningChange = (running: boolean) => {
-    setIsRunning(running);
+  const handleCancelRun = async () => {
+    if (runningId && !isCancelling) {
+      setIsCancelling(true);
+      try {
+        await cancelRun(runningId);
+        // The backend will send a 'cancelled' event which will trigger resetRunState
+      } catch {
+        // If cancel fails, just reset locally
+        resetRunState();
+      }
+    }
   };
 
   const handleDialogOpen = () => {
@@ -152,7 +259,13 @@ export function SuiteList() {
 
       {/* Progress indicator when running */}
       {isRunning && (
-        <SuiteRunProgress description={runningDescription} />
+        <SuiteRunProgress
+          description={runningDescription}
+          current={runProgress.current}
+          total={runProgress.total}
+          isCancelling={isCancelling}
+          onCancel={handleCancelRun}
+        />
       )}
 
       {/* Loading state */}
@@ -198,14 +311,8 @@ export function SuiteList() {
       {/* New Suite Dialog */}
       <NewSuiteDialog
         open={isDialogOpen}
-        onOpenChange={(open) => {
-          setIsDialogOpen(open);
-          if (!open) {
-            setRunningDescription('');
-          }
-        }}
-        onSuiteCreated={handleSuiteCreated}
-        onRunningChange={handleRunningChange}
+        onOpenChange={setIsDialogOpen}
+        onStartRun={handleStartRun}
       />
     </div>
   );

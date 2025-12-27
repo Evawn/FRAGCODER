@@ -3,7 +3,7 @@
  * Dev-only endpoints for running and managing test suites
  */
 
-import { Router } from 'express';
+import { Router, Response } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
 import { asyncHandler } from '../middleware/errorHandler';
@@ -11,6 +11,39 @@ import { processPrompt } from '../services/aiService';
 import type { GoldenDataset, PromptResponse, ResponseSuite, ResponseScore } from '../../../prompt-engineering/types';
 
 const router = Router();
+
+/**
+ * Active run tracking for SSE reconnection support
+ */
+interface ActiveRun {
+  id: string;
+  description: string;
+  model: string;
+  current: number;
+  total: number;
+  startedAt: string;
+  subscribers: Set<Response>;
+  cancelled: boolean;
+}
+
+const activeRuns = new Map<string, ActiveRun>();
+
+/**
+ * Send SSE event to a single response
+ */
+function sendEvent(res: Response, event: string, data: unknown) {
+  res.write(`event: ${event}\n`);
+  res.write(`data: ${JSON.stringify(data)}\n\n`);
+}
+
+/**
+ * Broadcast SSE event to all subscribers of an active run
+ */
+function broadcastEvent(run: ActiveRun, event: string, data: unknown) {
+  for (const subscriber of run.subscribers) {
+    sendEvent(subscriber, event, data);
+  }
+}
 
 // Paths to prompt engineering data
 const PROMPT_ENGINEERING_DIR = path.join(__dirname, '../../../prompt-engineering');
@@ -92,6 +125,23 @@ router.get('/suites', asyncHandler(async (_req, res) => {
 }));
 
 /**
+ * GET /api/prompt-engineering/suites/status
+ * Get list of currently running suites
+ * NOTE: This must be defined BEFORE /suites/:id to avoid matching "status" as an ID
+ */
+router.get('/suites/status', (_req, res) => {
+  const runs = Array.from(activeRuns.values()).map(run => ({
+    id: run.id,
+    description: run.description,
+    model: run.model,
+    current: run.current,
+    total: run.total,
+    startedAt: run.startedAt,
+  }));
+  return res.json({ runs });
+});
+
+/**
  * GET /api/prompt-engineering/suites/:id
  * Get a single response suite by ID
  */
@@ -110,27 +160,71 @@ router.get('/suites/:id', asyncHandler(async (req, res) => {
 /**
  * POST /api/prompt-engineering/suites/run
  * Run the golden dataset with specified description and model
+ * Uses Server-Sent Events (SSE) to stream progress updates
+ * Supports reconnection via GET /suites/:id/subscribe
  */
-router.post('/suites/run', asyncHandler(async (req, res) => {
+router.post('/suites/run', async (req, res) => {
   const { description, model } = req.body;
 
+  // Set up SSE headers
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
   if (!description || typeof description !== 'string') {
-    return res.status(400).json({ error: 'Description is required' });
+    sendEvent(res, 'error', { error: 'Description is required' });
+    res.end();
+    return;
   }
 
   // Load golden dataset
   if (!fs.existsSync(GOLDEN_DATASET_PATH)) {
-    return res.status(404).json({ error: 'Golden dataset not found' });
+    sendEvent(res, 'error', { error: 'Golden dataset not found' });
+    res.end();
+    return;
   }
 
   const dataset: GoldenDataset = JSON.parse(fs.readFileSync(GOLDEN_DATASET_PATH, 'utf-8'));
+  const total = dataset.prompts.length;
+
+  // Generate suite ID upfront so subscribers can reconnect
+  const suiteId = generateSuiteId(description);
+
+  // Register active run
+  const activeRun: ActiveRun = {
+    id: suiteId,
+    description,
+    model: model || 'default',
+    current: 0,
+    total,
+    startedAt: new Date().toISOString(),
+    subscribers: new Set([res]),
+    cancelled: false,
+  };
+  activeRuns.set(suiteId, activeRun);
+
+  // Send initial events to all subscribers
+  broadcastEvent(activeRun, 'start', { id: suiteId, description, model: activeRun.model });
+  broadcastEvent(activeRun, 'total', { total });
+
+  // Clean up subscriber when connection closes
+  res.on('close', () => {
+    activeRun.subscribers.delete(res);
+  });
 
   // Run each prompt
   const responses: PromptResponse[] = [];
   let successfulCompilations = 0;
   let totalLatency = 0;
 
-  for (const goldenPrompt of dataset.prompts) {
+  for (let i = 0; i < dataset.prompts.length; i++) {
+    // Check if cancelled before processing next prompt
+    if (activeRun.cancelled) {
+      break;
+    }
+
+    const goldenPrompt = dataset.prompts[i];
     const startTime = Date.now();
 
     try {
@@ -179,15 +273,28 @@ router.post('/suites/run', asyncHandler(async (req, res) => {
         }],
       });
     }
+
+    // Update active run progress and broadcast
+    activeRun.current = i + 1;
+    broadcastEvent(activeRun, 'progress', { current: i + 1, total });
+  }
+
+  // If cancelled, clean up and exit without saving
+  if (activeRun.cancelled) {
+    broadcastEvent(activeRun, 'cancelled', { message: 'Suite run was cancelled' });
+    for (const subscriber of activeRun.subscribers) {
+      subscriber.end();
+    }
+    activeRuns.delete(suiteId);
+    return;
   }
 
   // Build response suite
-  const suiteId = generateSuiteId(description);
   const suite: ResponseSuite = {
     id: suiteId,
     description,
     model: model || 'default',
-    createdAt: new Date().toISOString(),
+    createdAt: activeRun.startedAt,
     responses,
     metadata: {
       totalPrompts: responses.length,
@@ -201,8 +308,69 @@ router.post('/suites/run', asyncHandler(async (req, res) => {
   const suitePath = path.join(RESPONSE_SUITES_DIR, `${suiteId}.json`);
   fs.writeFileSync(suitePath, JSON.stringify(suite, null, 2));
 
-  return res.json(suite);
-}));
+  // Broadcast complete event and close all connections
+  broadcastEvent(activeRun, 'complete', suite);
+  for (const subscriber of activeRun.subscribers) {
+    subscriber.end();
+  }
+
+  // Remove from active runs
+  activeRuns.delete(suiteId);
+});
+
+/**
+ * GET /api/prompt-engineering/suites/:id/subscribe
+ * Subscribe to progress updates for an active run
+ * Returns SSE stream with current state and subsequent updates
+ */
+router.get('/suites/:id/subscribe', (req, res) => {
+  const { id } = req.params;
+  const activeRun = activeRuns.get(id);
+
+  if (!activeRun) {
+    return res.status(404).json({ error: 'No active run found with this ID' });
+  }
+
+  // Set up SSE headers
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  // Add this response to subscribers
+  activeRun.subscribers.add(res);
+
+  // Send current state to the new subscriber
+  sendEvent(res, 'start', { id: activeRun.id, description: activeRun.description, model: activeRun.model });
+  sendEvent(res, 'total', { total: activeRun.total });
+  sendEvent(res, 'progress', { current: activeRun.current, total: activeRun.total });
+
+  // Clean up when connection closes
+  res.on('close', () => {
+    activeRun.subscribers.delete(res);
+  });
+
+  // SSE connection stays open - no explicit return needed but TypeScript wants one
+  return;
+});
+
+/**
+ * POST /api/prompt-engineering/suites/:id/cancel
+ * Cancel an in-progress suite run
+ */
+router.post('/suites/:id/cancel', (req, res) => {
+  const { id } = req.params;
+  const activeRun = activeRuns.get(id);
+
+  if (!activeRun) {
+    return res.status(404).json({ error: 'No active run found with this ID' });
+  }
+
+  // Set the cancelled flag - the run loop will check this and exit gracefully
+  activeRun.cancelled = true;
+
+  return res.json({ success: true, message: 'Cancellation requested' });
+});
 
 /**
  * PUT /api/prompt-engineering/suites/:id/scores

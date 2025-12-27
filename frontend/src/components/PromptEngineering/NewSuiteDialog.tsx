@@ -1,6 +1,7 @@
 /**
  * Dialog for creating a new test suite
  * Allows user to enter description and select model before running
+ * Dialog closes immediately on submit - parent manages the actual run
  */
 
 import { useState } from 'react';
@@ -23,58 +24,45 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { AVAILABLE_AI_MODELS, DEFAULT_MODEL_ID } from '@fragcoder/shared';
-import type { ResponseSuite } from '../../../../prompt-engineering/types';
-import { runNewSuite } from '@/data/promptEngineeringSuites';
-import { Loader2 } from 'lucide-react';
 
 interface NewSuiteDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuiteCreated: (suite: ResponseSuite) => void;
-  onRunningChange: (running: boolean) => void;
+  onStartRun: (description: string, model: string) => void;
 }
 
 export function NewSuiteDialog({
   open,
   onOpenChange,
-  onSuiteCreated,
-  onRunningChange,
+  onStartRun,
 }: NewSuiteDialogProps) {
   const [description, setDescription] = useState('');
   const [model, setModel] = useState(DEFAULT_MODEL_ID);
-  const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleRun = async () => {
+  const handleRun = () => {
     if (!description.trim()) {
       setError('Description is required');
       return;
     }
 
-    setError(null);
-    setIsRunning(true);
-    onRunningChange(true);
+    // Close dialog immediately and let parent handle the run
+    const desc = description.trim();
+    const selectedModel = model;
 
-    try {
-      const suite = await runNewSuite(description.trim(), model);
-      onSuiteCreated(suite);
-      onOpenChange(false);
-      // Reset form
-      setDescription('');
-      setModel(DEFAULT_MODEL_ID);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to run suite');
-    } finally {
-      setIsRunning(false);
-      onRunningChange(false);
-    }
+    // Reset form
+    setDescription('');
+    setModel(DEFAULT_MODEL_ID);
+    setError(null);
+
+    // Close dialog and start run
+    onOpenChange(false);
+    onStartRun(desc, selectedModel);
   };
 
   const handleClose = () => {
-    if (!isRunning) {
-      onOpenChange(false);
-      setError(null);
-    }
+    onOpenChange(false);
+    setError(null);
   };
 
   return (
@@ -95,7 +83,6 @@ export function NewSuiteDialog({
               placeholder="e.g., Added chain-of-thought prompting"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              disabled={isRunning}
             />
             <p className="text-xs text-muted-foreground">
               Describe what you're testing or changed in this run.
@@ -104,7 +91,7 @@ export function NewSuiteDialog({
 
           <div className="space-y-2">
             <Label htmlFor="model">Model</Label>
-            <Select value={model} onValueChange={setModel} disabled={isRunning}>
+            <Select value={model} onValueChange={setModel}>
               <SelectTrigger id="model">
                 <SelectValue />
               </SelectTrigger>
@@ -124,18 +111,11 @@ export function NewSuiteDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={isRunning}>
+          <Button variant="outline" onClick={handleClose}>
             Cancel
           </Button>
-          <Button onClick={handleRun} disabled={isRunning || !description.trim()}>
-            {isRunning ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Running...
-              </>
-            ) : (
-              'Run Suite'
-            )}
+          <Button onClick={handleRun} disabled={!description.trim()}>
+            Run Suite
           </Button>
         </DialogFooter>
       </DialogContent>

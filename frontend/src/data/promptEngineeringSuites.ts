@@ -25,10 +25,29 @@ export async function loadSuite(id: string): Promise<ResponseSuite> {
 }
 
 /**
- * Run a new test suite
+ * Run a new test suite (legacy - blocks until complete)
  */
 export async function runNewSuite(description: string, model: string): Promise<ResponseSuite> {
   return api.runSuite(description, model);
+}
+
+/**
+ * Run a new test suite with streaming progress updates
+ * Returns a cancel function to abort the request
+ */
+export function runSuiteWithProgress(
+  description: string,
+  model: string,
+  callbacks: {
+    onStart?: (info: { id: string; description: string; model: string }) => void;
+    onTotal?: (total: number) => void;
+    onProgress?: (current: number, total: number) => void;
+    onComplete?: (suite: ResponseSuite) => void;
+    onError?: (error: string) => void;
+    onCancelled?: () => void;
+  }
+): () => void {
+  return api.runSuiteWithProgress(description, model, callbacks);
 }
 
 /**
@@ -36,4 +55,39 @@ export async function runNewSuite(description: string, model: string): Promise<R
  */
 export async function saveScore(suiteId: string, promptId: string, score: ResponseScore): Promise<void> {
   return api.updateScore(suiteId, promptId, score);
+}
+
+// Re-export active run types
+export type { ActiveRunInfo } from '@/api/promptEngineering';
+
+/**
+ * Get currently running suites
+ */
+export async function getRunningStatus(): Promise<api.ActiveRunInfo[]> {
+  return api.getRunningStatus();
+}
+
+/**
+ * Cancel an in-progress suite run
+ */
+export async function cancelRun(runId: string): Promise<void> {
+  return api.cancelRun(runId);
+}
+
+/**
+ * Subscribe to progress updates for an active run
+ * Returns a cancel function to abort the subscription
+ */
+export function subscribeToRun(
+  runId: string,
+  callbacks: {
+    onStart?: (info: { id: string; description: string; model: string }) => void;
+    onTotal?: (total: number) => void;
+    onProgress?: (current: number, total: number) => void;
+    onComplete?: (suite: ResponseSuite) => void;
+    onError?: (error: string) => void;
+    onCancelled?: () => void;
+  }
+): () => void {
+  return api.subscribeToRun(runId, callbacks);
 }
