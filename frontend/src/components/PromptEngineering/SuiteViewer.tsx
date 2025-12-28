@@ -15,6 +15,13 @@ interface SuiteViewerProps {
   suiteId: string;
 }
 
+function formatLatency(ms: number): string {
+  if (ms >= 1000) {
+    return `${(ms / 1000).toFixed(2)}s`;
+  }
+  return `${ms}ms`;
+}
+
 // Generate thumbnail for a shader using the shared pool
 function ShaderThumbnail({
   code,
@@ -72,21 +79,20 @@ function ShaderThumbnail({
 
 function ScoreBadge({ response }: { response: PromptResponse }) {
   if (!response.score) {
-    return (
-      <Badge variant="outline" className="text-xs text-muted-foreground">
-        Not scored
-      </Badge>
-    );
+    return <span className="text-xs text-muted-foreground">—</span>;
   }
 
   const s = response.score;
   const avg = (s.visualQuality + s.accuracy + s.explanationQuality + s.codeQuality) / 4;
 
+  const colorClass = avg >= 4
+    ? 'text-success border-success'
+    : avg >= 3
+      ? 'text-warning border-warning'
+      : 'text-orange-400 border-orange-400';
+
   return (
-    <Badge
-      variant="outline"
-      className={`text-xs ${avg >= 4 ? 'text-success border-success' : avg >= 3 ? 'text-accent border-accent' : 'text-error border-error'}`}
-    >
+    <Badge variant="outline" className={`text-xs ${colorClass}`}>
       <Star size={12} className="mr-1" />
       {avg.toFixed(1)}/5
     </Badge>
@@ -98,15 +104,22 @@ function PromptRow({
   suiteId,
   index,
   queueThumbnail,
+  onCompilationResult,
 }: {
   response: PromptResponse;
   suiteId: string;
   index: number;
   queueThumbnail: (id: string, tabs: TabShaderData[], cb: (result: ThumbnailResult) => void) => void;
+  onCompilationResult: (promptId: string, compiled: boolean) => void;
 }) {
   const navigate = useNavigate();
   // null = pending, true/false = actual result
   const [compilationStatus, setCompilationStatus] = useState<boolean | null>(null);
+
+  const handleCompilationResult = (compiled: boolean) => {
+    setCompilationStatus(compiled);
+    onCompilationResult(response.promptId, compiled);
+  };
 
   return (
     <tr
@@ -151,7 +164,7 @@ function PromptRow({
           code={response.response.code}
           promptId={response.promptId}
           queueThumbnail={queueThumbnail}
-          onCompilationResult={setCompilationStatus}
+          onCompilationResult={handleCompilationResult}
         />
       </td>
 
@@ -162,7 +175,7 @@ function PromptRow({
 
       {/* Latency */}
       <td className="px-3 py-3 text-sm text-muted-foreground text-right">
-        {response.latencyMs}ms
+        {formatLatency(response.latencyMs)}
       </td>
     </tr>
   );
@@ -172,7 +185,12 @@ export function SuiteViewer({ suiteId }: SuiteViewerProps) {
   const [suite, setSuite] = useState<ResponseSuite | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [compilationResults, setCompilationResults] = useState<Record<string, boolean>>({});
   const { queueThumbnail } = useThumbnailPool();
+
+  const handleCompilationResult = (promptId: string, compiled: boolean) => {
+    setCompilationResults(prev => ({ ...prev, [promptId]: compiled }));
+  };
 
   useEffect(() => {
     const fetchSuite = async () => {
@@ -225,9 +243,14 @@ export function SuiteViewer({ suiteId }: SuiteViewerProps) {
     );
   }
 
-  const successRate = suite.metadata.totalPrompts > 0
-    ? Math.round((suite.metadata.successfulCompilations / suite.metadata.totalPrompts) * 100)
-    : 0;
+  // Dynamic compilation stats from thumbnail generation
+  const totalResponses = suite.responses.length;
+  const completedCount = Object.keys(compilationResults).length;
+  const successCount = Object.values(compilationResults).filter(Boolean).length;
+  const isComplete = completedCount === totalResponses;
+  const successRate = isComplete && totalResponses > 0
+    ? Math.round((successCount / totalResponses) * 100)
+    : null;
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -259,13 +282,19 @@ export function SuiteViewer({ suiteId }: SuiteViewerProps) {
         <div className="flex gap-6 mt-4 text-sm">
           <div>
             <span className="text-muted-foreground">Compilation: </span>
-            <span className={successRate >= 80 ? 'text-success' : 'text-error'}>
-              {successRate}%
-            </span>
+            {successRate !== null ? (
+              <span className={successRate >= 80 ? 'text-success' : 'text-error'}>
+                {successRate}%
+              </span>
+            ) : (
+              <span className="text-muted-foreground">
+                {completedCount}/{totalResponses}
+              </span>
+            )}
           </div>
           <div>
             <span className="text-muted-foreground">Avg Latency: </span>
-            <span className="text-foreground">{suite.metadata.averageLatencyMs}ms</span>
+            <span className="text-foreground">{formatLatency(suite.metadata.averageLatencyMs)}</span>
           </div>
           <div>
             <span className="text-muted-foreground">Scored: </span>
@@ -297,6 +326,7 @@ export function SuiteViewer({ suiteId }: SuiteViewerProps) {
                 suiteId={suiteId}
                 index={index}
                 queueThumbnail={queueThumbnail}
+                onCompilationResult={handleCompilationResult}
               />
             ))}
           </tbody>
