@@ -5,6 +5,8 @@
  */
 
 import type { ChatHistoryEntry } from '@fragcoder/shared';
+import { PipelineStep } from './pipeline';
+import type { PipelineContext } from './pipeline';
 
 /**
  * Possible user intents for shader requests
@@ -43,97 +45,141 @@ interface ClassifierResponse {
   choices?: { message?: { content?: string } }[];
 }
 
-/**
- * Format chat history for classification context
- * Includes only the last 2 exchanges to keep prompt minimal
- * @param history - Optional chat history entries
- * @returns Formatted history string or empty string
- */
-function formatHistoryForClassification(history?: ChatHistoryEntry[]): string {
-  if (!history || history.length === 0) return '';
+interface ClassifyIntentInput {
+  sanitizedPrompt: string;
+  history?: ChatHistoryEntry[];
+}
 
-  // Take last 2 exchanges for recency and brevity
-  const recentHistory = history.slice(-2);
-
-  const formatted = recentHistory
-    .map((entry, index) => {
-      // Truncate explanation to first sentence for token efficiency
-      const shortExplanation = entry.aiExplanation.split('.')[0] + '...';
-      return `[${index + 1}] User: "${entry.userPrompt}"\n    Response: "${shortExplanation}"`;
-    })
-    .join('\n');
-
-  return `Recent conversation:\n${formatted}\n\n`;
+interface ClassifyIntentOutput {
+  intent: Intent;
 }
 
 /**
- * Classify user prompt intent using a lightweight LLM call
- * @param prompt - User's raw prompt
- * @param history - Optional chat history for context
- * @returns Classified intent
+ * Pipeline step that classifies user intent
+ * Can be skipped if intent is overridden in input
  */
-export async function classifyIntent(prompt: string, history?: ChatHistoryEntry[]): Promise<Intent> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
+export class ClassifyIntentStep extends PipelineStep<ClassifyIntentInput, ClassifyIntentOutput> {
+  readonly name = 'classifyIntent';
 
-  if (!apiKey) {
-    console.warn('OPENROUTER_API_KEY not set, defaulting to modify intent');
-    return DEFAULT_INTENT;
+  getInput(ctx: PipelineContext): ClassifyIntentInput {
+    return {
+      sanitizedPrompt: ctx.sanitizedPrompt!,
+      history: ctx.input.history,
+    };
   }
 
-  try {
-    // Format history if available
-    const historyContext = formatHistoryForClassification(history);
+  shouldSkip(ctx: PipelineContext): string | undefined {
+    if (ctx.input.overrideIntent) {
+      // Set the intent in context even when skipping
+      ctx.intent = ctx.input.overrideIntent;
+      return `Intent override provided: ${ctx.input.overrideIntent}`;
+    }
+    return undefined;
+  }
 
-    // Choose prompt template based on whether we have history
-    const template = historyContext
-      ? CLASSIFICATION_PROMPT_WITH_HISTORY
-      : CLASSIFICATION_PROMPT;
+  async execute(input: ClassifyIntentInput): Promise<ClassifyIntentOutput> {
+    const intent = await this.classify(input.sanitizedPrompt, input.history);
+    return { intent };
+  }
 
-    // Build final prompt
-    const classificationPrompt = template
-      .replace('{history}', historyContext)
-      .replace('{prompt}', prompt);
+  setOutput(ctx: PipelineContext, output: ClassifyIntentOutput): void {
+    ctx.intent = output.intent;
+  }
 
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:5173',
-        'X-Title': 'FragCoder',
-      },
-      body: JSON.stringify({
-        model: CLASSIFIER_MODEL,
-        messages: [{ role: 'user', content: classificationPrompt }],
-        max_tokens: 20,
-      }),
-    });
+  /**
+   * Format chat history for classification context
+   * Includes only the last 2 exchanges to keep prompt minimal
+   */
+  private formatHistoryForClassification(history?: ChatHistoryEntry[]): string {
+    if (!history || history.length === 0) return '';
 
-    if (!response.ok) {
-      console.warn(`Intent classification failed with status ${response.status}, defaulting to modify`);
+    // Take last 2 exchanges for recency and brevity
+    const recentHistory = history.slice(-2);
+
+    const formatted = recentHistory
+      .map((entry, index) => {
+        // Truncate explanation to first sentence for token efficiency
+        const shortExplanation = entry.aiExplanation.split('.')[0] + '...';
+        return `[${index + 1}] User: "${entry.userPrompt}"\n    Response: "${shortExplanation}"`;
+      })
+      .join('\n');
+
+    return `Recent conversation:\n${formatted}\n\n`;
+  }
+
+  /**
+   * Classify user prompt intent using a lightweight LLM call
+   */
+  private async classify(prompt: string, history?: ChatHistoryEntry[]): Promise<Intent> {
+    const apiKey = process.env.OPENROUTER_API_KEY;
+
+    if (!apiKey) {
+      console.warn('OPENROUTER_API_KEY not set, defaulting to modify intent');
       return DEFAULT_INTENT;
     }
 
-    const data = (await response.json()) as ClassifierResponse;
-    const content = data.choices?.[0]?.message?.content?.trim().toLowerCase() || '';
+    try {
+      // Format history if available
+      const historyContext = this.formatHistoryForClassification(history);
 
-    // Parse and validate the response
-    const intent = content as Intent;
-    if (VALID_INTENTS.includes(intent)) {
-      return intent;
-    }
+      // Choose prompt template based on whether we have history
+      const template = historyContext
+        ? CLASSIFICATION_PROMPT_WITH_HISTORY
+        : CLASSIFICATION_PROMPT;
 
-    // Try to find a valid intent in the response (in case model added extra text)
-    for (const validIntent of VALID_INTENTS) {
-      if (content.includes(validIntent)) {
-        return validIntent;
+      // Build final prompt
+      const classificationPrompt = template
+        .replace('{history}', historyContext)
+        .replace('{prompt}', prompt);
+
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:5173',
+          'X-Title': 'FragCoder',
+        },
+        body: JSON.stringify({
+          model: CLASSIFIER_MODEL,
+          messages: [{ role: 'user', content: classificationPrompt }],
+          max_tokens: 20,
+        }),
+      });
+
+      if (!response.ok) {
+        console.warn(`Intent classification failed with status ${response.status}, defaulting to modify`);
+        return DEFAULT_INTENT;
       }
-    }
 
-    console.warn(`Unrecognized intent "${content}", defaulting to modify`);
-    return DEFAULT_INTENT;
-  } catch (error) {
-    console.warn('Intent classification error:', error instanceof Error ? error.message : 'Unknown error');
-    return DEFAULT_INTENT;
+      const data = (await response.json()) as ClassifierResponse;
+      const content = data.choices?.[0]?.message?.content?.trim().toLowerCase() || '';
+
+      // Parse and validate the response
+      const intent = content as Intent;
+      if (VALID_INTENTS.includes(intent)) {
+        return intent;
+      }
+
+      // Try to find a valid intent in the response (in case model added extra text)
+      for (const validIntent of VALID_INTENTS) {
+        if (content.includes(validIntent)) {
+          return validIntent;
+        }
+      }
+
+      console.warn(`Unrecognized intent "${content}", defaulting to modify`);
+      return DEFAULT_INTENT;
+    } catch (error) {
+      console.warn('Intent classification error:', error instanceof Error ? error.message : 'Unknown error');
+      return DEFAULT_INTENT;
+    }
   }
+}
+
+// Legacy export for backwards compatibility during migration
+export async function classifyIntent(prompt: string, history?: ChatHistoryEntry[]): Promise<Intent> {
+  const step = new ClassifyIntentStep();
+  const result = await step.execute({ sanitizedPrompt: prompt, history });
+  return result.intent;
 }

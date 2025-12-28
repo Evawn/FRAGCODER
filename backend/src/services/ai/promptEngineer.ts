@@ -6,121 +6,160 @@
 
 import type { ChatHistoryEntry, CompilationError } from '@fragcoder/shared';
 import type { Intent } from './intentClassifier';
+import { PipelineStep } from './pipeline';
+import type { PipelineContext } from './pipeline';
+
+interface EngineerPromptInput {
+  sanitizedPrompt: string;
+  code?: string;
+  history?: ChatHistoryEntry[];
+  errors?: CompilationError[];
+  intent: Intent;
+}
+
+interface EngineerPromptOutput {
+  engineeredPrompt: string;
+}
 
 /**
- * Format chat history as a concise log
+ * Pipeline step that engineers/transforms user prompts for optimal LLM response
  */
-function formatChatHistory(history?: ChatHistoryEntry[]): string {
-  if (!history || history.length === 0) return '';
+export class EngineerPromptStep extends PipelineStep<EngineerPromptInput, EngineerPromptOutput> {
+  readonly name = 'engineerPrompt';
 
-  const formatted = history
-    .map(entry => `USER: ${entry.userPrompt}\nRESPONSE: ${entry.aiExplanation}`)
-    .join('\n\n');
+  getInput(ctx: PipelineContext): EngineerPromptInput {
+    return {
+      sanitizedPrompt: ctx.sanitizedPrompt!,
+      code: ctx.input.code,
+      history: ctx.input.history,
+      errors: ctx.input.errors,
+      intent: ctx.intent!,
+    };
+  }
 
-  return `CONVERSATION_HISTORY:
+  execute(input: EngineerPromptInput): EngineerPromptOutput {
+    const engineeredPrompt = this.engineer(
+      input.sanitizedPrompt,
+      input.code,
+      input.history,
+      input.errors,
+      input.intent
+    );
+    return { engineeredPrompt };
+  }
+
+  setOutput(ctx: PipelineContext, output: EngineerPromptOutput): void {
+    ctx.engineeredPrompt = output.engineeredPrompt;
+  }
+
+  /**
+   * Format chat history as a concise log
+   */
+  private formatChatHistory(history?: ChatHistoryEntry[]): string {
+    if (!history || history.length === 0) return '';
+
+    const formatted = history
+      .map(entry => `USER: ${entry.userPrompt}\nRESPONSE: ${entry.aiExplanation}`)
+      .join('\n\n');
+
+    return `CONVERSATION_HISTORY:
 ${formatted}
 
 `;
-}
+  }
 
-/**
- * Format compilation errors as a concise diagnostic section
- */
-function formatCompilationErrors(errors?: CompilationError[]): string {
-  if (!errors || errors.length === 0) return '';
+  /**
+   * Format compilation errors as a concise diagnostic section
+   */
+  private formatCompilationErrors(errors?: CompilationError[]): string {
+    if (!errors || errors.length === 0) return '';
 
-  const errorLines = errors.map(err => {
-    const prefix = err.type === 'warning' ? 'WARN' : 'ERR';
-    const lineInfo = err.line > 0 ? `L${err.line}` : 'L?';
-    return `  ${prefix} ${lineInfo}: ${err.message}`;
-  });
+    const errorLines = errors.map(err => {
+      const prefix = err.type === 'warning' ? 'WARN' : 'ERR';
+      const lineInfo = err.line > 0 ? `L${err.line}` : 'L?';
+      return `  ${prefix} ${lineInfo}: ${err.message}`;
+    });
 
-  return `COMPILATION_ERRORS:
+    return `COMPILATION_ERRORS:
 ${errorLines.join('\n')}
 
 `;
-}
+  }
 
-/**
- * Format example shaders for new_shader intent
- * Provides inspiration and patterns for the LLM
- */
-function formatExamples(): string {
-  // Placeholder - can be expanded with curated examples
-  return `EXAMPLE_PATTERNS:
+  /**
+   * Format example shaders for new_shader intent
+   * Provides inspiration and patterns for the LLM
+   */
+  private formatExamples(): string {
+    // Placeholder - can be expanded with curated examples
+    return `EXAMPLE_PATTERNS:
 `;
-}
+  }
 
-/**
- * Get the JSON response format based on intent
- * For 'explain' intent, we only need explanation (no code)
- */
-function getResponseFormat(intent: Intent): string {
-  if (intent === 'explain') {
-    return `Respond with ONLY a valid JSON object in this exact format (no markdown, no code blocks, just raw JSON):
+  /**
+   * Get the JSON response format based on intent
+   * For 'explain' intent, we only need explanation (no code)
+   */
+  private getResponseFormat(intent: Intent): string {
+    if (intent === 'explain') {
+      return `Respond with ONLY a valid JSON object in this exact format (no markdown, no code blocks, just raw JSON):
 {
   "explanation": "Your helpful answer/explanation to the user's question (max 4 sentences)"
 }`;
-  }
+    }
 
-  return `Respond with ONLY a valid JSON object in this exact format (no markdown, no code blocks, just raw JSON):
+    return `Respond with ONLY a valid JSON object in this exact format (no markdown, no code blocks, just raw JSON):
 {
   "code": "your complete code",
   "explanation": "Brief 1-2 sentence explanation of what the shader does and how it works"
 }`;
-}
-
-/**
- * Get intent-specific instruction for the LLM
- */
-function getIntentInstruction(intent: Intent): string {
-  switch (intent) {
-    case 'new_shader':
-      return 'Create a new shader from scratch based on the user request. Be creative and produce visually interesting results.';
-    case 'modify':
-      return 'Modify the user\'s existing shader code based on their request. Preserve their existing structure and style where possible.';
-    case 'debug':
-      return 'Fix the compilation errors in the user\'s shader. Analyze the errors and correct the issues while maintaining the original intent.';
-    case 'explain':
-      return 'The user wants to understand the code. Provide a brief, concise explanation (max 4 sentences). Do NOT return any code - only provide a natural language explanation.';
-    default:
-      return 'Modify the user\'s existing shader code based on their request.';
   }
-}
 
-/**
- * Engineer/transform user prompt for optimal LLM response
- * @param userPrompt - Sanitized user input
- * @param userCode - Optional current editor code for context
- * @param history - Optional chat history for conversational context
- * @param errors - Optional compilation errors for debugging context
- * @param intent - Classified user intent for context management
- * @returns Engineered prompt ready for LLM
- */
-export function engineerPrompt(
-  userPrompt: string,
-  userCode?: string,
-  history?: ChatHistoryEntry[],
-  errors?: CompilationError[],
-  intent: Intent = 'modify'
-): string {
-  // Determine what context to include based on intent
-  const includeCode = intent === 'modify' || intent === 'debug' || intent === 'explain';
-  const includeErrors = intent === 'debug';
-  const includeExamples = intent === 'new_shader';
+  /**
+   * Get intent-specific instruction for the LLM
+   */
+  private getIntentInstruction(intent: Intent): string {
+    switch (intent) {
+      case 'new_shader':
+        return 'Create a new shader from scratch based on the user request. Be creative and produce visually interesting results.';
+      case 'modify':
+        return 'Modify the user\'s existing shader code based on their request. Preserve their existing structure and style where possible.';
+      case 'debug':
+        return 'Fix the compilation errors in the user\'s shader. Analyze the errors and correct the issues while maintaining the original intent.';
+      case 'explain':
+        return 'The user wants to understand the code. Provide a brief, concise explanation (max 4 sentences). Do NOT return any code - only provide a natural language explanation.';
+      default:
+        return 'Modify the user\'s existing shader code based on their request.';
+    }
+  }
 
-  // Build context sections conditionally
-  const historySection = formatChatHistory(history);
-  const codeSection = includeCode && userCode ? userCode : '';
-  const errorsSection = includeErrors ? formatCompilationErrors(errors) : '';
-  const examplesSection = includeExamples ? formatExamples() : '';
+  /**
+   * Engineer/transform user prompt for optimal LLM response
+   */
+  private engineer(
+    userPrompt: string,
+    userCode?: string,
+    history?: ChatHistoryEntry[],
+    errors?: CompilationError[],
+    intent: Intent = 'modify'
+  ): string {
+    // Determine what context to include based on intent
+    const includeCode = intent === 'modify' || intent === 'debug' || intent === 'explain';
+    const includeErrors = intent === 'debug';
+    const includeExamples = intent === 'new_shader';
 
-  // Build intent-specific instruction and response format
-  const intentInstruction = getIntentInstruction(intent);
-  const responseFormat = getResponseFormat(intent);
+    // Build context sections conditionally
+    const historySection = this.formatChatHistory(history);
+    const codeSection = includeCode && userCode ? userCode : '';
+    const errorsSection = includeErrors ? this.formatCompilationErrors(errors) : '';
+    const examplesSection = includeExamples ? this.formatExamples() : '';
 
-  // For explain intent, we skip GLSL constraints since we're not asking for code
-  const glslConstraints = intent === 'explain' ? '' : `
+    // Build intent-specific instruction and response format
+    const intentInstruction = this.getIntentInstruction(intent);
+    const responseFormat = this.getResponseFormat(intent);
+
+    // For explain intent, we skip GLSL constraints since we're not asking for code
+    const glslConstraints = intent === 'explain' ? '' : `
 IMPORTANT - GLSL ES 3.00 / WebGL 2.0 CONSTRAINTS:
 - Use texture() NOT texture2D() (texture2D doesn't exist in ES 3.00)
 - Use clamp(x, 0.0, 1.0) NOT saturate(x) (saturate doesn't exist)
@@ -162,12 +201,25 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 Do not include the uniform definitions in your response. Do not include any comments in your code.
 `;
 
-  const prompt = `You are an expert in coding beautiful GLSL fragment shaders.
+    const prompt = `You are an expert in coding beautiful GLSL fragment shaders.
 ${intentInstruction}
 ${historySection ? `Use the conversation history below to understand prior context and maintain continuity.\n` : ''}${errorsSection ? `The user's current shader has compilation errors. Fix these issues.\n` : ''}
 ${historySection}${errorsSection}${examplesSection}USER_PROMPT: "${userPrompt}"
 ${includeCode ? `USER_CODE: "${codeSection}"` : ''}
 ${glslConstraints}
 ${responseFormat}`;
-  return prompt;
+    return prompt;
+  }
+}
+
+// Legacy export for backwards compatibility during migration
+export function engineerPrompt(
+  userPrompt: string,
+  userCode?: string,
+  history?: ChatHistoryEntry[],
+  errors?: CompilationError[],
+  intent: Intent = 'modify'
+): string {
+  const step = new EngineerPromptStep();
+  return step.execute({ sanitizedPrompt: userPrompt, code: userCode, history, errors, intent }).engineeredPrompt;
 }

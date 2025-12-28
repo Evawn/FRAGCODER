@@ -44,23 +44,17 @@ export function useThumbnailCapture() {
    * Capture a thumbnail from shader code.
    * Creates tabs array with just an Image pass containing the provided code.
    */
-  const captureThumbnail = useCallback((code: string): Promise<string | null> => {
-    return new Promise((resolve) => {
-      if (!rendererRef.current) {
-        resolve(null);
-        return;
-      }
+  const captureThumbnail = useCallback(async (code: string): Promise<string | null> => {
+    if (!rendererRef.current) {
+      return null;
+    }
 
-      const tabs: TabShaderData[] = [
-        { id: '1', name: 'Image', code }
-      ];
+    const tabs: TabShaderData[] = [
+      { id: '1', name: 'Image', code }
+    ];
 
-      rendererRef.current.queueThumbnail(
-        `temp-${Date.now()}`,
-        tabs,
-        (dataURL) => resolve(dataURL)
-      );
-    });
+    const result = await rendererRef.current.renderThumbnail(`temp-${Date.now()}`, tabs);
+    return 'url' in result ? result.url : null;
   }, []);
 
   return { captureThumbnail };

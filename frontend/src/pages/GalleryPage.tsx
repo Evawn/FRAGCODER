@@ -85,11 +85,11 @@ function Gallery() {
 
       // Queue each shader for thumbnail generation via the pool
       shaders.forEach(shader => {
-        queueThumbnail(shader.id, shader.tabs, (dataURL) => {
+        queueThumbnail(shader.id, shader.tabs, (result) => {
           // Single state update combining both thumbnail data and loading status
           setThumbnailStates(prev => {
             const next = new Map(prev);
-            next.set(shader.id, { dataURL, isLoading: false });
+            next.set(shader.id, { dataURL: result.url, isLoading: false });
             return next;
           });
         });

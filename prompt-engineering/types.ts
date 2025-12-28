@@ -4,9 +4,10 @@
  */
 
 import type { AIPromptRequest, AIPromptResponse, CompilationError } from '../shared/types';
+import type { PipelineTrace } from '../backend/src/services/ai/pipeline';
 
 // Re-export for convenience
-export type { AIPromptRequest, AIPromptResponse, CompilationError };
+export type { AIPromptRequest, AIPromptResponse, CompilationError, PipelineTrace };
 
 /**
  * A single entry in the golden dataset
@@ -49,6 +50,7 @@ export interface PromptResponse {
   compilationSuccess: boolean;
   compilationErrors?: CompilationError[];
   score?: ResponseScore;
+  trace?: PipelineTrace;
 }
 
 /**

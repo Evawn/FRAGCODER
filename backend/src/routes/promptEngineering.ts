@@ -7,7 +7,7 @@ import { Router, Response } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
 import { asyncHandler } from '../middleware/errorHandler';
-import { processPrompt } from '../services/aiService';
+import { processPromptWithTrace } from '../services/aiService';
 import { logger } from '../utils/logger';
 import type { GoldenDataset, PromptResponse, ResponseSuite, ResponseScore } from '../../../prompt-engineering/types';
 
@@ -340,7 +340,7 @@ router.post('/suites/run', async (req, res) => {
     const startTime = Date.now();
 
     try {
-      const response = await processPrompt(
+      const responseWithTrace = await processPromptWithTrace(
         goldenPrompt.input.prompt,
         'prompt-engineering-test',  // Fake user ID for testing
         model,
@@ -350,12 +350,15 @@ router.post('/suites/run', async (req, res) => {
         goldenPrompt.input.intent
       );
 
-      const latencyMs = Date.now() - startTime;
+      const latencyMs = responseWithTrace.trace.totalLatencyMs;
       totalLatency += latencyMs;
 
       // Assume compilation success if code is returned (or no code expected for explain)
-      const compilationSuccess = goldenPrompt.input.intent === 'explain' || !!response.code;
+      const compilationSuccess = goldenPrompt.input.intent === 'explain' || !!responseWithTrace.code;
       if (compilationSuccess) successfulCompilations++;
+
+      // Extract response without trace for storage
+      const { trace, ...response } = responseWithTrace;
 
       responses.push({
         promptId: goldenPrompt.id,
@@ -364,6 +367,7 @@ router.post('/suites/run', async (req, res) => {
         latencyMs,
         compilationSuccess,
         compilationErrors: [],
+        trace,
       });
     } catch (error) {
       const latencyMs = Date.now() - startTime;
