@@ -145,6 +145,13 @@
             }
           }
         ]
+      },
+      "score": {
+        "visualQuality": 1,
+        "accuracy": 1,
+        "explanationQuality": 3,
+        "codeQuality": 4,
+        "scoredAt": "2025-12-28T03:48:38.894Z"
       }
     },
     {
@@ -2065,6 +2072,6 @@
     "totalPrompts": 19,
     "successfulCompilations": 18,
     "averageLatencyMs": 6201,
-    "scoredCount": 0
+    "scoredCount": 1
   }
 }

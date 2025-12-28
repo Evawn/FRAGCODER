@@ -2,7 +2,7 @@
  * Suite viewer showing a table of prompts with thumbnails and scores
  */
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { loadSuite } from '@/data/promptEngineeringSuites';
 import { Badge } from '@/components/ui/badge';
@@ -116,10 +116,10 @@ function PromptRow({
   // null = pending, true/false = actual result
   const [compilationStatus, setCompilationStatus] = useState<boolean | null>(null);
 
-  const handleCompilationResult = (compiled: boolean) => {
+  const handleCompilationResult = useCallback((compiled: boolean) => {
     setCompilationStatus(compiled);
     onCompilationResult(response.promptId, compiled);
-  };
+  }, [onCompilationResult, response.promptId]);
 
   return (
     <tr
@@ -188,9 +188,9 @@ export function SuiteViewer({ suiteId }: SuiteViewerProps) {
   const [compilationResults, setCompilationResults] = useState<Record<string, boolean>>({});
   const { queueThumbnail } = useThumbnailPool();
 
-  const handleCompilationResult = (promptId: string, compiled: boolean) => {
+  const handleCompilationResult = useCallback((promptId: string, compiled: boolean) => {
     setCompilationResults(prev => ({ ...prev, [promptId]: compiled }));
-  };
+  }, []);
 
   useEffect(() => {
     const fetchSuite = async () => {

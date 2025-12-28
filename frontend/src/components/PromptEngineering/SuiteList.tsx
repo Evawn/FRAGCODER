@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle, XCircle, Clock, Star, Plus, Loader2, Database } from 'lucide-react';
 import { NewSuiteDialog } from './NewSuiteDialog';
 import { SuiteRunProgress } from './SuiteRunProgress';
-import type { ResponseSuite } from '../../../../prompt-engineering/types';
 
 function formatDate(isoString: string): string {
   const date = new Date(isoString);
@@ -144,6 +143,11 @@ export function SuiteList() {
           onCancelled: () => {
             resetRunState();
           },
+          onStreamEnd: () => {
+            // Fallback: if stream ends without terminal event, reset state and refresh list
+            resetRunState();
+            loadSuites();
+          },
         });
 
         cancelRunRef.current = cancel;
@@ -211,6 +215,11 @@ export function SuiteList() {
       },
       onCancelled: () => {
         resetRunState();
+      },
+      onStreamEnd: () => {
+        // Fallback: if stream ends without terminal event, reset state and refresh list
+        resetRunState();
+        loadSuites();
       },
     });
 

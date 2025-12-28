@@ -16,14 +16,18 @@ interface SSECallbacks {
   onComplete?: (suite: ResponseSuite) => void;
   onError?: (error: string) => void;
   onCancelled?: () => void;
+  onStreamEnd?: () => void;
 }
 
 /**
  * Parse SSE event lines and dispatch to callbacks
  * Handles both "event: X" and "data: Y" lines
+ * @param lines - Lines to parse
+ * @param callbacks - Callbacks to invoke for each event
+ * @param currentEvent - The current event type from previous parse (for handling split buffers)
+ * @returns The pending event type (if any) for the next parse call
  */
-function parseSSELines(lines: string[], callbacks: SSECallbacks): string {
-  let currentEvent = '';
+function parseSSELines(lines: string[], callbacks: SSECallbacks, currentEvent: string = ''): string {
   for (const line of lines) {
     if (line.startsWith('event: ')) {
       currentEvent = line.slice(7);
@@ -114,14 +118,7 @@ export async function runSuite(description: string, model: string): Promise<Resp
 export function runSuiteWithProgress(
   description: string,
   model: string,
-  callbacks: {
-    onStart?: (info: { id: string; description: string; model: string }) => void;
-    onTotal?: (total: number) => void;
-    onProgress?: (current: number, total: number) => void;
-    onComplete?: (suite: ResponseSuite) => void;
-    onError?: (error: string) => void;
-    onCancelled?: () => void;
-  }
+  callbacks: SSECallbacks
 ): () => void {
   const abortController = new AbortController();
 
@@ -146,6 +143,7 @@ export function runSuiteWithProgress(
 
       const decoder = new TextDecoder();
       let buffer = '';
+      let currentEvent = '';
 
       while (true) {
         const { done, value } = await reader.read();
@@ -157,19 +155,24 @@ export function runSuiteWithProgress(
         const lines = buffer.split('\n');
         buffer = lines.pop() || ''; // Keep incomplete line in buffer
 
-        parseSSELines(lines, callbacks);
+        currentEvent = parseSSELines(lines, callbacks, currentEvent);
       }
 
       // Process any remaining data in buffer after stream ends
       if (buffer.trim()) {
         const lines = buffer.split('\n');
-        parseSSELines(lines, callbacks);
+        parseSSELines(lines, callbacks, currentEvent);
       }
+
+      // Notify that stream has ended
+      callbacks.onStreamEnd?.();
     })
     .catch((error) => {
       if (error.name !== 'AbortError') {
         callbacks.onError?.(error.message || 'Unknown error');
       }
+      // Also call onStreamEnd on error so UI can reset
+      callbacks.onStreamEnd?.();
     });
 
   return () => abortController.abort();
@@ -218,14 +221,7 @@ export async function getRunningStatus(): Promise<ActiveRunInfo[]> {
  */
 export function subscribeToRun(
   runId: string,
-  callbacks: {
-    onStart?: (info: { id: string; description: string; model: string }) => void;
-    onTotal?: (total: number) => void;
-    onProgress?: (current: number, total: number) => void;
-    onComplete?: (suite: ResponseSuite) => void;
-    onError?: (error: string) => void;
-    onCancelled?: () => void;
-  }
+  callbacks: SSECallbacks
 ): () => void {
   const abortController = new AbortController();
 
@@ -244,6 +240,7 @@ export function subscribeToRun(
 
       const decoder = new TextDecoder();
       let buffer = '';
+      let currentEvent = '';
 
       while (true) {
         const { done, value } = await reader.read();
@@ -255,19 +252,24 @@ export function subscribeToRun(
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
 
-        parseSSELines(lines, callbacks);
+        currentEvent = parseSSELines(lines, callbacks, currentEvent);
       }
 
       // Process any remaining data in buffer after stream ends
       if (buffer.trim()) {
         const lines = buffer.split('\n');
-        parseSSELines(lines, callbacks);
+        parseSSELines(lines, callbacks, currentEvent);
       }
+
+      // Notify that stream has ended
+      callbacks.onStreamEnd?.();
     })
     .catch((error) => {
       if (error.name !== 'AbortError') {
         callbacks.onError?.(error.message || 'Unknown error');
       }
+      // Also call onStreamEnd on error so UI can reset
+      callbacks.onStreamEnd?.();
     });
 
   return () => abortController.abort();

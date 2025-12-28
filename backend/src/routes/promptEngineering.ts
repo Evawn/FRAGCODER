@@ -275,7 +275,7 @@ router.get('/suites/:id', asyncHandler(async (req, res) => {
  * Supports reconnection via GET /suites/:id/subscribe
  */
 router.post('/suites/run', async (req, res) => {
-  const { description, model } = req.body;
+  const { description, model, concurrency: concurrencyParam } = req.body;
 
   // Set up SSE headers
   res.setHeader('Content-Type', 'text/event-stream');
@@ -288,6 +288,9 @@ router.post('/suites/run', async (req, res) => {
     res.end();
     return;
   }
+
+  // Validate concurrency parameter (default: 5, range: 1-10)
+  const concurrency = Math.min(10, Math.max(1, Number(concurrencyParam) || 5));
 
   // Load golden dataset
   if (!fs.existsSync(GOLDEN_DATASET_PATH)) {
@@ -325,76 +328,90 @@ router.post('/suites/run', async (req, res) => {
     activeRun.subscribers.delete(res);
   });
 
-  // Run each prompt
-  const responses: PromptResponse[] = [];
+  // Run prompts in parallel with configurable concurrency
+  const responses: (PromptResponse | null)[] = new Array(total).fill(null);
   let successfulCompilations = 0;
   let totalLatency = 0;
+  let completedCount = 0;
+  let nextIndex = 0;
 
-  for (let i = 0; i < dataset.prompts.length; i++) {
-    // Check if cancelled before processing next prompt
-    if (activeRun.cancelled) {
-      break;
+  // Worker function that processes prompts from the queue
+  async function processWorker(): Promise<void> {
+    while (!activeRun.cancelled) {
+      // Atomically grab the next index
+      const currentIndex = nextIndex++;
+      if (currentIndex >= total) break;
+
+      const goldenPrompt = dataset.prompts[currentIndex];
+      const startTime = Date.now();
+
+      let result: PromptResponse;
+
+      try {
+        const responseWithTrace = await processPromptWithTrace(
+          goldenPrompt.input.prompt,
+          'prompt-engineering-test',  // Fake user ID for testing
+          model,
+          goldenPrompt.input.code,
+          goldenPrompt.input.history,
+          goldenPrompt.input.errors,
+          goldenPrompt.input.intent
+        );
+
+        const latencyMs = responseWithTrace.trace.totalLatencyMs;
+
+        // Assume compilation success if code is returned (or no code expected for explain)
+        const compilationSuccess = goldenPrompt.input.intent === 'explain' || !!responseWithTrace.code;
+
+        // Extract response without trace for storage
+        const { trace, ...response } = responseWithTrace;
+
+        result = {
+          promptId: goldenPrompt.id,
+          prompt: goldenPrompt,
+          response,
+          latencyMs,
+          compilationSuccess,
+          compilationErrors: [],
+          trace,
+        };
+      } catch (error) {
+        const latencyMs = Date.now() - startTime;
+
+        result = {
+          promptId: goldenPrompt.id,
+          prompt: goldenPrompt,
+          response: {
+            explanation: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            intent: goldenPrompt.input.intent || 'modify',
+          },
+          latencyMs,
+          compilationSuccess: false,
+          compilationErrors: [{
+            line: 0,
+            message: error instanceof Error ? error.message : 'Unknown error',
+            type: 'error',
+          }],
+        };
+      }
+
+      // Store result at original index to maintain order
+      responses[currentIndex] = result;
+      totalLatency += result.latencyMs;
+      if (result.compilationSuccess) successfulCompilations++;
+
+      // Update progress (atomic increment)
+      completedCount++;
+      activeRun.current = completedCount;
+      broadcastEvent(activeRun, 'progress', { current: completedCount, total, promptId: goldenPrompt.id });
+      logger.info(`[${completedCount}/${total}] Processed: ${goldenPrompt.id}`, { latencyMs: result.latencyMs, success: result.compilationSuccess });
     }
-
-    const goldenPrompt = dataset.prompts[i];
-    const startTime = Date.now();
-
-    try {
-      const responseWithTrace = await processPromptWithTrace(
-        goldenPrompt.input.prompt,
-        'prompt-engineering-test',  // Fake user ID for testing
-        model,
-        goldenPrompt.input.code,
-        goldenPrompt.input.history,
-        goldenPrompt.input.errors,
-        goldenPrompt.input.intent
-      );
-
-      const latencyMs = responseWithTrace.trace.totalLatencyMs;
-      totalLatency += latencyMs;
-
-      // Assume compilation success if code is returned (or no code expected for explain)
-      const compilationSuccess = goldenPrompt.input.intent === 'explain' || !!responseWithTrace.code;
-      if (compilationSuccess) successfulCompilations++;
-
-      // Extract response without trace for storage
-      const { trace, ...response } = responseWithTrace;
-
-      responses.push({
-        promptId: goldenPrompt.id,
-        prompt: goldenPrompt,
-        response,
-        latencyMs,
-        compilationSuccess,
-        compilationErrors: [],
-        trace,
-      });
-    } catch (error) {
-      const latencyMs = Date.now() - startTime;
-      totalLatency += latencyMs;
-
-      responses.push({
-        promptId: goldenPrompt.id,
-        prompt: goldenPrompt,
-        response: {
-          explanation: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          intent: goldenPrompt.input.intent || 'modify',
-        },
-        latencyMs,
-        compilationSuccess: false,
-        compilationErrors: [{
-          line: 0,
-          message: error instanceof Error ? error.message : 'Unknown error',
-          type: 'error',
-        }],
-      });
-    }
-
-    // Update active run progress and broadcast
-    activeRun.current = i + 1;
-    broadcastEvent(activeRun, 'progress', { current: i + 1, total });
-    logger.info(`[${i + 1}/${total}] Processed: ${goldenPrompt.id}`, { latencyMs: responses[responses.length - 1].latencyMs, success: responses[responses.length - 1].compilationSuccess });
   }
+
+  // Start N workers in parallel
+  logger.info(`Running with concurrency: ${concurrency}`);
+  const workers = Array(Math.min(concurrency, total)).fill(null).map(() => processWorker());
+  await Promise.all(workers);
 
   // If cancelled, clean up and exit without saving
   if (activeRun.cancelled) {
@@ -407,17 +424,20 @@ router.post('/suites/run', async (req, res) => {
     return;
   }
 
+  // Filter out any null responses (shouldn't happen, but for type safety)
+  const completedResponses = responses.filter((r): r is PromptResponse => r !== null);
+
   // Build response suite
   const suite: ResponseSuite = {
     id: suiteId,
     description,
     model: model || 'default',
     createdAt: activeRun.startedAt,
-    responses,
+    responses: completedResponses,
     metadata: {
-      totalPrompts: responses.length,
+      totalPrompts: completedResponses.length,
       successfulCompilations,
-      averageLatencyMs: Math.round(totalLatency / responses.length),
+      averageLatencyMs: Math.round(totalLatency / completedResponses.length),
       scoredCount: 0,
     },
   };
@@ -425,7 +445,7 @@ router.post('/suites/run', async (req, res) => {
   // Save to file
   const suitePath = path.join(RESPONSE_SUITES_DIR, `${suiteId}.json`);
   fs.writeFileSync(suitePath, JSON.stringify(suite, null, 2));
-  logger.info(`Suite saved: ${suiteId}`, { path: suitePath, totalPrompts: responses.length, successfulCompilations });
+  logger.info(`Suite saved: ${suiteId}`, { path: suitePath, totalPrompts: completedResponses.length, successfulCompilations });
 
   // Broadcast complete event and close all connections
   broadcastEvent(activeRun, 'complete', suite);

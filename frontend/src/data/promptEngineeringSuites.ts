@@ -45,6 +45,7 @@ export function runSuiteWithProgress(
     onComplete?: (suite: ResponseSuite) => void;
     onError?: (error: string) => void;
     onCancelled?: () => void;
+    onStreamEnd?: () => void;
   }
 ): () => void {
   return api.runSuiteWithProgress(description, model, callbacks);
@@ -87,6 +88,7 @@ export function subscribeToRun(
     onComplete?: (suite: ResponseSuite) => void;
     onError?: (error: string) => void;
     onCancelled?: () => void;
+    onStreamEnd?: () => void;
   }
 ): () => void {
   return api.subscribeToRun(runId, callbacks);
