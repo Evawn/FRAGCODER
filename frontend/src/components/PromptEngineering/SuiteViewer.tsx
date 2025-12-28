@@ -2,43 +2,48 @@
  * Suite viewer showing a table of prompts with thumbnails and scores
  */
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { loadSuite } from '@/data/promptEngineeringSuites';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, CheckCircle, XCircle, Star, Loader2 } from 'lucide-react';
 import type { ResponseSuite, PromptResponse } from '../../../../prompt-engineering/types';
-import { ThumbnailRenderer } from '@/utils/ThumbnailRenderer';
+import { useThumbnailPool, type ThumbnailResult } from '@/hooks/useThumbnailPool';
+import type { TabShaderData } from '@/utils/GLSLCompiler';
 
 interface SuiteViewerProps {
   suiteId: string;
 }
 
-// Generate thumbnail for a shader
-function ShaderThumbnail({ code, promptId }: { code?: string; promptId: string }) {
+// Generate thumbnail for a shader using the shared pool
+function ShaderThumbnail({
+  code,
+  promptId,
+  queueThumbnail,
+  onCompilationResult
+}: {
+  code?: string;
+  promptId: string;
+  queueThumbnail: (id: string, tabs: TabShaderData[], cb: (result: ThumbnailResult) => void) => void;
+  onCompilationResult: (compiled: boolean) => void;
+}) {
   const [thumbnail, setThumbnail] = useState<string | null>(null);
-  const thumbnailRendererRef = useRef<ThumbnailRenderer | null>(null);
 
   useEffect(() => {
-    if (!code) return;
-
-    // Get or create thumbnail renderer
-    if (!thumbnailRendererRef.current) {
-      thumbnailRendererRef.current = new ThumbnailRenderer();
+    if (!code) {
+      onCompilationResult(false);
+      return;
     }
 
-    // Use callback-based queueThumbnail method
-    thumbnailRendererRef.current.queueThumbnail(
+    queueThumbnail(
       promptId,
       [{ id: 'image', name: 'Image', code }],
-      (dataURL) => setThumbnail(dataURL)
+      (result) => {
+        setThumbnail(result.url);
+        onCompilationResult(result.compiled);
+      }
     );
-
-    return () => {
-      thumbnailRendererRef.current?.dispose();
-      thumbnailRendererRef.current = null;
-    };
-  }, [code, promptId]);
+  }, [code, promptId, queueThumbnail, onCompilationResult]);
 
   if (!code) {
     return (
@@ -92,12 +97,16 @@ function PromptRow({
   response,
   suiteId,
   index,
+  queueThumbnail,
 }: {
   response: PromptResponse;
   suiteId: string;
   index: number;
+  queueThumbnail: (id: string, tabs: TabShaderData[], cb: (result: ThumbnailResult) => void) => void;
 }) {
   const navigate = useNavigate();
+  // null = pending, true/false = actual result
+  const [compilationStatus, setCompilationStatus] = useState<boolean | null>(null);
 
   return (
     <tr
@@ -127,7 +136,9 @@ function PromptRow({
 
       {/* Compilation Status */}
       <td className="px-3 py-3 text-center">
-        {response.compilationSuccess ? (
+        {compilationStatus === null ? (
+          <Loader2 size={18} className="text-muted-foreground inline-block animate-spin" />
+        ) : compilationStatus ? (
           <CheckCircle size={18} className="text-success inline-block" />
         ) : (
           <XCircle size={18} className="text-error inline-block" />
@@ -136,7 +147,12 @@ function PromptRow({
 
       {/* Thumbnail */}
       <td className="px-3 py-3">
-        <ShaderThumbnail code={response.response.code} promptId={response.promptId} />
+        <ShaderThumbnail
+          code={response.response.code}
+          promptId={response.promptId}
+          queueThumbnail={queueThumbnail}
+          onCompilationResult={setCompilationStatus}
+        />
       </td>
 
       {/* Score */}
@@ -156,6 +172,7 @@ export function SuiteViewer({ suiteId }: SuiteViewerProps) {
   const [suite, setSuite] = useState<ResponseSuite | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { queueThumbnail } = useThumbnailPool();
 
   useEffect(() => {
     const fetchSuite = async () => {
@@ -279,6 +296,7 @@ export function SuiteViewer({ suiteId }: SuiteViewerProps) {
                 response={response}
                 suiteId={suiteId}
                 index={index}
+                queueThumbnail={queueThumbnail}
               />
             ))}
           </tbody>

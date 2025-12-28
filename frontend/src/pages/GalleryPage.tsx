@@ -13,7 +13,7 @@ import { UserMenu } from '../components/editor/UserMenu';
 import { NewShaderButton } from '../components/editor/NewShaderButton';
 import { useAuth } from '../AuthContext';
 import { SignInDialog } from '../components/auth/SignInDialog';
-import { ThumbnailRenderer } from '../utils/ThumbnailRenderer';
+import { useThumbnailPool } from '../hooks/useThumbnailPool';
 import { logger } from '../utils/logger';
 import { getPublicShaders } from '../api/shaders';
 import type { Shader } from '../types';
@@ -42,7 +42,7 @@ function Gallery() {
 
   // Thumbnail management state - combined to reduce re-renders
   const [thumbnailStates, setThumbnailStates] = useState<Map<string, { dataURL: string | null; isLoading: boolean }>>(new Map());
-  const thumbnailRendererRef = useRef<ThumbnailRenderer | null>(null);
+  const { queueThumbnail } = useThumbnailPool();
 
   // Ref to store Logo rotation function
   const logoRotateRef = useRef<((targetOffset: number) => void) | null>(null);
@@ -68,26 +68,9 @@ function Gallery() {
     }
   }, []);
 
-  // Cleanup ThumbnailRenderer on unmount
-  useEffect(() => {
-    return () => {
-      if (thumbnailRendererRef.current) {
-        thumbnailRendererRef.current.dispose();
-        thumbnailRendererRef.current = null;
-      }
-    };
-  }, []);
-
-  // Generate thumbnails for fetched shaders (lazy initialization of renderer)
+  // Generate thumbnails for fetched shaders using the shared pool
   useEffect(() => {
     if (shaders.length === 0) return;
-
-    // Lazy initialize ThumbnailRenderer only when needed (defers expensive WebGL setup)
-    if (!thumbnailRendererRef.current) {
-      thumbnailRendererRef.current = new ThumbnailRenderer();
-    }
-
-    const renderer = thumbnailRendererRef.current;
 
     // Defer initial state update to allow browser to paint first
     startTransition(() => {
@@ -100,9 +83,9 @@ function Gallery() {
         return next;
       });
 
-      // Queue each shader for thumbnail generation
+      // Queue each shader for thumbnail generation via the pool
       shaders.forEach(shader => {
-        renderer.queueThumbnail(shader.id, shader.tabs, (dataURL) => {
+        queueThumbnail(shader.id, shader.tabs, (dataURL) => {
           // Single state update combining both thumbnail data and loading status
           setThumbnailStates(prev => {
             const next = new Map(prev);
@@ -112,7 +95,7 @@ function Gallery() {
         });
       });
     });
-  }, [shaders]);
+  }, [shaders, queueThumbnail]);
 
   // Initial load - use initial search from URL if present
   useEffect(() => {

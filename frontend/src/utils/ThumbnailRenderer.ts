@@ -1,23 +1,20 @@
-// Imperative-style thumbnail renderer for generating shader previews client-side
-// Manages a single WebGL context and sequentially processes a queue of shader compilation/rendering tasks
-// Uses existing WebGLRenderer to compile shaders and capture first frame as PNG data URLs
+// Thumbnail renderer for generating shader previews client-side
+// Manages a single WebGL context for compiling and rendering shaders
+// Used by ThumbnailRendererPool which handles queuing and caching
 
 import { WebGLRenderer } from './WebGLRenderer';
-import type { TabShaderData } from './GLSLCompiler';
+import type { TabShaderData, MultipassCompilationError } from './GLSLCompiler';
+import { PreprocessorCompilationError } from './GLSLCompiler';
 import { logger } from './logger';
 
-interface ThumbnailRequest {
-  shaderId: string;
-  tabs: TabShaderData[];
-  callback: (dataURL: string | null) => void;
-}
+/** Result of a thumbnail render attempt */
+export type ThumbnailRenderResult =
+  | { url: string }
+  | { error: 'compilation' | 'render' };
 
 export class ThumbnailRenderer {
   private canvas: HTMLCanvasElement;
   private renderer: WebGLRenderer;
-  private queue: ThumbnailRequest[] = [];
-  private processing: boolean = false;
-  private thumbnailCache: Map<string, string> = new Map();
   private readonly THUMBNAIL_WIDTH = 400;
   private readonly THUMBNAIL_HEIGHT = 300; // 4:3 aspect ratio
 
@@ -37,77 +34,12 @@ export class ThumbnailRenderer {
   }
 
   /**
-   * Queue a shader for thumbnail generation
-   * Returns immediately; callback is invoked when thumbnail is ready
+   * Render a shader and return its thumbnail as a data URL.
+   * Returns { url } on success, or { error } indicating compilation or render failure.
    */
-  queueThumbnail(shaderId: string, tabs: TabShaderData[], callback: (dataURL: string | null) => void): void {
-    // Check if thumbnail already exists in cache
-    const cached = this.thumbnailCache.get(shaderId);
-    if (cached) {
-      callback(cached);
-      return;
-    }
-
-    // Add to queue
-    this.queue.push({ shaderId, tabs, callback });
-
-    // Start processing if not already running
-    if (!this.processing) {
-      this.processQueue();
-    }
-  }
-
-  /**
-   * Get cached thumbnail data URL if available
-   */
-  getCachedThumbnail(shaderId: string): string | null {
-    return this.thumbnailCache.get(shaderId) || null;
-  }
-
-  /**
-   * Clear all cached thumbnails
-   */
-  clearCache(): void {
-    this.thumbnailCache.clear();
-  }
-
-  /**
-   * Process the queue sequentially
-   */
-  private async processQueue(): Promise<void> {
-    if (this.processing || this.queue.length === 0) {
-      return;
-    }
-
-    this.processing = true;
-
-    while (this.queue.length > 0) {
-      const request = this.queue.shift();
-      if (!request) continue;
-
-      const dataURL = await this.renderThumbnail(request.tabs);
-
-      // Cache the result (even if null/failed)
-      if (dataURL) {
-        this.thumbnailCache.set(request.shaderId, dataURL);
-      }
-
-      // Invoke callback
-      request.callback(dataURL);
-
-      // Small delay between renders to prevent blocking
-      await this.delay(10);
-    }
-
-    this.processing = false;
-  }
-
-  /**
-   * Render a single thumbnail
-   */
-  private async renderThumbnail(tabs: TabShaderData[]): Promise<string | null> {
+  async renderThumbnail(shaderId: string, tabs: TabShaderData[]): Promise<ThumbnailRenderResult> {
     try {
-      // Compile shader
+      // Compile shader - this can throw compilation errors
       this.renderer.compileShader(tabs);
 
       // Render single frame at time=0
@@ -115,21 +47,22 @@ export class ThumbnailRenderer {
       this.renderer.renderSingleFrame();
 
       // Extract canvas as data URL
-      const dataURL = this.canvas.toDataURL('image/png');
-
-      return dataURL;
+      return { url: this.canvas.toDataURL('image/png') };
     } catch (error) {
-      // Compilation or rendering failed - return null
-      logger.warn('ThumbnailRenderer failed to render thumbnail', { error });
-      return null;
+      // Determine if this is a compilation error or a render error
+      if (error instanceof PreprocessorCompilationError || this.isMultipassCompilationError(error)) {
+        return { error: 'compilation' };
+      }
+      // Other errors (WebGL context issues, etc.) are render errors
+      return { error: 'render' };
     }
   }
 
   /**
-   * Utility delay function
+   * Type guard for MultipassCompilationError
    */
-  private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+  private isMultipassCompilationError(error: unknown): error is MultipassCompilationError {
+    return error instanceof Error && 'passErrors' in error && Array.isArray((error as MultipassCompilationError).passErrors);
   }
 
   /**
@@ -137,8 +70,5 @@ export class ThumbnailRenderer {
    */
   dispose(): void {
     this.renderer.dispose();
-    this.queue = [];
-    this.thumbnailCache.clear();
-    this.processing = false;
   }
 }
