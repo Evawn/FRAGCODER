@@ -214,7 +214,15 @@ router.get('/suites', asyncHandler(async (_req, res) => {
     if (scoredResponses.length > 0) {
       const totalScore = scoredResponses.reduce((sum, r) => {
         const s = r.score!;
-        return sum + (s.visualQuality + s.accuracy + s.explanationQuality + s.codeQuality) / 4;
+        // Average of all 6 scoring categories
+        return sum + (
+          s.visualQuality +
+          s.promptCorrectness +
+          s.codeQuality +
+          s.explanationQuality +
+          s.creativity +
+          s.overallSatisfaction
+        ) / 6;
       }, 0);
       averageScore = totalScore / scoredResponses.length;
     }

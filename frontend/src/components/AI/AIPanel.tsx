@@ -22,10 +22,11 @@ import { useChatState } from './hooks/useChatState';
 import { useThumbnailCapture } from './hooks/useThumbnailCapture';
 import type { TabData, ChatHistoryEntry, CompilationError, AIIntent } from '@fragcoder/shared';
 import { AVAILABLE_AI_MODELS, DEFAULT_MODEL_ID } from '@fragcoder/shared';
+import type { ChatMessageNode, BranchInfo } from '../../types/chat';
 
-interface AIPanelProps {
-  isOpen: boolean;
-  isMobile?: boolean;
+/** Props for interactive mode (default) */
+interface InteractiveModeProps {
+  mode?: 'interactive';
   onClose: () => void;
   setCodeAndCompile: (newCode: string, tabId: string) => void;
   tabs: TabData[];
@@ -33,19 +34,45 @@ interface AIPanelProps {
   compilationSuccess?: boolean;
   lastCompilationTime?: number;
   onLoadingChange?: (isLoading: boolean) => void;
+  /** Pre-load chat messages (e.g., when navigating from response scorer) */
+  initialMessages?: ChatMessageNode[];
 }
 
-export function AIPanel({
-  isOpen,
-  isMobile = false,
-  onClose,
-  setCodeAndCompile,
-  tabs,
-  compilationErrors = [],
-  compilationSuccess,
-  lastCompilationTime = 0,
-  onLoadingChange,
-}: AIPanelProps) {
+/** Props for browse mode (read-only, for ResponseScorer) */
+interface BrowseModeProps {
+  mode: 'browse';
+  browseMessages: ChatMessageNode[];
+  onSelectArtifact: (code: string) => void;
+  selectedArtifactCode?: string;
+  getBranchInfo?: (userMessageId: string) => BranchInfo;
+  onBranchChange?: (parentKey: string, index: number) => void;
+}
+
+type AIPanelProps = {
+  isOpen: boolean;
+  isMobile?: boolean;
+} & (InteractiveModeProps | BrowseModeProps);
+
+export function AIPanel(props: AIPanelProps) {
+  const { isOpen, isMobile = false } = props;
+  const isBrowseMode = props.mode === 'browse';
+
+  // Interactive mode props (with defaults for browse mode)
+  const onClose = isBrowseMode ? undefined : (props as InteractiveModeProps).onClose;
+  const setCodeAndCompile = isBrowseMode ? undefined : (props as InteractiveModeProps).setCodeAndCompile;
+  const tabs = isBrowseMode ? [] : ((props as InteractiveModeProps).tabs ?? []);
+  const compilationErrors = isBrowseMode ? [] : ((props as InteractiveModeProps).compilationErrors ?? []);
+  const compilationSuccess = isBrowseMode ? undefined : (props as InteractiveModeProps).compilationSuccess;
+  const lastCompilationTime = isBrowseMode ? 0 : ((props as InteractiveModeProps).lastCompilationTime ?? 0);
+  const onLoadingChange = isBrowseMode ? undefined : (props as InteractiveModeProps).onLoadingChange;
+  const initialMessages = isBrowseMode ? undefined : (props as InteractiveModeProps).initialMessages;
+
+  // Browse mode props
+  const browseMessages = isBrowseMode ? (props as BrowseModeProps).browseMessages : [];
+  const onSelectArtifact = isBrowseMode ? (props as BrowseModeProps).onSelectArtifact : undefined;
+  const selectedArtifactCode = isBrowseMode ? (props as BrowseModeProps).selectedArtifactCode : undefined;
+  const browseBranchInfo = isBrowseMode ? (props as BrowseModeProps).getBranchInfo : undefined;
+  const browseOnBranchChange = isBrowseMode ? (props as BrowseModeProps).onBranchChange : undefined;
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL_ID);
@@ -54,6 +81,15 @@ export function AIPanel({
   const chatState = useChatState();
   const { captureThumbnail } = useThumbnailCapture();
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Load initial messages if provided (e.g., from response scorer navigation)
+  const initialMessagesLoadedRef = useRef(false);
+  useEffect(() => {
+    if (initialMessages && initialMessages.length > 0 && !initialMessagesLoadedRef.current) {
+      chatState.loadMessages(initialMessages);
+      initialMessagesLoadedRef.current = true;
+    }
+  }, [initialMessages, chatState]);
 
   // Refs for tracking compilation completion in retry loop
   const compilationResolveRef = useRef<((success: boolean) => void) | null>(null);
@@ -149,8 +185,12 @@ export function AIPanel({
    * Handle applying code from an artifact to the editor
    */
   const handleApplyCode = useCallback((code: string) => {
-    setCodeAndCompile(code, '1');
-  }, [setCodeAndCompile]);
+    if (isBrowseMode && onSelectArtifact) {
+      onSelectArtifact(code);
+    } else if (setCodeAndCompile) {
+      setCodeAndCompile(code, '1');
+    }
+  }, [isBrowseMode, onSelectArtifact, setCodeAndCompile]);
 
   // Maximum retry attempts for compilation failures
   const MAX_ATTEMPTS = 3;
@@ -356,6 +396,16 @@ export function AIPanel({
     updateLoadingState(false);
   }, [isLoading, chatState, callAPIWithRetry, updateLoadingState]);
 
+  // Default branch info function for browse mode
+  const defaultBranchInfo = useCallback((): BranchInfo => ({ count: 1, activeIndex: 0 }), []);
+  const defaultBranchChange = useCallback(() => {}, []);
+
+  // Determine which messages and handlers to use based on mode
+  const displayMessages = isBrowseMode ? browseMessages : chatState.displayMessages;
+  const branchInfoFn = isBrowseMode ? (browseBranchInfo ?? defaultBranchInfo) : chatState.getBranchInfo;
+  const branchChangeFn = isBrowseMode ? (browseOnBranchChange ?? defaultBranchChange) : chatState.setActiveBranch;
+  const currentCodeForChat = isBrowseMode ? selectedArtifactCode : getCurrentCode();
+
   const panelContent = (
     <div className="flex flex-col h-full relative overflow-hidden">
       {/* Subtle radial gradient glow - centered at top */}
@@ -366,122 +416,135 @@ export function AIPanel({
           filter: 'blur(100vh)',
         }}
       />
-      {/* Header */}
+
+      {/* Header - Different for browse vs interactive mode */}
       <div className="flex items-center justify-between px-3 py-1 gap-2">
         <span className="text-md font-light text-foreground">AI </span>
         <Sparkles size={16} strokeWidth={2} />
         <span className='w-full' ></span>
-        <TooltipProvider>
-          <div className="flex items-center gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={chatState.clearHistory}
-                  disabled={chatState.messages.length === 0}
-                  className="h-7 w-7 text-foreground-muted hover:text-foreground"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Clear chat</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onClose}
-                  className="h-7 w-7 text-foreground-muted hover:text-foreground"
-                >
-                  <X className="h-4 w-4" strokeWidth={1.5} />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Close panel</TooltipContent>
-            </Tooltip>
-          </div>
-        </TooltipProvider>
+        {!isBrowseMode && (
+          <TooltipProvider>
+            <div className="flex items-center gap-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={chatState.clearHistory}
+                    disabled={chatState.messages.length === 0}
+                    className="h-7 w-7 text-foreground-muted hover:text-foreground"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Clear chat</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onClose}
+                    className="h-7 w-7 text-foreground-muted hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" strokeWidth={1.5} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Close panel</TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
+        )}
       </div>
-      {/* Separator - not full width */}
-      {/* <div className="mx-4 border-b border-lines" /> */}
 
-      {/* Main Content Area - Chat component (only shown when messages exist) */}
-      {chatState.messages.length > 0 && (
+      {/* Main Content Area - Chat component */}
+      {displayMessages.length > 0 && (
         <Chat
-          messages={chatState.displayMessages}
+          messages={displayMessages}
           taskState={chatState.taskState}
           isLoading={isLoading}
           onReroll={handleReroll}
           onEdit={handleEdit}
           onApplyCode={handleApplyCode}
-          getBranchInfo={chatState.getBranchInfo}
-          onBranchChange={chatState.setActiveBranch}
-          currentCode={getCurrentCode()}
+          getBranchInfo={branchInfoFn}
+          onBranchChange={branchChangeFn}
+          currentCode={currentCodeForChat}
+          readOnly={isBrowseMode}
         />
       )}
 
-      {/* Footer - Prompt Input Area */}
-      <div className="p-2 pt-0">
-        <PromptInput onSubmit={handleSubmit} className="bg-background-editor text-foreground border-background-editor">
-          <PromptInputTextarea
-            placeholder="Describe the shader you want to create..."
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            className="bg-transparent text-foreground text-xs placeholder:text-foreground-muted min-h-[80px]"
-            disabled={isLoading}
-          />
-          <PromptInputToolbar>
-            <div className="flex items-center gap-1">
-              {/* Include code toggle */}
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setIncludeCode(!includeCode)}
-                      className="h-7 w-7 text-foreground-muted hover:text-foreground"
-                    >
-                      {includeCode ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    {includeCode ? 'Include code' : "Don't include code"}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+      {/* Footer - Prompt Input Area (only in interactive mode) */}
+      {!isBrowseMode && (
+        <div className="p-2 pt-0">
+          <PromptInput onSubmit={handleSubmit} className="bg-background-editor text-foreground border-background-editor">
+            <PromptInputTextarea
+              placeholder="Describe the shader you want to create..."
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              className="bg-transparent text-foreground text-xs placeholder:text-foreground-muted min-h-[80px]"
+              disabled={isLoading}
+            />
+            <PromptInputToolbar>
+              <div className="flex items-center gap-1">
+                {/* Include code toggle */}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setIncludeCode(!includeCode)}
+                        className="h-7 w-7 text-foreground-muted hover:text-foreground"
+                      >
+                        {includeCode ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      {includeCode ? 'Include code' : "Don't include code"}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
 
-              <PromptInputModelSelect value={selectedModel} onValueChange={setSelectedModel}>
-                <PromptInputModelSelectTrigger className="h-6 w-auto text-xs rounded-xl font-light hover:text-background bg-accent/50">
-                  <PromptInputModelSelectValue />
-                </PromptInputModelSelectTrigger>
-                <PromptInputModelSelectContent>
-                  {AVAILABLE_AI_MODELS.map((model) => (
-                    <PromptInputModelSelectItem key={model.id} value={model.id}>
-                      {model.name}
-                    </PromptInputModelSelectItem>
-                  ))}
-                </PromptInputModelSelectContent>
-              </PromptInputModelSelect>
-            </div>
-            {isLoading ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleCancel}
-                className="h-6 w-6 rounded-sm text-accent hover:text-accent-highlighted hover:bg-accent/10"
-              >
-                <Square className="h-3 w-3 fill-current" />
-              </Button>
-            ) : (
-              <PromptInputSubmit disabled={!inputValue.trim()} />
-            )}
-          </PromptInputToolbar>
-        </PromptInput>
-      </div>
+                <PromptInputModelSelect value={selectedModel} onValueChange={setSelectedModel}>
+                  <PromptInputModelSelectTrigger className="h-6 w-auto text-xs rounded-xl font-light hover:text-background bg-accent/50">
+                    <PromptInputModelSelectValue />
+                  </PromptInputModelSelectTrigger>
+                  <PromptInputModelSelectContent>
+                    {AVAILABLE_AI_MODELS.map((model) => (
+                      <PromptInputModelSelectItem key={model.id} value={model.id}>
+                        {model.name}
+                      </PromptInputModelSelectItem>
+                    ))}
+                  </PromptInputModelSelectContent>
+                </PromptInputModelSelect>
+              </div>
+              {isLoading ? (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleCancel}
+                  className="h-6 w-6 rounded-sm text-accent hover:text-accent-highlighted hover:bg-accent/10"
+                >
+                  <Square className="h-3 w-3 fill-current" />
+                </Button>
+              ) : (
+                <PromptInputSubmit disabled={!inputValue.trim()} />
+              )}
+            </PromptInputToolbar>
+          </PromptInput>
+        </div>
+      )}
     </div>
   );
+
+  // Browse mode: always visible, no animation
+  if (isBrowseMode) {
+    return (
+      <div className="h-full w-[25vw] border-l border-lines bg-background overflow-hidden flex-shrink-0">
+        {panelContent}
+      </div>
+    );
+  }
 
   if (isMobile) {
     return (

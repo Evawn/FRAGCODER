@@ -23,6 +23,8 @@ interface ChatProps {
   getBranchInfo: (userMessageId: string) => BranchInfo;
   onBranchChange: (parentKey: string, index: number) => void;
   currentCode?: string;
+  /** When true, hides edit/reroll actions but keeps artifact selection */
+  readOnly?: boolean;
 }
 
 /**
@@ -37,6 +39,7 @@ function UserMessage({
   onApplyCode,
   isLoading,
   currentCode,
+  readOnly = false,
 }: {
   message: ChatMessageNode;
   branchInfo: BranchInfo;
@@ -46,6 +49,7 @@ function UserMessage({
   onApplyCode: (code: string) => void;
   isLoading: boolean;
   currentCode?: string;
+  readOnly?: boolean;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(message.content);
@@ -136,8 +140,8 @@ function UserMessage({
           )}
         </div>
 
-        {/* Floating action bar - appears on hover (but not while loading) */}
-        {!isEditing && (
+        {/* Floating action bar - appears on hover (but not while loading or in readOnly mode) */}
+        {!isEditing && !readOnly && (
           <div className={cn(
             "absolute right-4 -bottom-2 translate-y-1/2 z-10 opacity-0 transition-opacity",
             !isLoading && "group-hover/user-msg:opacity-100"
@@ -297,6 +301,7 @@ export function Chat({
   getBranchInfo,
   onBranchChange,
   currentCode,
+  readOnly = false,
 }: ChatProps) {
   if (messages.length === 0 && taskState.status === 'idle') {
     return <div className="flex-1" />;
@@ -321,6 +326,7 @@ export function Chat({
                 onApplyCode={onApplyCode}
                 isLoading={isLoading}
                 currentCode={currentCode}
+                readOnly={readOnly}
               />
             );
           } else {

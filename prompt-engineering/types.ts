@@ -29,12 +29,15 @@ export interface GoldenDataset {
 
 /**
  * Manual scoring for an AI response
+ * All scores are on a -10 to +10 scale with 0.1 precision
  */
 export interface ResponseScore {
-  visualQuality: 1 | 2 | 3 | 4 | 5;
-  accuracy: 1 | 2 | 3 | 4 | 5;
-  explanationQuality: 1 | 2 | 3 | 4 | 5;
-  codeQuality: 1 | 2 | 3 | 4 | 5;
+  visualQuality: number;
+  promptCorrectness: number;
+  codeQuality: number;
+  explanationQuality: number;
+  creativity: number;
+  overallSatisfaction: number;
   notes?: string;
   scoredAt: string;
 }

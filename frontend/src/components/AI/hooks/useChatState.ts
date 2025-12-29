@@ -415,6 +415,16 @@ export function useChatState() {
   }, []);
 
   /**
+   * Load pre-existing messages into the chat state
+   * Used when navigating from response scorer with existing conversation
+   */
+  const loadMessages = useCallback((newMessages: ChatMessageNode[]) => {
+    setMessages(newMessages);
+    setActiveBranches(new Map());
+    setTaskState(INITIAL_TASK_STATE);
+  }, []);
+
+  /**
    * Get the last assistant message in the current display
    */
   const getLastAssistantMessage = useCallback((): ChatMessageNode | undefined => {
@@ -458,6 +468,7 @@ export function useChatState() {
 
     // Utility
     clearHistory,
+    loadMessages,
     getLastAssistantId,
     getAssistantResponses,
   };

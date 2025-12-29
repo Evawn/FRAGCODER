@@ -6,8 +6,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { loadSuite } from '@/data/promptEngineeringSuites';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, CheckCircle, XCircle, Star, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft, CheckCircle, XCircle, Star, Loader2, ExternalLink } from 'lucide-react';
 import type { ResponseSuite, PromptResponse } from '../../../../prompt-engineering/types';
+import { buildChatMessages } from '@/hooks/useResponseScorerState';
 import { useThumbnailPool, type ThumbnailResult } from '@/hooks/useThumbnailPool';
 import type { TabShaderData } from '@/utils/GLSLCompiler';
 
@@ -83,18 +85,29 @@ function ScoreBadge({ response }: { response: PromptResponse }) {
   }
 
   const s = response.score;
-  const avg = (s.visualQuality + s.accuracy + s.explanationQuality + s.codeQuality) / 4;
+  // Average of all 6 scoring categories (-10 to +10 scale)
+  const avg = (
+    s.visualQuality +
+    s.promptCorrectness +
+    s.codeQuality +
+    s.explanationQuality +
+    s.creativity +
+    s.overallSatisfaction
+  ) / 6;
 
+  // Color based on -10 to +10 scale
   const colorClass = avg >= 4
     ? 'text-success border-success'
-    : avg >= 3
+    : avg >= 0
       ? 'text-warning border-warning'
       : 'text-orange-400 border-orange-400';
+
+  const displayValue = avg >= 0 ? `+${avg.toFixed(1)}` : avg.toFixed(1);
 
   return (
     <Badge variant="outline" className={`text-xs ${colorClass}`}>
       <Star size={12} className="mr-1" />
-      {avg.toFixed(1)}/5
+      {displayValue}
     </Badge>
   );
 }
@@ -115,15 +128,28 @@ function PromptRow({
   const navigate = useNavigate();
   // null = pending, true/false = actual result
   const [compilationStatus, setCompilationStatus] = useState<boolean | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
 
   const handleCompilationResult = useCallback((compiled: boolean) => {
     setCompilationStatus(compiled);
     onCompilationResult(response.promptId, compiled);
   }, [onCompilationResult, response.promptId]);
 
+  const handleOpenInEditor = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate('/new', {
+      state: {
+        initialCode: response.response.code,
+        initialChatMessages: buildChatMessages(response),
+      }
+    });
+  }, [navigate, response]);
+
   return (
     <tr
       onClick={() => navigate(`/debug/prompt-engineering/${suiteId}/${response.promptId}`)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       className="border-b border-lines hover:bg-background-highlighted cursor-pointer transition-colors"
     >
       {/* Index */}
@@ -176,6 +202,19 @@ function PromptRow({
       {/* Latency */}
       <td className="px-3 py-3 text-sm text-muted-foreground text-right">
         {formatLatency(response.latencyMs)}
+      </td>
+
+      {/* Actions (visible on hover) */}
+      <td className="px-3 py-3 w-10">
+        <Button
+          variant="ghost"
+          size="sm"
+          className={`h-6 w-6 p-0 ${isHovered && response.response.code ? 'opacity-100' : 'opacity-0'}`}
+          onClick={handleOpenInEditor}
+          title="Open in Editor"
+        >
+          <ExternalLink size={14} />
+        </Button>
       </td>
     </tr>
   );
@@ -316,6 +355,7 @@ export function SuiteViewer({ suiteId }: SuiteViewerProps) {
               <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground w-20">Preview</th>
               <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground w-24">Score</th>
               <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground w-20">Latency</th>
+              <th className="w-10"></th>
             </tr>
           </thead>
           <tbody>

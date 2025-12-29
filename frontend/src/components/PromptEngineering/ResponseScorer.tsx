@@ -1,419 +1,301 @@
 /**
- * Response scorer - view and score individual AI responses
- * Shows shader preview, code, explanation, and scoring form
+ * ResponseScorer - Full-featured scoring interface for AI responses
+ * Three-panel layout: ShaderPlayer+Info | Editor | AIPanel
+ * Bottom footer for scoring controls with expandable pipeline trace
+ *
+ * Uses useShaderController for WebGL rendering and playback orchestration.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { loadSuite, saveScore } from '@/data/promptEngineeringSuites';
-import { MiniShaderPlayer } from './MiniShaderPlayer';
+import { ArrowLeft, ArrowRight, Loader2, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Slider } from '@/components/ui/slider';
-import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, ArrowRight, Save, CheckCircle, XCircle, Loader2 } from 'lucide-react';
-import type { ResponseSuite, PromptResponse, ResponseScore } from '../../../../prompt-engineering/types';
-import CodeMirror from '@uiw/react-codemirror';
-import { oneDark } from '@codemirror/theme-one-dark';
-import { glsl } from '@/utils/GLSLLanguage';
-import { EditorView } from '@codemirror/view';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
+import ShaderPlayer from '@/components/ShaderPlayer';
+import ShaderEditor from '@/components/editor/ShaderEditor';
+import { AIPanel } from '@/components/AI/AIPanel';
+import { PromptInfoPanel } from './PromptInfoPanel';
+import { ScoringFooter } from './ScoringFooter';
+import { PipelineTraceOverlay } from './PipelineTraceOverlay';
+import { useResponseScorerState, buildChatMessages } from '@/hooks/useResponseScorerState';
+import { useShaderController } from '@/hooks/useShaderController';
+import { useThumbnailCapture } from '@/components/AI/hooks/useThumbnailCapture';
+import type { Tab } from '@/types';
+import type { ChatMessageNode } from '@/types/chat';
 
 interface ResponseScorerProps {
   suiteId: string;
   promptId: string;
 }
 
-type ScoreCategory = 'visualQuality' | 'accuracy' | 'explanationQuality' | 'codeQuality';
-
-const SCORE_LABELS: Record<ScoreCategory, { label: string; description: string }> = {
-  visualQuality: {
-    label: 'Visual Quality',
-    description: 'How visually appealing is the result?',
-  },
-  accuracy: {
-    label: 'Accuracy',
-    description: 'Does it match the prompt request?',
-  },
-  explanationQuality: {
-    label: 'Explanation',
-    description: 'Is the explanation clear and helpful?',
-  },
-  codeQuality: {
-    label: 'Code Quality',
-    description: 'Is the code clean and efficient?',
-  },
-};
-
-const SCORE_DESCRIPTIONS: Record<number, string> = {
-  1: 'Poor',
-  2: 'Below Average',
-  3: 'Average',
-  4: 'Good',
-  5: 'Excellent',
-};
-
-function ScoreSlider({
-  category,
-  value,
-  onChange,
-}: {
-  category: ScoreCategory;
-  value: number;
-  onChange: (value: number) => void;
-}) {
-  const info = SCORE_LABELS[category];
-
-  return (
-    <div className="space-y-2">
-      <div className="flex justify-between items-center">
-        <label className="text-sm font-medium text-foreground">{info.label}</label>
-        <span className="text-sm text-muted-foreground">
-          {value}/5 - {SCORE_DESCRIPTIONS[value]}
-        </span>
-      </div>
-      <p className="text-xs text-muted-foreground">{info.description}</p>
-      <Slider
-        value={[value]}
-        min={1}
-        max={5}
-        step={1}
-        onValueChange={([v]) => onChange(v)}
-        className="py-2"
-      />
-    </div>
-  );
-}
-
 export function ResponseScorer({ suiteId, promptId }: ResponseScorerProps) {
   const navigate = useNavigate();
-  const [suite, setSuite] = useState<ResponseSuite | null>(null);
-  const [response, setResponse] = useState<PromptResponse | null>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  // Scoring state
-  const [scores, setScores] = useState<Record<ScoreCategory, number>>({
-    visualQuality: 3,
-    accuracy: 3,
-    explanationQuality: 3,
-    codeQuality: 3,
-  });
-  const [notes, setNotes] = useState('');
-  const [hasChanges, setHasChanges] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
+  // Load data and scoring state
+  const state = useResponseScorerState({ suiteId, promptId });
 
-  // Load suite and find response
+  // Build tabs from the response code (read-only, single tab)
+  const [tabs, setTabs] = useState<Tab[]>([]);
+  const [activeTabId, setActiveTabId] = useState('1');
+
+  // Shader controller for WebGL rendering and playback
+  const controller = useShaderController({ autoPlay: true, setTabs });
+
+  // Thumbnail capture for code artifacts
+  const { captureThumbnail } = useThumbnailCapture();
+
+  // Pipeline trace overlay state
+  const [isTraceExpanded, setIsTraceExpanded] = useState(false);
+
+  // Currently selected code (for artifact highlighting)
+  const [selectedCode, setSelectedCode] = useState<string | undefined>(undefined);
+
+  // Chat messages with thumbnails
+  const [chatMessages, setChatMessages] = useState<ChatMessageNode[]>([]);
+
+  // Extract promptId as a stable dependency to avoid recompilation on score changes
+  const currentPromptId = state.response?.promptId;
+
+  // Update tabs and compile when response changes
   useEffect(() => {
-    const fetchSuite = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const loaded = await loadSuite(suiteId);
-        setSuite(loaded);
-        const idx = loaded.responses.findIndex(r => r.promptId === promptId);
-        if (idx >= 0) {
-          setCurrentIndex(idx);
-          const resp = loaded.responses[idx];
-          setResponse(resp);
+    if (!currentPromptId || !state.response) return;
 
-          // Load existing score if present
-          if (resp.score) {
-            setScores({
-              visualQuality: resp.score.visualQuality,
-              accuracy: resp.score.accuracy,
-              explanationQuality: resp.score.explanationQuality,
-              codeQuality: resp.score.codeQuality,
-            });
-            setNotes(resp.score.notes || '');
-          } else {
-            setScores({ visualQuality: 3, accuracy: 3, explanationQuality: 3, codeQuality: 3 });
-            setNotes('');
-          }
-          setHasChanges(false);
-          setSaveSuccess(false);
-        } else {
-          setResponse(null);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load suite');
-      } finally {
-        setIsLoading(false);
+    // Use empty string if no code (API error case) - will fail compilation naturally
+    const code = state.response.response.code ?? '';
+    const errors = state.response.compilationErrors ?? [];
+
+    setTabs([{
+      id: '1',
+      name: 'Image',
+      code,
+      isDeletable: false,
+      errors,
+    }]);
+    setSelectedCode(code || undefined);
+
+    // Compile the shader code (empty string will fail, clearing the spinner)
+    controller.compile([{ id: '1', name: 'Image', code }]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPromptId]); // Only run when navigating to a different prompt
+
+  // Generate thumbnails for chat message artifacts when response changes
+  useEffect(() => {
+    const generateThumbnails = async () => {
+      if (!state.response || !currentPromptId) {
+        setChatMessages([]);
+        return;
       }
-    };
-    fetchSuite();
-  }, [suiteId, promptId]);
 
-  // Navigate to adjacent responses
-  const goToResponse = useCallback((index: number) => {
-    if (suite && index >= 0 && index < suite.responses.length) {
-      const resp = suite.responses[index];
-      navigate(`/debug/prompt-engineering/${suiteId}/${resp.promptId}`);
-    }
-  }, [suite, suiteId, navigate]);
+      // Extract user code from trace input (if available)
+      const traceInput = state.response.trace?.steps[0]?.input as { code?: string } | undefined;
+      const userCode = traceInput?.code;
+      const assistantCode = state.response.response.code;
 
-  // Handle score changes
-  const handleScoreChange = (category: ScoreCategory, value: number) => {
-    setScores(prev => ({ ...prev, [category]: value }));
-    setHasChanges(true);
-    setSaveSuccess(false);
-  };
+      // Generate thumbnails in parallel
+      const [userThumb, assistantThumb] = await Promise.all([
+        userCode ? captureThumbnail(userCode) : Promise.resolve(null),
+        assistantCode ? captureThumbnail(assistantCode) : Promise.resolve(null),
+      ]);
 
-  // Save score via API
-  const handleSave = async () => {
-    if (!suite || !response) return;
-
-    const newScore: ResponseScore = {
-      visualQuality: scores.visualQuality as 1 | 2 | 3 | 4 | 5,
-      accuracy: scores.accuracy as 1 | 2 | 3 | 4 | 5,
-      explanationQuality: scores.explanationQuality as 1 | 2 | 3 | 4 | 5,
-      codeQuality: scores.codeQuality as 1 | 2 | 3 | 4 | 5,
-      notes: notes || undefined,
-      scoredAt: new Date().toISOString(),
+      // Build chat messages with thumbnails
+      setChatMessages(buildChatMessages(state.response, {
+        user: userThumb ?? undefined,
+        assistant: assistantThumb ?? undefined,
+      }));
     };
 
-    setIsSaving(true);
-    try {
-      await saveScore(suiteId, promptId, newScore);
-      setHasChanges(false);
-      setSaveSuccess(true);
+    generateThumbnails();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPromptId, captureThumbnail]); // Only regenerate when navigating to a different prompt
 
-      // Update local state to reflect saved score
-      setResponse(prev => prev ? { ...prev, score: newScore } : null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save score');
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  // Handle artifact selection from AIPanel
+  const handleSelectArtifact = useCallback((code: string) => {
+    setSelectedCode(code);
 
-  if (isLoading) {
-    return (
-      <div className="p-6">
-        <Link
-          to={`/debug/prompt-engineering/${suiteId}`}
-          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft size={16} />
-          Back to suite
-        </Link>
-        <div className="mt-6 flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
-      </div>
-    );
-  }
+    // Update the tabs with the selected code
+    setTabs(prev => prev.map(tab =>
+      tab.id === '1' ? { ...tab, code, errors: [] } : tab
+    ));
 
-  if (error || !suite || !response) {
-    return (
-      <div className="p-6">
-        <Link
-          to={`/debug/prompt-engineering/${suiteId}`}
-          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft size={16} />
-          Back to suite
-        </Link>
-        <div className="mt-6 border border-dashed border-lines rounded-lg p-8 text-center">
-          <p className="text-muted-foreground">{error || 'Response not found'}</p>
-        </div>
-      </div>
-    );
-  }
+    // Compile the selected code
+    controller.compile([{ id: '1', name: 'Image', code }]);
+  }, [controller]);
 
-  const avgScore = (scores.visualQuality + scores.accuracy + scores.explanationQuality + scores.codeQuality) / 4;
+  // Stub handlers for ShaderEditor (read-only mode)
+  const noOp = useCallback(() => {}, []);
+  const noOpString = useCallback((_: string) => {}, []);
+  const noOpTwoStrings = useCallback((_: string, __: string) => {}, []);
+
+  // Determine if content is ready (but always render canvas for WebGL init)
+  const isReady = !state.isLoading && !state.error && state.suite && state.response;
 
   return (
     <div className="h-screen flex flex-col bg-background">
       {/* Header */}
-      <header className="border-b border-lines px-4 py-3 flex items-center justify-between bg-background-header">
-        <div className="flex items-center gap-4">
-          <Link
-            to={`/debug/prompt-engineering/${suiteId}`}
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft size={16} />
-            Back
-          </Link>
-          <span className="text-muted-foreground">|</span>
-          <span className="text-sm text-foreground">
-            {currentIndex + 1} of {suite.responses.length}
-          </span>
-        </div>
+      <header className="border-b border-lines px-3 py-1.5 flex items-center justify-between bg-background-header flex-shrink-0">
+        <Link
+          to={`/debug/prompt-engineering/${suiteId}`}
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft size={14} />
+          Back
+        </Link>
 
-        <div className="flex items-center gap-2">
+        <span className="text-xs font-mono text-foreground truncate max-w-[40%]">
+          {promptId}
+        </span>
+
+        <div className="flex items-center gap-1.5">
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => goToResponse(currentIndex - 1)}
-            disabled={currentIndex === 0}
+            className="h-6 px-2 text-xs"
+            onClick={() => navigate('/new', {
+              state: {
+                initialCode: state.response?.response.code,
+                initialChatMessages: chatMessages,
+              }
+            })}
+            disabled={!state.response?.response.code}
           >
-            <ArrowLeft size={16} />
+            <ExternalLink size={12} className="mr-1" />
+            Open in Editor
+          </Button>
+          <span className="text-xs text-muted-foreground">
+            {state.currentIndex + 1}/{state.totalCount}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0"
+            onClick={state.goToPrevious}
+            disabled={!state.canGoPrevious}
+          >
+            <ArrowLeft size={14} />
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => goToResponse(currentIndex + 1)}
-            disabled={currentIndex >= suite.responses.length - 1}
+            className="h-6 w-6 p-0"
+            onClick={state.goToNext}
+            disabled={!state.canGoNext}
           >
-            <ArrowRight size={16} />
+            <ArrowRight size={14} />
           </Button>
         </div>
       </header>
 
-      {/* Main content - 70% scale container */}
-      <div className="flex-1 overflow-hidden p-4">
-        <div
-          className="h-full mx-auto flex gap-4"
-          style={{ maxWidth: '1400px', transform: 'scale(0.95)', transformOrigin: 'top center' }}
-        >
-          {/* Left: Shader preview + code */}
-          <div className="flex-1 flex flex-col gap-4 min-w-0">
-            {/* Prompt info */}
-            <div className="bg-background-header rounded-lg p-4 border border-lines">
-              <div className="flex items-start justify-between mb-2">
-                <h2 className="font-semibold text-foreground-highlighted">Prompt</h2>
-                <div className="flex gap-1">
-                  {response.prompt.tags.map(tag => (
-                    <Badge key={tag} variant="secondary" className="text-xs">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-              <p className="text-sm text-foreground">{response.prompt.input.prompt}</p>
-              {response.prompt.expectedBehavior && (
-                <p className="text-xs text-muted-foreground mt-2">
-                  <strong>Expected:</strong> {response.prompt.expectedBehavior}
-                </p>
-              )}
-            </div>
+      {/* Loading overlay */}
+      {state.isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-50">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      )}
 
-            {/* Shader preview */}
-            <div className="h-64 bg-black rounded-lg overflow-hidden border border-lines">
-              {response.response.code ? (
-                <MiniShaderPlayer code={response.response.code} autoPlay={true} />
-              ) : (
-                <div className="h-full flex items-center justify-center text-muted-foreground">
-                  No code generated (explain intent)
-                </div>
-              )}
-            </div>
-
-            {/* Code display */}
-            <div className="flex-1 min-h-0 rounded-lg overflow-hidden border border-lines">
-              <div className="bg-background-header px-3 py-2 border-b border-lines flex items-center justify-between">
-                <span className="text-sm font-medium text-foreground">Generated Code</span>
-                <div className="flex items-center gap-2">
-                  {response.compilationSuccess ? (
-                    <Badge variant="outline" className="text-xs text-success border-success">
-                      <CheckCircle size={12} className="mr-1" />
-                      Compiled
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-xs text-error border-error">
-                      <XCircle size={12} className="mr-1" />
-                      Failed
-                    </Badge>
-                  )}
-                  <span className="text-xs text-muted-foreground">{response.latencyMs}ms</span>
-                </div>
-              </div>
-              <div className="h-[calc(100%-40px)] overflow-auto">
-                <CodeMirror
-                  value={response.response.code || '// No code generated'}
-                  theme={oneDark}
-                  extensions={[
-                    glsl(),
-                    EditorView.editable.of(false),
-                    EditorView.lineWrapping,
-                  ]}
-                  basicSetup={{
-                    lineNumbers: true,
-                    foldGutter: false,
-                    highlightActiveLine: false,
-                  }}
-                  className="text-sm"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Right: Explanation + Scoring */}
-          <div className="w-80 flex flex-col gap-4">
-            {/* Explanation */}
-            <div className="bg-background-header rounded-lg p-4 border border-lines max-h-48 overflow-auto">
-              <h3 className="font-semibold text-foreground-highlighted mb-2">AI Explanation</h3>
-              <p className="text-sm text-foreground whitespace-pre-wrap">
-                {response.response.explanation}
-              </p>
-            </div>
-
-            {/* Scoring form */}
-            <div className="flex-1 bg-background-header rounded-lg p-4 border border-lines overflow-auto">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-foreground-highlighted">Score</h3>
-                <Badge
-                  variant="outline"
-                  className={`text-sm ${avgScore >= 4 ? 'text-success border-success' : avgScore >= 3 ? 'text-accent border-accent' : 'text-error border-error'}`}
-                >
-                  {avgScore.toFixed(1)}/5
-                </Badge>
-              </div>
-
-              <div className="space-y-6">
-                {(Object.keys(SCORE_LABELS) as ScoreCategory[]).map(category => (
-                  <ScoreSlider
-                    key={category}
-                    category={category}
-                    value={scores[category]}
-                    onChange={(v) => handleScoreChange(category, v)}
-                  />
-                ))}
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Notes</label>
-                  <Textarea
-                    value={notes}
-                    onChange={(e) => {
-                      setNotes(e.target.value);
-                      setHasChanges(true);
-                      setSaveSuccess(false);
-                    }}
-                    placeholder="Additional observations..."
-                    className="h-20 resize-none text-sm"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Save button */}
-            <Button
-              onClick={handleSave}
-              disabled={!hasChanges || isSaving}
-              className="w-full"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 size={16} className="mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : saveSuccess ? (
-                <>
-                  <CheckCircle size={16} className="mr-2" />
-                  Saved
-                </>
-              ) : (
-                <>
-                  <Save size={16} className="mr-2" />
-                  Save Score
-                </>
-              )}
-            </Button>
+      {/* Error state */}
+      {!state.isLoading && (state.error || !state.suite || !state.response) && (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="border border-dashed border-lines rounded-lg p-8 text-center">
+            <p className="text-muted-foreground">{state.error || 'Response not found'}</p>
           </div>
         </div>
+      )}
+
+      {/* Main three-panel layout - always render for WebGL init, hide when not ready */}
+      <div className={`flex-1 flex overflow-hidden relative ${!isReady ? 'invisible' : ''}`}>
+        <ResizablePanelGroup direction="horizontal" className="flex-1" onLayout={controller.handlePanelResize}>
+          {/* LEFT: Player + Info */}
+          <ResizablePanel defaultSize={35} minSize={controller.leftPanelMinSize}>
+            <div className="h-full flex flex-col p-2 gap-2 overflow-hidden">
+              {/* Shader Player - always rendered for WebGL context */}
+              <div className="flex-1 min-h-0">
+                <ShaderPlayer
+                  canvasRef={controller.canvasRef}
+                  isPlaying={controller.isPlaying}
+                  onPlayPause={controller.togglePlayPause}
+                  onReset={controller.reset}
+                  compilationSuccess={controller.compilationSuccess ?? false}
+                  error={controller.error}
+                  uTime={controller.uTime}
+                  fps={controller.fps}
+                  resolution={controller.resolution}
+                  onResolutionLockChange={controller.handleResolutionLockChange}
+                />
+              </div>
+
+              {/* Prompt Info Panel - only render when data is available */}
+              {isReady && (
+                <div className="flex-shrink-0 max-h-[40%] overflow-auto">
+                  <PromptInfoPanel
+                    prompt={state.response!.prompt}
+                    compilationSuccess={controller.compilationSuccess}
+                    compilationErrors={controller.compilationErrors}
+                  />
+                </div>
+              )}
+            </div>
+          </ResizablePanel>
+
+          <ResizableHandle className="w-px bg-lines" />
+
+          {/* CENTER: Code Editor */}
+          <ResizablePanel defaultSize={65} minSize={30}>
+            <div className="h-full flex flex-col overflow-hidden">
+              <ShaderEditor
+                tabs={tabs}
+                activeTabId={activeTabId}
+                compilationSuccess={controller.compilationSuccess}
+                compilationTime={controller.compilationTime}
+                isCompiling={controller.isCompiling}
+                lastCompilationTime={controller.lastCompilationTime}
+                isSavedShader={false}
+                isOwner={false}
+                readOnly={true}
+                onTabChange={setActiveTabId}
+                onAddTab={noOpString}
+                onDeleteTab={noOpString}
+                onCodeChange={noOpTwoStrings}
+                onCompile={noOp}
+                onSave={noOp}
+              />
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+
+        {/* RIGHT: AI Panel in browse mode - outside resizable group */}
+        <AIPanel
+          mode="browse"
+          isOpen={true}
+          browseMessages={chatMessages}
+          onSelectArtifact={handleSelectArtifact}
+          selectedArtifactCode={selectedCode}
+        />
+
+        {/* Pipeline Trace Overlay */}
+        {isTraceExpanded && state.response?.trace && (
+          <PipelineTraceOverlay
+            isOpen={isTraceExpanded}
+            onClose={() => setIsTraceExpanded(false)}
+            trace={state.response.trace}
+          />
+        )}
       </div>
+
+      {/* Scoring Footer - only render when data is available */}
+      {isReady && (
+        <ScoringFooter
+          scores={state.scores}
+          onScoreChange={state.setScore}
+          notes={state.notes}
+          onNotesChange={state.setNotes}
+          isSaving={state.isSaving}
+          hasChanges={state.hasChanges}
+          saveSuccess={state.saveSuccess}
+          avgScore={state.avgScore}
+          hasTrace={!!state.response!.trace}
+          onExpandTrace={() => setIsTraceExpanded(true)}
+        />
+      )}
     </div>
   );
 }

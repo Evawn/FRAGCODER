@@ -1,12 +1,13 @@
 // Custom hook to manage all editor state and business logic for the shader editor
 // Encapsulates tab management, shader operations, compilation state, and dialog interactions
+// Composes useShaderController for WebGL rendering and playback orchestration
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { CompilationError, Tab, ShaderData } from '../types';
-import type { TabShaderData } from '../utils/GLSLCompiler';
 import { useAuth } from '../AuthContext';
 import { useDialogManager } from './useDialogManager';
+import { useShaderController, type UseShaderControllerReturn } from './useShaderController';
 import { DEFAULT_SHADER_CODES, getDefaultCode } from '../utils/defaultShaderCode';
 import { logger } from '../utils/logger';
 import {
@@ -21,15 +22,14 @@ import {
   apiShaderToShaderData,
   tabsToTabData,
   apiTabsToLocalTabs,
-  distributeErrorsToTabs,
   showErrorAlert,
   sortTabsByCanonicalOrder,
 } from '../utils/editorPageHelpers';
 
 interface UseEditorStateProps {
   slug?: string;
-  onCompile: (tabs: TabShaderData[]) => void;
-  onAutoPlay?: () => void; // Called when compilation succeeds for auto-play logic
+  /** Initial code to load (e.g., when navigating from response scorer) */
+  initialCode?: string;
 }
 
 interface UseEditorStateReturn {
@@ -69,8 +69,8 @@ interface UseEditorStateReturn {
   onDeleteShader: () => Promise<void>;
   onSaveShader: (shaderName: string) => Promise<void>;
 
-  // Compilation callback (for useWebGLRenderer)
-  handleCompilationResult: (success: boolean, errors: CompilationError[], compilationTime: number) => void;
+  // Shader controller (for EditorPage to access WebGL/playback)
+  controller: UseShaderControllerReturn;
 
   // Loading
   loadShader: (slug: string) => Promise<void>;
@@ -78,20 +78,14 @@ interface UseEditorStateReturn {
 
 export function useEditorState({
   slug,
-  onCompile: rendererCompile,
-  onAutoPlay,
+  initialCode,
 }: UseEditorStateProps): UseEditorStateReturn {
   const navigate = useNavigate();
   const { user, token } = useAuth();
   const [shaderUrl, setShaderUrl] = useState<string | null>(slug || null);
 
   const [shader, setShader] = useState<ShaderData | null>(null);
-  const [compilationErrors, setCompilationErrors] = useState<CompilationError[]>([]);
-  const [compilationSuccess, setCompilationSuccess] = useState<boolean | undefined>(undefined);
-  const [compilationTime, setCompilationTime] = useState<number>(0);
   const [loading, setLoading] = useState(false);
-  const [isCompiling, setIsCompiling] = useState(false);
-  const [lastCompilationTime, setLastCompilationTime] = useState<number>(0);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Ref to store the "saved" snapshot of tabs for comparison
@@ -104,6 +98,9 @@ export function useEditorState({
     { id: '1', name: 'Image', code: DEFAULT_SHADER_CODES.Image, isDeletable: false, errors: [] }
   ]);
   const [activeTabId, setActiveTabId] = useState('1');
+
+  // Create shader controller (handles WebGL, compilation, playback)
+  const controller = useShaderController({ autoPlay: true, setTabs });
 
   // Dialog management
   const dialogManager = useDialogManager();
@@ -152,39 +149,28 @@ export function useEditorState({
     };
   }, [tabs, shaderUrl, createTabsSnapshot]);
 
-  // Handle compilation results - updates state and calls auto-play callback
-  const handleCompilationResult = useCallback((success: boolean, errors: CompilationError[], compilationTime: number) => {
-    setCompilationErrors(errors);
-    setCompilationSuccess(success);
-    setCompilationTime(compilationTime);
-    setIsCompiling(false);
-
-    // Call auto-play callback if compilation succeeds
-    if (success && onAutoPlay) {
-      onAutoPlay();
-    }
-  }, [onAutoPlay]);
-
   // Initialize shader on mount or slug change
   useEffect(() => {
     if (slug) {
       loadShader(slug);
     } else {
-      // No slug means new shader - reset to defaults
+      // No slug means new shader - reset to defaults (or use initialCode if provided)
       setShaderUrl(null);
       setShader(null);
-      const defaultTabs = [{ id: '1', name: 'Image', code: DEFAULT_SHADER_CODES.Image, isDeletable: false, errors: [] }];
+      const codeToUse = initialCode ?? DEFAULT_SHADER_CODES.Image;
+      const defaultTabs = [{ id: '1', name: 'Image', code: codeToUse, isDeletable: false, errors: [] }];
       setTabs(defaultTabs);
 
       // Show loading screen and trigger compilation for default shader
       setLoading(true);
       setTimeout(() => {
         const tabsData = tabsToTabData(defaultTabs);
-        rendererCompile(tabsData);
+        controller.compile(tabsData);
         setLoading(false);
       }, 0);
     }
-  }, [slug, rendererCompile]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug]); // Only re-run when slug changes, controller.compile is stable
 
   const loadShader = async (slug: string) => {
     setLoading(true);
@@ -203,9 +189,9 @@ export function useEditorState({
       // Save snapshot of loaded tabs for unsaved changes tracking
       savedTabsSnapshotRef.current = JSON.stringify(sortedTabs.map(t => ({ name: t.name, code: t.code })));
 
-      // Trigger compilation after loading (using imperative method)
+      // Trigger compilation after loading (using controller)
       const tabsData = tabsToTabData(loadedTabs);
-      rendererCompile(tabsData);
+      controller.compile(tabsData);
 
       // Set URL to indicate this is a saved shader
       setShaderUrl(slug);
@@ -227,10 +213,6 @@ export function useEditorState({
     }
   }, [shader?.title]);
 
-  // Update tabs with incoming compilation errors and maintain sort order
-  useEffect(() => {
-    setTabs(prevTabs => sortTabsByCanonicalOrder(distributeErrorsToTabs(prevTabs, compilationErrors)));
-  }, [compilationErrors]);
 
   // Tab management handlers
   const handleAddTab = useCallback((name: string) => {
@@ -275,27 +257,19 @@ export function useEditorState({
       tab.id === tabId ? { ...tab, code: newCode } : tab
     ));
 
-    // Set compiling state
-    setIsCompiling(true);
-    setLastCompilationTime(Date.now());
-
     // Build tabs data with the new code directly (not from stale state)
     const updatedTabs = tabs.map(tab =>
       tab.id === tabId ? { ...tab, code: newCode } : tab
     );
     const tabsData = tabsToTabData(updatedTabs);
-    rendererCompile(tabsData);
-  }, [tabs, rendererCompile]);
+    controller.compile(tabsData);
+  }, [tabs, controller]);
 
   const handleCompile = useCallback(() => {
-    // Set compiling state and update timestamp
-    setIsCompiling(true);
-    setLastCompilationTime(Date.now());
-
-    // Convert tabs to TabShaderData format and compile imperatively
+    // Convert tabs to TabShaderData format and compile via controller
     const tabsData = tabsToTabData(tabs);
-    rendererCompile(tabsData);
-  }, [tabs, rendererCompile]);
+    controller.compile(tabsData);
+  }, [tabs, controller]);
 
   // Business logic handlers
   const handleSaveAsClick = useCallback(() => {
@@ -327,7 +301,7 @@ export function useEditorState({
       await new Promise(resolve => setTimeout(resolve, 150));
 
       // Determine compilation status
-      const status = determineCompilationStatus(compilationSuccess, compilationErrors);
+      const status = determineCompilationStatus(controller.compilationSuccess, controller.compilationErrors);
 
       // Prepare tabs data and update data
       const tabsData = tabsToTabData(tabs);
@@ -348,7 +322,7 @@ export function useEditorState({
       logger.error('Failed to save shader', error);
       showErrorAlert(error, 'save shader');
     }
-  }, [shader, slug, token, handleCompile, compilationSuccess, compilationErrors, localShaderTitle, tabs]);
+  }, [shader, slug, token, handleCompile, controller.compilationSuccess, controller.compilationErrors, localShaderTitle, tabs]);
 
   const handleRenameShader = useCallback(async (newName: string) => {
     // Update local title immediately (for UI)
@@ -433,7 +407,7 @@ export function useEditorState({
     try {
       // Trigger compilation if not already compiled or if code has changed
       // This ensures we have accurate compilation status before saving
-      if (compilationSuccess === undefined) {
+      if (controller.compilationSuccess === undefined) {
         handleCompile();
         // Wait a moment for compilation to complete
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -445,7 +419,7 @@ export function useEditorState({
       }
 
       // Determine compilation status
-      const status = determineCompilationStatus(compilationSuccess, compilationErrors);
+      const status = determineCompilationStatus(controller.compilationSuccess, controller.compilationErrors);
 
       // Prepare shader data
       const tabsData = tabsToTabData(tabs);
@@ -454,7 +428,7 @@ export function useEditorState({
         tabs: tabsData,
         isPublic: true,
         compilationStatus: status,
-        compilationErrors: compilationErrors.length > 0 ? compilationErrors : undefined
+        compilationErrors: controller.compilationErrors.length > 0 ? controller.compilationErrors : undefined
       };
 
       // Save new shader via API
@@ -468,7 +442,7 @@ export function useEditorState({
       logger.error('Failed to save new shader', error);
       showErrorAlert(error, 'save shader');
     }
-  }, [compilationSuccess, handleCompile, compilationErrors, tabs, token, navigate]);
+  }, [controller.compilationSuccess, handleCompile, controller.compilationErrors, tabs, token, navigate]);
 
   return {
     // State
@@ -477,13 +451,14 @@ export function useEditorState({
     activeTabId,
     localShaderTitle,
     shaderUrl,
-    compilationErrors,
-    compilationSuccess,
-    compilationTime,
+    // Delegate compilation state to controller (for API compatibility)
+    compilationErrors: controller.compilationErrors,
+    compilationSuccess: controller.compilationSuccess,
+    compilationTime: controller.compilationTime,
     loading,
     isOwner,
-    isCompiling,
-    lastCompilationTime,
+    isCompiling: controller.isCompiling,
+    lastCompilationTime: controller.lastCompilationTime,
     hasUnsavedChanges,
 
     // Dialog management
@@ -507,8 +482,8 @@ export function useEditorState({
     onDeleteShader: handleDeleteShader,
     onSaveShader: handleSaveShader,
 
-    // Compilation callback (for useWebGLRenderer)
-    handleCompilationResult,
+    // Shader controller (for EditorPage to access WebGL/playback)
+    controller,
 
     // Loading
     loadShader,
