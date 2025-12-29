@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/accordion';
 import { X, CheckCircle, XCircle, SkipForward, Clock } from 'lucide-react';
 import type { PipelineTrace, StepTrace } from '../../../../prompt-engineering/types';
+import { PrettyJson } from './PrettyJson';
 
 interface PipelineTraceOverlayProps {
   isOpen: boolean;
@@ -38,10 +39,10 @@ function isShaderCode(value: unknown): value is string {
 }
 
 /**
- * Render a value - either as a code block or formatted JSON
+ * Render a value - either as a code block or formatted JSON with pretty strings
  */
-function renderValue(data: unknown, label: string): React.ReactNode {
-  // Handle objects with code field
+function renderValue(data: unknown): React.ReactNode {
+  // Handle objects with code field - separate code from other fields
   if (data && typeof data === 'object' && 'code' in data) {
     const obj = data as Record<string, unknown>;
     const code = obj.code;
@@ -53,9 +54,10 @@ function renderValue(data: unknown, label: string): React.ReactNode {
       <>
         {Object.keys(otherFields).length > 0 && (
           <div className="mb-2">
-            <pre className="text-xs text-foreground bg-background p-2 rounded overflow-auto max-h-32 border border-lines font-mono">
-              {JSON.stringify(otherFields, null, 2)}
-            </pre>
+            <PrettyJson
+              data={otherFields}
+              className="text-foreground bg-background p-2 rounded overflow-auto max-h-48 border border-lines"
+            />
           </div>
         )}
         {typeof code === 'string' && (
@@ -79,21 +81,13 @@ function renderValue(data: unknown, label: string): React.ReactNode {
     );
   }
 
-  // Default: formatted JSON
-  try {
-    const formatted = JSON.stringify(data, null, 2);
-    return (
-      <pre className="text-xs text-foreground bg-background p-2 rounded overflow-auto max-h-48 border border-lines font-mono">
-        {formatted}
-      </pre>
-    );
-  } catch {
-    return (
-      <pre className="text-xs text-foreground bg-background p-2 rounded overflow-auto max-h-48 border border-lines font-mono">
-        {String(data)}
-      </pre>
-    );
-  }
+  // Default: use PrettyJson for proper string rendering
+  return (
+    <PrettyJson
+      data={data}
+      className="text-foreground bg-background p-2 rounded overflow-auto max-h-48 border border-lines"
+    />
+  );
 }
 
 function StepContent({ step }: { step: StepTrace }) {
@@ -121,7 +115,7 @@ function StepContent({ step }: { step: StepTrace }) {
       {step.input !== undefined && (
         <div>
           <h4 className="text-xs font-medium text-muted-foreground mb-1">Input</h4>
-          {renderValue(step.input, 'Input')}
+          {renderValue(step.input)}
         </div>
       )}
 
@@ -129,7 +123,7 @@ function StepContent({ step }: { step: StepTrace }) {
       {step.output !== undefined && (
         <div>
           <h4 className="text-xs font-medium text-muted-foreground mb-1">Output</h4>
-          {renderValue(step.output, 'Output')}
+          {renderValue(step.output)}
         </div>
       )}
 
