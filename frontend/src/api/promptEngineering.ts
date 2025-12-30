@@ -189,6 +189,21 @@ export async function updateScore(suiteId: string, promptId: string, score: Resp
 }
 
 /**
+ * Verify compilation results and auto-score failed compilations
+ * Called once when a suite is first viewed
+ */
+export async function verifyCompilation(
+  suiteId: string,
+  data: {
+    successfulCompilations: number;
+    responsesExpectingCode: number;
+    failedPromptScores: Array<{ promptId: string; score: ResponseScore }>;
+  }
+): Promise<void> {
+  await apiClient.put(`/api/prompt-engineering/suites/${suiteId}/verify-compilation`, data);
+}
+
+/**
  * Cancel an in-progress suite run
  */
 export async function cancelRun(runId: string): Promise<void> {

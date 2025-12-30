@@ -70,5 +70,7 @@ export interface ResponseSuite {
     successfulCompilations: number;
     averageLatencyMs: number;
     scoredCount: number;
+    compilationVerified?: boolean;    // True after first view processes compilation
+    responsesExpectingCode?: number;  // Count of responses that should have code (excludes explain-only)
   };
 }

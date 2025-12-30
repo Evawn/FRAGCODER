@@ -20,6 +20,7 @@ import { PipelineTraceOverlay } from './PipelineTraceOverlay';
 import { useResponseScorerState, buildChatMessages } from '@/hooks/useResponseScorerState';
 import { useShaderController } from '@/hooks/useShaderController';
 import { useThumbnailCapture } from '@/components/AI/hooks/useThumbnailCapture';
+import { DEFAULT_SHADER_CODES } from '@/utils/defaultShaderCode';
 import type { Tab } from '@/types';
 import type { ChatMessageNode } from '@/types/chat';
 
@@ -60,8 +61,13 @@ export function ResponseScorer({ suiteId, promptId }: ResponseScorerProps) {
   useEffect(() => {
     if (!currentPromptId || !state.response) return;
 
-    // Use empty string if no code (API error case) - will fail compilation naturally
-    const code = state.response.response.code ?? '';
+    // Get code to display in editor:
+    // 1. Use LLM response code if available
+    // 2. Fall back to user code from trace input (for explain responses)
+    // 3. Fall back to default shader code
+    const engineerPromptInput = state.response.trace?.steps.find((s: { stepName: string }) => s.stepName === 'engineerPrompt')?.input as { code?: string } | undefined;
+    const userCode = engineerPromptInput?.code;
+    const code = state.response.response.code ?? userCode ?? DEFAULT_SHADER_CODES.Image;
     const errors = state.response.compilationErrors ?? [];
 
     setTabs([{
@@ -71,9 +77,9 @@ export function ResponseScorer({ suiteId, promptId }: ResponseScorerProps) {
       isDeletable: false,
       errors,
     }]);
-    setSelectedCode(code || undefined);
+    setSelectedCode(state.response.response.code || undefined);
 
-    // Compile the shader code (empty string will fail, clearing the spinner)
+    // Compile the shader code
     controller.compile([{ id: '1', name: 'Image', code }]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPromptId]); // Only run when navigating to a different prompt
@@ -87,8 +93,8 @@ export function ResponseScorer({ suiteId, promptId }: ResponseScorerProps) {
       }
 
       // Extract user code from trace input (if available)
-      const traceInput = state.response.trace?.steps[0]?.input as { code?: string } | undefined;
-      const userCode = traceInput?.code;
+      const engineerPromptInput = state.response.trace?.steps.find((s: { stepName: string }) => s.stepName === 'engineerPrompt')?.input as { code?: string } | undefined;
+      const userCode = engineerPromptInput?.code;
       const assistantCode = state.response.response.code;
 
       // Generate thumbnails in parallel

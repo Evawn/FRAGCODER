@@ -58,6 +58,21 @@ export async function saveScore(suiteId: string, promptId: string, score: Respon
   return api.updateScore(suiteId, promptId, score);
 }
 
+/**
+ * Verify compilation results and auto-score failed compilations
+ * Called once when a suite is first viewed
+ */
+export async function verifyCompilation(
+  suiteId: string,
+  data: {
+    successfulCompilations: number;
+    responsesExpectingCode: number;
+    failedPromptScores: Array<{ promptId: string; score: ResponseScore }>;
+  }
+): Promise<void> {
+  return api.verifyCompilation(suiteId, data);
+}
+
 // Re-export active run types
 export type { ActiveRunInfo } from '@/api/promptEngineering';
 

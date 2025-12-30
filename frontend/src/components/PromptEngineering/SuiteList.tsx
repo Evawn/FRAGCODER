@@ -24,8 +24,10 @@ function formatDate(isoString: string): string {
 }
 
 function SuiteCard({ suite }: { suite: SuiteSummary }) {
-  const successRate = suite.metadata.totalPrompts > 0
-    ? Math.round((suite.metadata.successfulCompilations / suite.metadata.totalPrompts) * 100)
+  // Use responsesExpectingCode if available (verified suites), otherwise fall back to totalPrompts
+  const denominator = suite.metadata.responsesExpectingCode ?? suite.metadata.totalPrompts;
+  const successRate = denominator > 0
+    ? Math.round((suite.metadata.successfulCompilations / denominator) * 100)
     : 0;
 
   return (
@@ -53,7 +55,7 @@ function SuiteCard({ suite }: { suite: SuiteSummary }) {
             <XCircle size={14} className="text-error" />
           )}
           <span className="text-foreground">
-            {suite.metadata.successfulCompilations}/{suite.metadata.totalPrompts} compiled
+            {suite.metadata.successfulCompilations}/{denominator} compiled
           </span>
         </div>
 

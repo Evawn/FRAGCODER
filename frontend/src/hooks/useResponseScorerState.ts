@@ -70,9 +70,9 @@ export function buildChatMessages(
   const nextId = () => `msg-${messageId++}`;
 
   // 1. Add prior history from trace (if available)
-  // The history is in the pipeline input of the first step
-  const traceInput = response.trace?.steps[0]?.input as { history?: ChatHistoryEntry[]; code?: string } | undefined;
-  const history = traceInput?.history;
+  // The code and history are in the engineerPrompt step (index 2)
+  const engineerPromptInput = response.trace?.steps.find(s => s.stepName === 'engineerPrompt')?.input as { history?: ChatHistoryEntry[]; code?: string } | undefined;
+  const history = engineerPromptInput?.history;
 
   if (history && history.length > 0) {
     for (const entry of history) {
@@ -101,7 +101,7 @@ export function buildChatMessages(
   }
 
   // 2. Add the actual prompt as final user message
-  const userCode = traceInput?.code;
+  const userCode = engineerPromptInput?.code;
   const userMsgId = nextId();
   const lastMsgId = messages.length > 0 ? messages[messages.length - 1].id : null;
 

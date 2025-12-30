@@ -2,13 +2,13 @@
  * Suite viewer showing a table of prompts with thumbnails and scores
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { loadSuite } from '@/data/promptEngineeringSuites';
+import { loadSuite, verifyCompilation } from '@/data/promptEngineeringSuites';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, CheckCircle, XCircle, Star, Loader2, ExternalLink } from 'lucide-react';
-import type { ResponseSuite, PromptResponse } from '../../../../prompt-engineering/types';
+import type { ResponseSuite, PromptResponse, ResponseScore } from '../../../../prompt-engineering/types';
 import { buildChatMessages } from '@/hooks/useResponseScorerState';
 import { useThumbnailPool, type ThumbnailResult } from '@/hooks/useThumbnailPool';
 import type { TabShaderData } from '@/utils/GLSLCompiler';
@@ -24,21 +24,39 @@ function formatLatency(ms: number): string {
   return `${ms}ms`;
 }
 
+/**
+ * Determine if a response is explain-only (no code expected)
+ * vs code-expecting (should have code, may have failed)
+ */
+function isExplainOnly(response: PromptResponse): boolean {
+  // A response is explain-only if it has no code AND the LLM's classified intent is 'explain'
+  return !response.response.code && response.response.intent === 'explain';
+}
+
 // Generate thumbnail for a shader using the shared pool
 function ShaderThumbnail({
   code,
   promptId,
+  isExplainOnlyResponse,
   queueThumbnail,
   onCompilationResult
 }: {
   code?: string;
   promptId: string;
+  isExplainOnlyResponse: boolean;
   queueThumbnail: (id: string, tabs: TabShaderData[], cb: (result: ThumbnailResult) => void) => void;
-  onCompilationResult: (compiled: boolean) => void;
+  onCompilationResult: (compiled: boolean | null) => void;
 }) {
   const [thumbnail, setThumbnail] = useState<string | null>(null);
 
   useEffect(() => {
+    // Explain-only responses: no compilation needed
+    if (isExplainOnlyResponse) {
+      onCompilationResult(null); // null signals "not applicable"
+      return;
+    }
+
+    // No code but NOT explain-only = API error or failed generation
     if (!code) {
       onCompilationResult(false);
       return;
@@ -52,9 +70,10 @@ function ShaderThumbnail({
         onCompilationResult(result.compiled);
       }
     );
-  }, [code, promptId, queueThumbnail, onCompilationResult]);
+  }, [code, promptId, isExplainOnlyResponse, queueThumbnail, onCompilationResult]);
 
-  if (!code) {
+  // Explain-only: show N/A
+  if (isExplainOnlyResponse) {
     return (
       <div className="w-16 h-12 bg-background-highlighted rounded flex items-center justify-center">
         <span className="text-xs text-muted-foreground">N/A</span>
@@ -62,6 +81,16 @@ function ShaderThumbnail({
     );
   }
 
+  // No code (API error): show error state
+  if (!code) {
+    return (
+      <div className="w-16 h-12 bg-background-highlighted rounded flex items-center justify-center">
+        <span className="text-xs text-error">Error</span>
+      </div>
+    );
+  }
+
+  // Loading thumbnail
   if (!thumbnail) {
     return (
       <div className="w-16 h-12 bg-background-highlighted rounded flex items-center justify-center">
@@ -116,21 +145,24 @@ function PromptRow({
   response,
   suiteId,
   index,
+  isVerified,
   queueThumbnail,
   onCompilationResult,
 }: {
   response: PromptResponse;
   suiteId: string;
   index: number;
+  isVerified: boolean;
   queueThumbnail: (id: string, tabs: TabShaderData[], cb: (result: ThumbnailResult) => void) => void;
-  onCompilationResult: (promptId: string, compiled: boolean) => void;
+  onCompilationResult: (promptId: string, compiled: boolean | null) => void;
 }) {
   const navigate = useNavigate();
-  // null = pending, true/false = actual result
+  // null = pending or N/A, true/false = actual result
   const [compilationStatus, setCompilationStatus] = useState<boolean | null>(null);
   const [isHovered, setIsHovered] = useState(false);
+  const explainOnly = isExplainOnly(response);
 
-  const handleCompilationResult = useCallback((compiled: boolean) => {
+  const handleCompilationResult = useCallback((compiled: boolean | null) => {
     setCompilationStatus(compiled);
     onCompilationResult(response.promptId, compiled);
   }, [onCompilationResult, response.promptId]);
@@ -144,6 +176,17 @@ function PromptRow({
       }
     });
   }, [navigate, response]);
+
+  // For verified suites, use stored compilationSuccess
+  useEffect(() => {
+    if (isVerified) {
+      if (explainOnly) {
+        setCompilationStatus(null);
+      } else {
+        setCompilationStatus(response.compilationSuccess);
+      }
+    }
+  }, [isVerified, explainOnly, response.compilationSuccess]);
 
   return (
     <tr
@@ -175,7 +218,9 @@ function PromptRow({
 
       {/* Compilation Status */}
       <td className="px-3 py-3 text-center">
-        {compilationStatus === null ? (
+        {explainOnly ? (
+          <span className="text-muted-foreground">—</span>
+        ) : compilationStatus === null ? (
           <Loader2 size={18} className="text-muted-foreground inline-block animate-spin" />
         ) : compilationStatus ? (
           <CheckCircle size={18} className="text-success inline-block" />
@@ -186,12 +231,34 @@ function PromptRow({
 
       {/* Thumbnail */}
       <td className="px-3 py-3">
-        <ShaderThumbnail
-          code={response.response.code}
-          promptId={response.promptId}
-          queueThumbnail={queueThumbnail}
-          onCompilationResult={handleCompilationResult}
-        />
+        {isVerified ? (
+          // For verified suites, show static thumbnail or N/A
+          explainOnly ? (
+            <div className="w-16 h-12 bg-background-highlighted rounded flex items-center justify-center">
+              <span className="text-xs text-muted-foreground">N/A</span>
+            </div>
+          ) : !response.response.code ? (
+            <div className="w-16 h-12 bg-background-highlighted rounded flex items-center justify-center">
+              <span className="text-xs text-error">Error</span>
+            </div>
+          ) : (
+            <ShaderThumbnail
+              code={response.response.code}
+              promptId={response.promptId}
+              isExplainOnlyResponse={false}
+              queueThumbnail={queueThumbnail}
+              onCompilationResult={() => {}} // No-op for verified suites
+            />
+          )
+        ) : (
+          <ShaderThumbnail
+            code={response.response.code}
+            promptId={response.promptId}
+            isExplainOnlyResponse={explainOnly}
+            queueThumbnail={queueThumbnail}
+            onCompilationResult={handleCompilationResult}
+          />
+        )}
       </td>
 
       {/* Score */}
@@ -224,10 +291,12 @@ export function SuiteViewer({ suiteId }: SuiteViewerProps) {
   const [suite, setSuite] = useState<ResponseSuite | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [compilationResults, setCompilationResults] = useState<Record<string, boolean>>({});
+  // Track compilation results: promptId -> true/false/null (null = explain-only, not counted)
+  const [compilationResults, setCompilationResults] = useState<Record<string, boolean | null>>({});
   const { queueThumbnail } = useThumbnailPool();
+  const verificationSentRef = useRef(false);
 
-  const handleCompilationResult = useCallback((promptId: string, compiled: boolean) => {
+  const handleCompilationResult = useCallback((promptId: string, compiled: boolean | null) => {
     setCompilationResults(prev => ({ ...prev, [promptId]: compiled }));
   }, []);
 
@@ -236,6 +305,8 @@ export function SuiteViewer({ suiteId }: SuiteViewerProps) {
       try {
         setIsLoading(true);
         setError(null);
+        verificationSentRef.current = false;
+        setCompilationResults({});
         const loaded = await loadSuite(suiteId);
         setSuite(loaded);
       } catch (err) {
@@ -247,6 +318,69 @@ export function SuiteViewer({ suiteId }: SuiteViewerProps) {
     };
     fetchSuite();
   }, [suiteId]);
+
+  // Handle one-time verification after all compilation results are in
+  useEffect(() => {
+    if (!suite || suite.metadata.compilationVerified || verificationSentRef.current) {
+      return;
+    }
+
+    // Count responses that need compilation (not explain-only)
+    const responsesExpectingCode = suite.responses.filter(r => !isExplainOnly(r));
+    const totalExpectingCode = responsesExpectingCode.length;
+
+    // Check if all code-expecting responses have been processed
+    const processedCodeResponses = Object.entries(compilationResults).filter(
+      ([promptId]) => {
+        const response = suite.responses.find(r => r.promptId === promptId);
+        return response && !isExplainOnly(response);
+      }
+    );
+
+    if (processedCodeResponses.length < totalExpectingCode) {
+      return; // Not all done yet
+    }
+
+    // All done - calculate stats and send verification
+    verificationSentRef.current = true;
+
+    const successCount = processedCodeResponses.filter(([, compiled]) => compiled === true).length;
+
+    // Build auto-scores for failed compilations
+    const failedPromptScores: Array<{ promptId: string; score: ResponseScore }> = [];
+    for (const response of suite.responses) {
+      if (isExplainOnly(response)) continue;
+
+      const compiled = compilationResults[response.promptId];
+      if (compiled === false && !response.score) {
+        failedPromptScores.push({
+          promptId: response.promptId,
+          score: {
+            visualQuality: -10,
+            promptCorrectness: -10,
+            codeQuality: -10,
+            explanationQuality: -10,
+            creativity: -10,
+            overallSatisfaction: -10,
+            scoredAt: new Date().toISOString(),
+            notes: 'Auto-scored: compilation failed',
+          },
+        });
+      }
+    }
+
+    // Send verification to backend
+    verifyCompilation(suiteId, {
+      successfulCompilations: successCount,
+      responsesExpectingCode: totalExpectingCode,
+      failedPromptScores,
+    }).then(() => {
+      // Reload suite to get updated data
+      loadSuite(suiteId).then(updated => setSuite(updated));
+    }).catch(err => {
+      console.error('Failed to verify compilation:', err);
+    });
+  }, [suite, suiteId, compilationResults]);
 
   if (isLoading) {
     return (
@@ -282,14 +416,39 @@ export function SuiteViewer({ suiteId }: SuiteViewerProps) {
     );
   }
 
-  // Dynamic compilation stats from thumbnail generation
-  const totalResponses = suite.responses.length;
-  const completedCount = Object.keys(compilationResults).length;
-  const successCount = Object.values(compilationResults).filter(Boolean).length;
-  const isComplete = completedCount === totalResponses;
-  const successRate = isComplete && totalResponses > 0
-    ? Math.round((successCount / totalResponses) * 100)
-    : null;
+  const isVerified = suite.metadata.compilationVerified === true;
+
+  // Calculate compilation stats
+  let successRate: number | null = null;
+  let completedCount = 0;
+  let totalExpectingCode = 0;
+
+  if (isVerified) {
+    // Use stored metadata for verified suites
+    totalExpectingCode = suite.metadata.responsesExpectingCode ?? suite.metadata.totalPrompts;
+    completedCount = totalExpectingCode;
+    successRate = totalExpectingCode > 0
+      ? Math.round((suite.metadata.successfulCompilations / totalExpectingCode) * 100)
+      : null;
+  } else {
+    // Calculate dynamically from thumbnail generation
+    const responsesExpectingCode = suite.responses.filter(r => !isExplainOnly(r));
+    totalExpectingCode = responsesExpectingCode.length;
+
+    // Count completed (only code-expecting responses)
+    const codeResultEntries = Object.entries(compilationResults).filter(([promptId]) => {
+      const response = suite.responses.find(r => r.promptId === promptId);
+      return response && !isExplainOnly(response);
+    });
+    completedCount = codeResultEntries.length;
+
+    const successCount = codeResultEntries.filter(([, compiled]) => compiled === true).length;
+    const isComplete = completedCount === totalExpectingCode;
+
+    successRate = isComplete && totalExpectingCode > 0
+      ? Math.round((successCount / totalExpectingCode) * 100)
+      : null;
+  }
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -327,7 +486,7 @@ export function SuiteViewer({ suiteId }: SuiteViewerProps) {
               </span>
             ) : (
               <span className="text-muted-foreground">
-                {completedCount}/{totalResponses}
+                {completedCount}/{totalExpectingCode}
               </span>
             )}
           </div>
@@ -365,6 +524,7 @@ export function SuiteViewer({ suiteId }: SuiteViewerProps) {
                 response={response}
                 suiteId={suiteId}
                 index={index}
+                isVerified={isVerified}
                 queueThumbnail={queueThumbnail}
                 onCompilationResult={handleCompilationResult}
               />

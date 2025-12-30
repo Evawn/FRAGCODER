@@ -14,6 +14,17 @@ import type { GoldenDataset, PromptResponse, ResponseSuite, ResponseScore } from
 const router = Router();
 
 /**
+ * Default shader code used when golden prompt doesn't specify code.
+ * This matches the frontend's default Image shader.
+ */
+const DEFAULT_SHADER_CODE = `// Main Image - Displays to screen
+
+void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+    vec2 uv = fragCoord / iResolution.xy;
+    fragColor = vec4(uv, 0.5 + 0.5*sin(3.0 * iTime), 1.0);
+}`;
+
+/**
  * Active run tracking for SSE reconnection support
  */
 interface ActiveRun {
@@ -356,11 +367,14 @@ router.post('/suites/run', async (req, res) => {
       let result: PromptResponse;
 
       try {
+        // Use default shader code if not specified in the golden prompt
+        const code = goldenPrompt.input.code ?? DEFAULT_SHADER_CODE;
+
         const responseWithTrace = await processPromptWithTrace(
           goldenPrompt.input.prompt,
           'prompt-engineering-test',  // Fake user ID for testing
           model,
-          goldenPrompt.input.code,
+          code,
           goldenPrompt.input.history,
           goldenPrompt.input.errors,
           goldenPrompt.input.intent
@@ -553,6 +567,69 @@ router.put('/suites/:id/scores', asyncHandler(async (req, res) => {
 
   // Save updated suite
   fs.writeFileSync(filePath, JSON.stringify(suite, null, 2));
+
+  return res.json({ success: true });
+}));
+
+/**
+ * PUT /api/prompt-engineering/suites/:id/verify-compilation
+ * One-time verification of compilation results after first view
+ * Updates metadata and auto-scores failed compilations
+ */
+router.put('/suites/:id/verify-compilation', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const {
+    successfulCompilations,
+    responsesExpectingCode,
+    failedPromptScores,
+  } = req.body as {
+    successfulCompilations: number;
+    responsesExpectingCode: number;
+    failedPromptScores: Array<{ promptId: string; score: ResponseScore }>;
+  };
+
+  const filePath = path.join(RESPONSE_SUITES_DIR, `${id}.json`);
+
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: 'Suite not found' });
+  }
+
+  // Load suite
+  const suite: ResponseSuite = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+
+  // Don't re-verify if already done
+  if (suite.metadata.compilationVerified) {
+    return res.json({ success: true, message: 'Already verified' });
+  }
+
+  // Update metadata
+  suite.metadata.successfulCompilations = successfulCompilations;
+  suite.metadata.responsesExpectingCode = responsesExpectingCode;
+  suite.metadata.compilationVerified = true;
+
+  // Apply auto-scores for failed compilations and update compilationSuccess
+  for (const { promptId, score } of failedPromptScores) {
+    const responseIndex = suite.responses.findIndex(r => r.promptId === promptId);
+    if (responseIndex !== -1) {
+      // Update compilationSuccess to false (frontend verified it failed)
+      suite.responses[responseIndex].compilationSuccess = false;
+      // Apply auto-score if not already scored
+      if (!suite.responses[responseIndex].score) {
+        suite.responses[responseIndex].score = score;
+      }
+    }
+  }
+
+  // Update scored count
+  suite.metadata.scoredCount = suite.responses.filter(r => r.score).length;
+
+  // Save updated suite
+  fs.writeFileSync(filePath, JSON.stringify(suite, null, 2));
+  logger.info(`Verified compilation for suite: ${id}`, {
+    successfulCompilations,
+    responsesExpectingCode,
+    autoScoredCount: failedPromptScores.length,
+  });
 
   return res.json({ success: true });
 }));
